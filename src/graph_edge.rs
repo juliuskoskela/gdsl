@@ -1,14 +1,15 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::fmt;
+use crate::graph_types::Lock;
 
 #[derive(Debug)]
 pub struct
 GraphEdge<E>
 where E: Clone + fmt::Debug {
-	pub u: usize,
-	pub v: usize,
-	pub arg: E,
-	pub valid: AtomicBool,
+	source: usize,
+	target: usize,
+	arg: E,
+	lock: AtomicBool,
 }
 
 impl<E> Clone
@@ -16,10 +17,10 @@ for GraphEdge<E>
 where E: Clone + fmt::Debug {
 	fn clone(&self) -> Self {
 		GraphEdge {
-			u: self.u,
-			v: self.v,
+			source: self.source,
+			target: self.target,
 			arg: self.arg.clone(),
-			valid: AtomicBool::new(self.valid.load(Ordering::Relaxed)),
+			lock: AtomicBool::new(self.lock.load(Ordering::Relaxed)),
 		}
 	}
 }
@@ -27,18 +28,39 @@ where E: Clone + fmt::Debug {
 impl<E>
 GraphEdge<E>
 where E: Clone + fmt::Debug {
-	pub fn new(u: usize, v: usize, arg: E) -> Self {
+	pub fn new(source: usize, target: usize, arg: E) -> Self {
 		Self {
-			u,
-			v,
+			source,
+			target,
 			arg,
-			valid: AtomicBool::new(true),
+			lock: AtomicBool::new(false),
 		}
 	}
-	pub fn open(&self) {
-		self.valid.store(true, Ordering::Relaxed);
+	pub fn lock_open(&self) {
+		self.lock.store(false, Ordering::Relaxed);
 	}
-	pub fn close(&self) {
-		self.valid.store(false, Ordering::Relaxed);
+	pub fn lock_close(&self) {
+		self.lock.store(true, Ordering::Relaxed);
+	}
+	pub fn lock_try(&self) -> Lock {
+		let lock_bool = self.lock.load(Ordering::Relaxed);
+		if lock_bool == false {
+			return Lock::OPEN;
+		}
+		else {
+			return Lock::CLOSED;
+		}
+	}
+	pub fn get_source(&self) -> usize {
+		self.source
+	}
+	pub fn get_target(&self) -> usize {
+		self.target
+	}
+	pub fn get_arg(&self) -> &E {
+		&self.arg
+	}
+	pub fn get_arg_mut(&mut self) -> &mut E {
+		&mut self.arg
 	}
 }

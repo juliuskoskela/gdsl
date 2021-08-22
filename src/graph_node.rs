@@ -2,6 +2,7 @@ use std::hash::Hash;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::fmt;
 use crate::graph_edge::GraphEdge;
+use crate::graph_types::Lock;
 
 type NodeEdges<E> = Vec<GraphEdge<E>>;
 
@@ -12,12 +13,12 @@ where
 K: Hash + Eq + Clone + fmt::Debug,
 N: Clone + fmt::Debug ,
 E: Clone + fmt::Debug {
-	pub arg: N,
-	pub key: K,
-	pub index: usize,
+	arg: N,
+	key: K,
+	index: usize,
 	pub to: NodeEdges<E>,
 	pub from: NodeEdges<E>,
-	pub valid: AtomicBool,
+	lock: AtomicBool,
 }
 
 impl<K, N, E> Clone
@@ -33,7 +34,7 @@ E: Clone + fmt::Debug {
 			index: self.index,
 			to: self.to.clone(),
 			from: self.from.clone(),
-			valid: AtomicBool::new(self.valid.load(Ordering::Relaxed)),
+			lock: AtomicBool::new(self.lock.load(Ordering::Relaxed)),
 		}
 	}
 }
@@ -44,20 +45,73 @@ where
 K: Hash + Eq + Clone + fmt::Debug,
 N: Clone + fmt::Debug ,
 E: Clone + fmt::Debug {
-	pub fn new(key: K, arg: N) -> Self {
+	pub fn new(key: K, arg: N, index: usize) -> Self {
 		Self {
 			arg,
 			key,
-			index: 0,
+			index,
 			to: NodeEdges::new(),
 			from: NodeEdges::new(),
-			valid: AtomicBool::new(true),
+			lock: AtomicBool::new(false),
 		}
 	}
-	pub fn open(&self) {
-		self.valid.store(true, Ordering::Relaxed)
+	pub fn lock_open(&self) {
+		self.lock.store(false, Ordering::Relaxed)
 	}
-	pub fn close(&self) {
-		self.valid.store(false, Ordering::Relaxed)
+	pub fn lock_close(&self) {
+		self.lock.store(true, Ordering::Relaxed)
+	}
+	pub fn lock_try(&self) -> Lock {
+		let lock_bool = self.lock.load(Ordering::Relaxed);
+		if lock_bool == false {
+			return Lock::OPEN;
+		}
+		else {
+			return Lock::CLOSED;
+		}
+	}
+	pub fn get_arg_mut(&mut self) -> &mut N {
+		&mut self.arg
+	}
+	pub fn get_arg(&self) -> &N {
+		&self.arg
+	}
+	pub fn get_key(&self) -> &K {
+		&self.key
+	}
+	pub fn get_index(&self) -> usize {
+		self.index
+	}
+	pub fn find_edge_to(&self, target: usize) -> Option<&GraphEdge<E>> {
+		for edge in self.to.iter() {
+			if edge.get_target() == target {
+				return Some(edge);
+			}
+		}
+		None
+	}
+	pub fn find_edge_to_mut(&mut self, target: usize) -> Option<&mut GraphEdge<E>> {
+		for edge in self.to.iter_mut() {
+			if edge.get_target() == target {
+				return Some(edge);
+			}
+		}
+		None
+	}
+	pub fn find_edge(&self, source: usize) -> Option<&GraphEdge<E>> {
+		for edge in self.from.iter() {
+			if edge.get_source() == source {
+				return Some(edge);
+			}
+		}
+		None
+	}
+	pub fn find_edge_from(&mut self, source: usize) -> Option<&mut GraphEdge<E>> {
+		for edge in self.from.iter_mut() {
+			if edge.get_source() == source {
+				return Some(edge);
+			}
+		}
+		None
 	}
 }
