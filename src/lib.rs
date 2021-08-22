@@ -85,7 +85,13 @@ mod test {
 		graph.add_edge(&0x1, &0x4, 30.0);
 		graph.add_edge(&0x2, &0x3, 40.0);
 		let edges = graph.shortest_path(&0x0, &0x3).unwrap();
-		println!("{:?}", edges);
+		let expect = vec![1, 2, 3];
+		let mut i : usize;
+		i = 0;
+		for e in edges.iter() {
+			assert_eq!(expect[i], e.get_target());
+			i += 1;
+		}
 	}
 
 	#[test]
