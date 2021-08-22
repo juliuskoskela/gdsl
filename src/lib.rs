@@ -8,11 +8,6 @@ mod test {
     use crate::graph::Graph;
 
 	#[test]
-    fn graph_create() {
-        let graph = Graph::<String, f64, f64>::new();
-		println!("{:?}", graph);
-    }
-	#[test]
 	fn graph_add_nodes() {
 		let mut graph = Graph::<usize, f64, f64>::new();
 		graph.add_node(0x0, 1.0);
@@ -95,32 +90,32 @@ mod test {
 	}
 
 	#[test]
-	fn graph_struct_arg() {
+	fn graph_struct_nodes() {
 		#[derive(Debug)]
-		struct Node {
+		struct NodeArg {
 			a: i64,
 			b: f64,
 			c: String,
 		}
-		impl Clone for Node {
+		impl Clone for NodeArg {
 			fn clone(&self) -> Self {
-				Node { a: self.a, b: self.b, c: self.c.clone() }
+				NodeArg { a: self.a, b: self.b, c: self.c.clone() }
 			}
 		}
 		#[derive(Debug)]
-		struct Edge {
+		struct EdgeArg {
 			a: i64,
 			b: f64,
 			c: String,
 		}
-		impl Clone for Edge {
+		impl Clone for EdgeArg {
 			fn clone(&self) -> Self {
-				Edge { a: self.a, b: self.b, c: self.c.clone() }
+				EdgeArg { a: self.a, b: self.b, c: self.c.clone() }
 			}
 		}
-		let mut graph = Graph::<usize, Node, Edge>::new();
-		graph.add_node(1, Node {a: 1, b: 1.0, c: "arg1".to_string()});
-		graph.add_node(2, Node {a: 1, b: 1.0, c: "arg2".to_string()});
-		graph.add_node(3, Node {a: 1, b: 1.0, c: "arg3".to_string()});
+		let mut graph = Graph::<usize, NodeArg, EdgeArg>::new();
+		graph.add_node(1, NodeArg {a: 1, b: 1.0, c: "arg1".to_string()});
+		graph.add_node(2, NodeArg {a: 1, b: 1.0, c: "arg2".to_string()});
+		graph.add_node(3, NodeArg {a: 1, b: 1.0, c: "arg3".to_string()});
 	}
 }
