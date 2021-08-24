@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::collections::VecDeque;
-use std::fmt;
+use std::fmt::Debug;
 use crate::graph_node::GraphNode;
 use crate::graph_edge::GraphEdge;
 use crate::graph_types::Lock;
@@ -13,9 +13,9 @@ type GraphNodes<K, N, E> = Vec<GraphNode<K, N, E>>;
 pub struct
 Graph<K, N, E>
 where
-K: Hash + Eq + Clone + fmt::Debug,
-N: Clone + fmt::Debug ,
-E: Clone + fmt::Debug {
+K: Hash + Eq + Clone + Debug,
+N: Clone + Debug ,
+E: Clone + Debug {
 	nodes: GraphNodes<K, N, E>,
 	keys: GraphKeys<K>,
 	edge_count: usize,
@@ -24,9 +24,9 @@ E: Clone + fmt::Debug {
 impl<K, N, E>
 Graph<K, N, E>
 where
-K: Hash + Eq + Clone + fmt::Debug,
-N: Clone + fmt::Debug ,
-E: Clone + fmt::Debug {
+K: Hash + Eq + Clone + Debug,
+N: Clone + Debug ,
+E: Clone + Debug {
 	pub fn new() -> Self {
 		Self {
 			nodes: GraphNodes::new(),

@@ -1,6 +1,6 @@
 use std::hash::Hash;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::fmt;
+use std::fmt::Debug;
 use crate::graph_edge::GraphEdge;
 use crate::graph_types::Lock;
 
@@ -10,9 +10,9 @@ type NodeEdges<E> = Vec<GraphEdge<E>>;
 pub struct
 GraphNode<K, N, E>
 where
-K: Hash + Eq + Clone + fmt::Debug,
-N: Clone + fmt::Debug ,
-E: Clone + fmt::Debug {
+K: Hash + Eq + Clone + Debug,
+N: Clone + Debug ,
+E: Clone + Debug {
 	arg: N,
 	key: K,
 	index: usize,
@@ -24,9 +24,9 @@ E: Clone + fmt::Debug {
 impl<K, N, E> Clone
 for GraphNode<K, N, E>
 where
-K: Hash + Eq + Clone + fmt::Debug,
-N: Clone + fmt::Debug ,
-E: Clone + fmt::Debug {
+K: Hash + Eq + Clone + Debug,
+N: Clone + Debug ,
+E: Clone + Debug {
 	fn clone(&self) -> Self {
 		GraphNode {
 			arg: self.arg.clone(),
@@ -42,9 +42,9 @@ E: Clone + fmt::Debug {
 impl<K, N, E>
 GraphNode<K, N, E>
 where
-K: Hash + Eq + Clone + fmt::Debug,
-N: Clone + fmt::Debug ,
-E: Clone + fmt::Debug {
+K: Hash + Eq + Clone + Debug,
+N: Clone + Debug ,
+E: Clone + Debug {
 	pub fn new(key: K, arg: N, index: usize) -> Self {
 		Self {
 			arg,

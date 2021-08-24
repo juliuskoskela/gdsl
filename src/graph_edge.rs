@@ -1,11 +1,11 @@
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::fmt;
+use std::fmt::Debug;
 use crate::graph_types::Lock;
 
 #[derive(Debug)]
 pub struct
 GraphEdge<E>
-where E: Clone + fmt::Debug {
+where E: Clone + Debug {
 	source: usize,
 	target: usize,
 	arg: E,
@@ -14,7 +14,7 @@ where E: Clone + fmt::Debug {
 
 impl<E> Clone
 for GraphEdge<E>
-where E: Clone + fmt::Debug {
+where E: Clone + Debug {
 	fn clone(&self) -> Self {
 		GraphEdge {
 			source: self.source,
@@ -27,7 +27,7 @@ where E: Clone + fmt::Debug {
 
 impl<E>
 GraphEdge<E>
-where E: Clone + fmt::Debug {
+where E: Clone + Debug {
 	pub fn new(source: usize, target: usize, arg: E) -> Self {
 		Self {
 			source,
