@@ -157,7 +157,7 @@ where
 
 	///////////////////////////////////////////////////////////////////////////
 
-	pub fn bfs_directed(&self, target: &Vertex<K, N, E>) -> Option<EdgeList<K, N, E>> {
+	pub fn bfs_directed(&self, target: &Vertex<K, N, E>) -> EdgeList<K, N, E> {
         let mut queue = VecDeque::new();
 		let mut edge_list = EdgeList::new();
         queue.push_back(self.clone());
@@ -174,14 +174,14 @@ where
 					edge_list.add(e.clone());
 					if e.target() == *target {
 						edge_list.open_all();
-						return Some(edge_list);
+						return edge_list;
 					}
 					queue.push_back(e.target().deref().clone());
 				}
             }
         }
 		edge_list.open_all();
-		None
+		edge_list
 	}
 
 	pub fn bfs_undirected(&self, target: &Vertex<K, N, E>) -> EdgeList<K, N, E> {
@@ -241,7 +241,8 @@ where
 		let mut body : String;
 		if outbound.len() > 0 {
 			body = "\n".to_string() + &outbound.join("\n") + "\n";
-		} else {
+		}
+		else {
 			body = "".to_string();
 		}
 		if inbound.len() > 0 {

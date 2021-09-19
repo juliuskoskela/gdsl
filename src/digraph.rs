@@ -46,10 +46,6 @@ where
 		}
 	}
 
-	pub fn node_count(&self) -> usize {
-		self.nodes.len()
-	}
-
 	pub fn insert(&mut self, key: K, data: N) {
 		if self.nodes.contains_key(&key) {
 			let node = self.nodes[&key].clone();
@@ -74,13 +70,7 @@ where
 
 	pub fn bfs(&self, source: &K, target: &K) -> Option<EdgeList<K, N, E>> {
 		if self.nodes.contains_key(source) && self.nodes.contains_key(source) {
-			let res = self.nodes[source].bfs_directed(&self.nodes[target]);
-			match res {
-				Some(edges) => {
-					return Some(edges);
-				}
-				None => return None
-			}
+			Some(self.nodes[source].bfs_directed(&self.nodes[target]))
 		} else {
 			None
 		}
