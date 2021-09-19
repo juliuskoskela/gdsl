@@ -46,9 +46,13 @@ where
 		}
 	}
 
-	pub fn insert(&mut self, key: &K, data: &N) {
-		if self.nodes.contains_key(key) {
-			let node = self.nodes[key].clone();
+	pub fn node_count(&self) -> usize {
+		self.nodes.len()
+	}
+
+	pub fn insert(&mut self, key: K, data: N) {
+		if self.nodes.contains_key(&key) {
+			let node = self.nodes[&key].clone();
 			node.store(data.clone());
 		} else {
 			let node = Vertex::new(Node::new(key.clone(), data.clone()));
@@ -70,7 +74,13 @@ where
 
 	pub fn bfs(&self, source: &K, target: &K) -> Option<EdgeList<K, N, E>> {
 		if self.nodes.contains_key(source) && self.nodes.contains_key(source) {
-			Some(self.nodes[source].bfs_directed(&self.nodes[target]))
+			let res = self.nodes[source].bfs_directed(&self.nodes[target]);
+			match res {
+				Some(edges) => {
+					return Some(edges);
+				}
+				None => return None
+			}
 		} else {
 			None
 		}

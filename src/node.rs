@@ -157,7 +157,7 @@ where
 
 	///////////////////////////////////////////////////////////////////////////
 
-	pub fn bfs_directed(&self, target: &Vertex<K, N, E>) -> EdgeList<K, N, E> {
+	pub fn bfs_directed(&self, target: &Vertex<K, N, E>) -> Option<EdgeList<K, N, E>> {
         let mut queue = VecDeque::new();
 		let mut edge_list = EdgeList::new();
         queue.push_back(self.clone());
@@ -174,14 +174,14 @@ where
 					edge_list.add(e.clone());
 					if e.target() == *target {
 						edge_list.open_all();
-						return edge_list;
+						return Some(edge_list);
 					}
 					queue.push_back(e.target().deref().clone());
 				}
             }
         }
 		edge_list.open_all();
-		edge_list
+		None
 	}
 
 	pub fn bfs_undirected(&self, target: &Vertex<K, N, E>) -> EdgeList<K, N, E> {
@@ -226,20 +226,26 @@ where
 
 	pub fn to_string(&self) -> String {
 		let mut outbound = vec![];
+		let mut inbound = vec![];
 		for edge in self.outbound.lock().unwrap().list.iter() {
 			outbound.push(format!("	{}", edge.to_string()));
+		}
+		for edge in self.inbound.lock().unwrap().list.iter() {
+			inbound.push(format!("	{}", edge.to_string()));
 		}
 		let lock_state = if self.lock() == false {"OPEN"} else {"CLOSED"};
 		let header = format!("\"{}\" : \"{}\" : \"{}\" {{ ",
 			self.key,
 			lock_state,
 			self.data.lock().unwrap());
-		let body : String;
+		let mut body : String;
 		if outbound.len() > 0 {
 			body = "\n".to_string() + &outbound.join("\n") + "\n";
-		}
-		else {
+		} else {
 			body = "".to_string();
+		}
+		if inbound.len() > 0 {
+			body = body + "\n" + &inbound.join("\n") + "\n";
 		}
 		let end = "}";
 		header + &body + end
@@ -277,18 +283,18 @@ where
 {
 	let mut i: usize = 0;
 	let mut j: usize = 0;
-	let mut inbound = source.outbound.lock().unwrap();
-	for edge_out in inbound.list.iter() {
+	let mut source_outbound = source.outbound.lock().unwrap();
+	for edge_out in source_outbound.list.iter() {
 		if edge_out.target() == *target {
-			let mut outbound = target.outbound.lock().unwrap();
-			for edge_in in outbound.list.iter() {
-				if edge_in.source() == *source {
-					outbound.del_index(j);
+			let mut target_inbound = target.inbound.lock().unwrap();
+			for edge_in in target_inbound.list.iter() {
+				if edge_in.target() == *target {
+					target_inbound.del_index(j);
 					break
 				}
 				j += 1;
 			}
-			inbound.del_index(i);
+			source_outbound.del_index(i);
 			return true;
 		}
 		i += 1;
