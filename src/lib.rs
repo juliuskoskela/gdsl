@@ -8,26 +8,6 @@ pub mod global;
 #[cfg(test)]
 mod tests {
 	use crate::digraph::*;
-	use rand::{thread_rng, Rng};
-	use rand::distributions::Alphanumeric;
-
-	fn rand_string(len: usize) -> String {
-		thread_rng()
-        	.sample_iter(&Alphanumeric)
-        	.take(6)
-        	.map(char::from)
-        	.collect()
-	}
-
-	fn rand_keys(count: usize, keysize: usize) -> Vec<String> {
-		let mut i = 0;
-		let mut keys = vec![];
-		while i < count {
-			keys.push(rand_string(keysize));
-			i += 1;
-		}
-		keys
-	}
 
     #[test]
     fn basic() {
@@ -62,18 +42,5 @@ mod tests {
 			}
 			None => println!("Target not found!")
 		}
-	}
-
-	#[test]
-	fn stress() {
-		type MyGraph = Digraph<String, usize, usize>;
-
-		let mut g = MyGraph::new();
-		let keys = rand_keys(100, 6);
-		for key in keys.iter() {
-			g.insert(key.clone(), 0);
-		}
-
-		// println!("node count = {}", g.node_count());
 	}
 }
