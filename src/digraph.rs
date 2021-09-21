@@ -27,7 +27,7 @@ where
 	N: Clone + Debug + Display + Sync + Send,
 	E: Clone + Debug + Display + Sync + Send,
 {
-	nodes: VertexPool<K, N, E>
+	nodes: NodeRefPool<K, N, E>
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -42,7 +42,7 @@ where
 {
 	pub fn new() -> Self {
 		Self {
-			nodes: VertexPool::new()
+			nodes: NodeRefPool::new()
 		}
 	}
 
@@ -56,7 +56,7 @@ where
 			node.store(data.clone());
 			false
 		} else {
-			let node = Vertex::new(Node::new(key.clone(), data.clone()));
+			let node = NodeRef::new(Node::new(key.clone(), data.clone()));
 			self.nodes.insert(key.clone(), node);
 			true
 		}
@@ -75,20 +75,34 @@ where
 	}
 
 	pub fn bfs(&self, source: &K, target: &K) -> Option<EdgeList<K, N, E>> {
-		if self.nodes.contains_key(source) && self.nodes.contains_key(source) {
-			self.nodes[source].bfs_directed(&self.nodes[target])
-		} else {
-			None
+		let s = self.nodes.get(source);
+		let t = self.nodes.get(target);
+
+		match s {
+			Some(ss) => {
+				match t {
+					Some(tt) => { return ss.traverse_breadth(tt); }
+					None => { return None; }
+				}
+			}
+			None => { return None; }
 		}
 	}
 
-	// pub fn bfs_multi(&self, source: &K, target: &K) -> Option<EdgeList<K, N, E>> {
-	// 	if self.nodes.contains_key(source) && self.nodes.contains_key(source) {
-	// 		self.nodes[source].bfs_directed_multi(&self.nodes[target])
-	// 	} else {
-	// 		None
-	// 	}
-	// }
+	pub fn shortest_path(&self, source: &K, target: &K) -> Option<EdgeList<K, N, E>> {
+		let s = self.nodes.get(source);
+		let t = self.nodes.get(target);
+
+		match s {
+			Some(ss) => {
+				match t {
+					Some(tt) => { return ss.shortest_path(tt); }
+					None => { return None; }
+				}
+			}
+			None => { return None; }
+		}
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////

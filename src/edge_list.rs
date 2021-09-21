@@ -174,8 +174,11 @@ where
 		res.add(self.list[self.list.len() - 1].clone());
 		let mut i = 0;
 		for edge in self.list.iter().rev() {
-			let source = res.list[i].source();
-			if edge.target() == source {
+			edge.open();
+			edge.target().open();
+			edge.source().open();
+			let source = &res.list[i].source();
+			if edge.target() == *source {
 				res.list.push(edge.clone());
 				i += 1;
 			}

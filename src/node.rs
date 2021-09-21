@@ -2,24 +2,25 @@
 ///
 /// INCLUDES
 
-use std:: {borrow::Borrow, collections::VecDeque, fmt:: {
+use std:: {
+	collections::VecDeque,
+	fmt:: {
 		Debug,
 		Display,
 		Formatter,
-	}, hash::Hash, ops::Deref, sync:: {
+	},
+	hash::Hash,
+	sync:: {
 		Mutex,
 		atomic:: {
 			AtomicBool,
 			Ordering
 		}
 	},
-	sync::Arc,
-	rc::Rc,
 };
-use crate::{edge_list, global::*};
+use crate::global::*;
 use crate::edge::*;
 use crate::edge_list::*;
-use rayon::prelude::*;
 
 ///////////////////////////////////////////////////////////////////////////////
 ///
@@ -34,8 +35,8 @@ where
 {
 	key: K,
 	data: Mutex<N>,
-	pub outbound: AdjacencyList<K, N, E>,
-	pub inbound: AdjacencyList<K, N, E>,
+	pub outbound: ListRef<K, N, E>,
+	pub inbound: ListRef<K, N, E>,
 	lock: AtomicBool,
 }
 
@@ -105,8 +106,8 @@ where
 		Node {
 			key,
 			data: Mutex::new(data),
-			outbound: AdjacencyList::new(EdgeList::new()),
-			inbound: AdjacencyList::new(EdgeList::new()),
+			outbound: ListRef::new(EdgeList::new()),
+			inbound: ListRef::new(EdgeList::new()),
 			lock: AtomicBool::new(false),
 		}
 	}
@@ -137,7 +138,7 @@ where
 
 	///////////////////////////////////////////////////////////////////////////
 
-	pub fn find_outbound(&self, target: Vertex<K, N, E>) -> Option<usize> {
+	pub fn find_outbound(&self, target: NodeRef<K, N, E>) -> Option<usize> {
 		let mut i: usize = 0;
 		for edge in self.outbound.borrow().list.iter() {
 			if edge.target() == target {
@@ -148,7 +149,7 @@ where
 		None
 	}
 
-	pub fn find_inbound(&self, source: Vertex<K, N, E>) -> Option<usize> {
+	pub fn find_inbound(&self, source: NodeRef<K, N, E>) -> Option<usize> {
 		let mut i: usize = 0;
 		for edge in self.inbound.borrow().list.iter() {
 			if edge.target() == source {
@@ -161,13 +162,13 @@ where
 
 	///////////////////////////////////////////////////////////////////////////
 
-	fn bfs_node(&self,
-		target: &Vertex<K, N, E>,
-		queue: &mut VecDeque<Vertex<K, N, E>>,
+	fn traverse_consume_node(&self,
+		target: &NodeRef<K, N, E>,
+		queue: &mut VecDeque<NodeRef<K, N, E>>,
 		result: &mut EdgeList<K, N, E>) -> bool
 	{
 		let adj = &self.outbound.borrow().list;
-		for e in adj.iter() {
+		for e in adj {
 			if e.lock() == OPEN && e.target().lock() == OPEN {
 				e.close();
 				e.target().close();
@@ -181,16 +182,18 @@ where
 		false
 	}
 
-	pub fn bfs_directed(&self, target: &Vertex<K, N, E>) -> Option<EdgeList<K, N, E>> {
+	pub fn traverse_breadth(&self, target: &NodeRef<K, N, E>) -> Option<EdgeList<K, N, E>> {
         let mut queue = VecDeque::new();
 		let mut result = EdgeList::new();
 		self.close();
-		self.bfs_node(target, &mut queue, &mut result);
+		if self.traverse_consume_node(target, &mut queue, &mut result) == true {
+			result.open_all();
+			return Some(result);
+		}
 		loop {
-			let front = queue.pop_front();
-			match front {
+			match queue.pop_front() {
 				Some(node) => {
-					if node.bfs_node(target, &mut queue, &mut result) == true {
+					if node.traverse_consume_node(target, &mut queue, &mut result) == true {
 						result.open_all();
 						return Some(result);
 					}
@@ -204,90 +207,28 @@ where
 		None
 	}
 
-	// pub fn bfs_directed_multi(&self, target: &Vertex<K, N, E>) -> Option<EdgeList<K, N, E>> {
-    //     let mut queue = Vec::new();
-	// 	let edge_list = Mutex::new(EdgeList::new());
-	// 	let found = AtomicBool::new(false);
-	// 	self.close();
-    //     queue.push(self.clone());
-	// 	let mut range: (usize, usize) = (0, 0);
-	// 	loop {
-	// 		range.0 = range.1;
-	// 		queue.par_iter().for_each(
-	// 			|node| {
-	// 				for e in node.outbound.borrow().list.iter() {
-	// 					if e.lock() == OPEN && e.target().lock() == OPEN {
-	// 						e.close();
-	// 						e.target().close();
-	// 						if e.target() == *target {
-	// 							found.store(true, Ordering::Relaxed);
-	// 						}
-	// 						if found.load(Ordering::Relaxed) == true {
-	// 							edge_list.lock().unwrap().add(e.clone());
-	// 							break ;
-	// 						}
-	// 						edge_list.lock().unwrap().add(e.clone());
-	// 					}
-	// 				}
-	// 			}
-	// 		);
-	// 		queue.clear();
-	// 		range.1 = edge_list.lock().unwrap().list.len();
-	// 		let iter = &edge_list.lock().unwrap().list[range.0..range.1];
-	// 		for e in iter.iter() {
-	// 			let y = e.deref().target();
-	// 			let x = y.as_ref();
-	// 			queue.push(x.clone());
-	// 		}
-	// 		if queue.len() == 0 || found.load(Ordering::Relaxed) == true {
-	// 			break ;
-	// 		}
-	// 	}
-	// 	edge_list.lock().unwrap().open_all();
-	// 	if found.load(Ordering::Relaxed) == true {
-	// 		let res = edge_list.into_inner().unwrap();
-	// 		return Some(res);
-	// 	} else {
-	// 		return None;
-	// 	}
-	// }
-
-	pub fn bfs_undirected(&self, target: &Vertex<K, N, E>) -> EdgeList<K, N, E> {
+	pub fn shortest_path(&self, target: &NodeRef<K, N, E>) -> Option<EdgeList<K, N, E>> {
         let mut queue = VecDeque::new();
-		let mut edge_list = EdgeList::new();
-        queue.push_back(self.clone());
-        while queue.len() > 0 {
-			let node = queue.pop_front()
-				.unwrap();
-            for e in node.outbound.borrow().list.iter() {
-				if e.lock() == OPEN && e.target().lock() == OPEN {
-					e.close();
-					e.target().close();
-					e.source().close();
-					edge_list.add(e.clone());
-					if e.target() == *target {
-						edge_list.open_all();
-						return edge_list;
+		let mut result = EdgeList::new();
+		self.close();
+		if self.traverse_consume_node(target, &mut queue, &mut result) == true {
+			result.open_all();
+			return Some(result);
+		}
+		loop {
+			match queue.pop_front() {
+				Some(node) => {
+					if node.traverse_consume_node(target, &mut queue, &mut result) == true {
+						return result.backtrack();
 					}
-					queue.push_back(e.target().deref().clone());
 				}
-            }
-			for e in node.inbound.borrow().list.iter() {
-				if e.lock() == OPEN && e.target().lock() == OPEN {
-					e.close();
-					e.target().close();
-					e.source().close();
-					edge_list.add(e.clone());
-					if e.target() == *target {
-						edge_list.open_all();
-						return edge_list;
-					}
-					queue.push_back(e.target().deref().clone());
+				None => {
+					break ;
 				}
 			}
-        }
-		edge_list.open_all();
-		edge_list
+		}
+		result.open_all();
+		None
 	}
 
 	///////////////////////////////////////////////////////////////////////////
@@ -325,7 +266,7 @@ where
 ///
 /// Node: Procedural Implementations
 
-pub fn connect<K, N, E>(source: &Vertex<K, N, E>, target: &Vertex<K, N, E>, data: E) -> bool
+pub fn connect<K, N, E>(source: &NodeRef<K, N, E>, target: &NodeRef<K, N, E>, data: E) -> bool
 where
     K: Hash + Eq + Clone + Debug + Display + Sync + Send,
     N: Clone + Debug + Display + Sync + Send,
@@ -344,7 +285,7 @@ where
 	}
 }
 
-pub fn disconnect<K, N, E>(source: &Vertex<K, N, E>, target: &Vertex<K, N, E>) -> bool
+pub fn disconnect<K, N, E>(source: &NodeRef<K, N, E>, target: &NodeRef<K, N, E>) -> bool
 where
     K: Hash + Eq + Clone + Debug + Display + Sync + Send,
     N: Clone + Debug + Display + Sync + Send,

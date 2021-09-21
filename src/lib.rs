@@ -1,17 +1,15 @@
-// pub mod digraph_vertex;
 pub mod digraph;
 pub mod node;
 pub mod edge;
 pub mod edge_list;
 pub mod global;
-pub mod amat;
 
 #[cfg(test)]
 mod tests {
 	use crate::digraph::*;
 
     #[test]
-    fn basic() {
+    fn digraph_test_breadth_first_search() {
 		type MyGraph<'a> = Digraph<&'a str, usize, usize>;
 
 		let mut g = MyGraph::new();

@@ -37,8 +37,8 @@ where
     N: Clone + Debug + Display + Sync + Send,
     E: Clone + Debug + Display + Sync + Send,
 {
-	pub source: Vertex<K, N, E>,
-	pub target: Vertex<K, N, E>,
+	pub source: NodeRef<K, N, E>,
+	pub target: NodeRef<K, N, E>,
 	data: Mutex<E>,
 	lock: AtomicBool,
 }
@@ -87,8 +87,8 @@ where
     E: Clone + Debug + Display + Sync + Send,
 {
 	pub fn new(
-		source: Vertex<K, N, E>,
-		target: Vertex<K, N, E>,
+		source: NodeRef<K, N, E>,
+		target: NodeRef<K, N, E>,
 		data: E) -> Edge<K, N, E> {
 		Edge {
 			source,
@@ -110,11 +110,11 @@ where
 		self.lock.store(OPEN, Ordering::Relaxed)
 	}
 
-	pub fn source(&self) -> Vertex<K, N, E> {
+	pub fn source(&self) -> NodeRef<K, N, E> {
 		self.source.clone()
 	}
 
-	pub fn target(&self) -> Vertex<K, N, E> {
+	pub fn target(&self) -> NodeRef<K, N, E> {
 		self.target.clone()
 	}
 

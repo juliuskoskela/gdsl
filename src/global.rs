@@ -5,7 +5,6 @@
 use std:: {
 	collections::HashMap,
 	cell::RefCell,
-	rc::Rc,
 	sync::Arc,
 };
 
@@ -33,9 +32,9 @@ pub const BI: i8 = 0;
 ///
 /// TYPES
 
-pub type Vertex<K, N, E> = Rc<Node<K, N, E>>;
-pub type EdgeRef<K, N, E> = Rc<Edge<K, N, E>>;
-pub type AdjacencyList<K, N, E> = RefCell<EdgeList<K, N, E>>;
-pub type VertexPool<K, N, E> = HashMap<K, Vertex<K, N, E>>;
+pub type NodeRef<K, N, E> = Arc<Node<K, N, E>>;
+pub type EdgeRef<K, N, E> = Arc<Edge<K, N, E>>;
+pub type ListRef<K, N, E> = RefCell<EdgeList<K, N, E>>;
+pub type NodeRefPool<K, N, E> = HashMap<K, NodeRef<K, N, E>>;
 
 ///////////////////////////////////////////////////////////////////////////////
