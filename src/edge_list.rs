@@ -22,9 +22,9 @@ use crate::global::*;
 #[derive(Debug, Clone)]
 pub struct EdgeList<K, N, E>
 where
-    K: Hash + Eq + Clone + Debug + Display,
-    N: Clone + Debug + Display,
-    E: Clone + Debug + Display,
+    K: Hash + Eq + Clone + Debug + Display + Sync + Send,
+    N: Clone + Debug + Display + Sync + Send,
+    E: Clone + Debug + Display + Sync + Send,
 {
 	pub list: Vec<EdgeRef<K, N, E>>,
 	iterator: usize,
@@ -36,9 +36,9 @@ where
 
 impl<K, N, E> Iterator for EdgeList<K, N, E>
 where
-    K: Hash + Eq + Clone + Debug + Display,
-    N: Clone + Debug + Display,
-    E: Clone + Debug + Display,
+    K: Hash + Eq + Clone + Debug + Display + Sync + Send,
+    N: Clone + Debug + Display + Sync + Send,
+    E: Clone + Debug + Display + Sync + Send,
 {
 	type Item = EdgeRef<K, N, E>;
 
@@ -55,9 +55,9 @@ where
 
 impl<K, N, E> DoubleEndedIterator for EdgeList<K, N, E>
 where
-    K: Hash + Eq + Clone + Debug + Display,
-    N: Clone + Debug + Display,
-    E: Clone + Debug + Display,
+    K: Hash + Eq + Clone + Debug + Display + Sync + Send,
+    N: Clone + Debug + Display + Sync + Send,
+    E: Clone + Debug + Display + Sync + Send,
 {
 	fn next_back(&mut self) -> Option<Self::Item> {
 		if self.iterator == self.list.len() {
@@ -76,9 +76,9 @@ where
 
 impl<K, N, E> EdgeList<K, N, E>
 where
-    K: Hash + Eq + Clone + Debug + Display,
-    N: Clone + Debug + Display,
-    E: Clone + Debug + Display,
+    K: Hash + Eq + Clone + Debug + Display + Sync + Send,
+    N: Clone + Debug + Display + Sync + Send,
+    E: Clone + Debug + Display + Sync + Send,
 {
 	pub fn new() -> Self {
 		Self {
@@ -166,18 +166,24 @@ where
 		self
 	}
 
-	pub fn backtrack(&self) -> EdgeList<K, N, E> {
+	pub fn backtrack(&self) -> Option<EdgeList<K, N, E>> {
+		if self.list.len() == 0 {
+			return None;
+		}
 		let mut res = EdgeList::new();
 		res.add(self.list[self.list.len() - 1].clone());
 		let mut i = 0;
 		for edge in self.list.iter().rev() {
-			let source = res.list[i].source();
-			if edge.target() == source {
+			edge.open();
+			edge.target().open();
+			edge.source().open();
+			let source = &res.list[i].source();
+			if edge.target() == *source {
 				res.list.push(edge.clone());
 				i += 1;
 			}
 		}
-		res
+		Some(res)
 	}
 }
 

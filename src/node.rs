@@ -10,14 +10,13 @@ use std:: {
 		Formatter,
 	},
 	hash::Hash,
-	ops::Deref,
 	sync:: {
 		Mutex,
 		atomic:: {
 			AtomicBool,
 			Ordering
 		}
-	}
+	},
 };
 use crate::global::*;
 use crate::edge::*;
@@ -30,14 +29,14 @@ use crate::edge_list::*;
 #[derive(Debug)]
 pub struct Node<K, N, E>
 where
-    K: Hash + Eq + Clone + Debug + Display,
-    N: Clone + Debug + Display,
-    E: Clone + Debug + Display,
+    K: Hash + Eq + Clone + Debug + Display + Sync + Send,
+    N: Clone + Debug + Display + Sync + Send,
+    E: Clone + Debug + Display + Sync + Send,
 {
 	key: K,
 	data: Mutex<N>,
-	pub outbound: AdjacencyList<K, N, E>,
-	pub inbound: AdjacencyList<K, N, E>,
+	pub outbound: ListRef<K, N, E>,
+	pub inbound: ListRef<K, N, E>,
 	lock: AtomicBool,
 }
 
@@ -45,18 +44,24 @@ where
 ///
 /// Node: Traits
 
+unsafe impl<K, N, E> Sync for Node<K, N, E> where
+	K: Hash + Eq + Clone + Debug + Display + Sync + Send,
+    N: Clone + Debug + Display + Sync + Send,
+    E: Clone + Debug + Display + Sync + Send,
+{}
+
 impl<K, N, E> Clone for Node<K, N, E>
 where
-	K: Hash + Eq + Clone + Debug + Display,
-	N: Clone + Debug + Display,
-	E: Clone + Debug + Display,
+	K: Hash + Eq + Clone + Debug + Display + Sync + Send,
+	N: Clone + Debug + Display + Sync + Send,
+	E: Clone + Debug + Display + Sync + Send,
 {
     fn clone(&self) -> Self {
         Node {
             key: self.key.clone(),
             data: Mutex::new(self.data.lock().unwrap().clone()),
-            outbound: Mutex::new(self.outbound.lock().unwrap().clone()),
-			inbound: Mutex::new(self.inbound.lock().unwrap().clone()),
+            outbound: self.outbound.clone(),
+			inbound: self.inbound.clone(),
             lock: AtomicBool::new(self.lock.load(Ordering::Relaxed)),
         }
     }
@@ -64,9 +69,9 @@ where
 
 impl<K, N, E> PartialEq for Node<K, N, E>
 where
-	K: Hash + Eq + Clone + Debug + Display,
-	N: Clone + Debug + Display,
-	E: Clone + Debug + Display,
+	K: Hash + Eq + Clone + Debug + Display + Sync + Send,
+	N: Clone + Debug + Display + Sync + Send,
+	E: Clone + Debug + Display + Sync + Send,
 {
     fn eq(&self, other: &Self) -> bool {
         if self.key == other.key {
@@ -78,9 +83,9 @@ where
 
 impl<K, N, E> Display for Node<K, N, E>
 where
-	K: Hash + Eq + Clone + Debug + Display,
-	N: Clone + Debug + Display,
-	E: Clone + Debug + Display,
+	K: Hash + Eq + Clone + Debug + Display + Sync + Send,
+	N: Clone + Debug + Display + Sync + Send,
+	E: Clone + Debug + Display + Sync + Send,
 {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
         write!(fmt, "Node {}", self.to_string())
@@ -93,16 +98,16 @@ where
 
 impl<K, N, E> Node<K, N, E>
 where
-    K: Hash + Eq + Clone + Debug + Display,
-    N: Clone + Debug + Display,
-    E: Clone + Debug + Display,
+    K: Hash + Eq + Clone + Debug + Display + Sync + Send,
+    N: Clone + Debug + Display + Sync + Send,
+    E: Clone + Debug + Display + Sync + Send,
 {
 	pub fn new(key: K, data: N) -> Node<K, N, E> {
 		Node {
 			key,
 			data: Mutex::new(data),
-			outbound: AdjacencyList::new(EdgeList::new()),
-			inbound: AdjacencyList::new(EdgeList::new()),
+			outbound: ListRef::new(EdgeList::new()),
+			inbound: ListRef::new(EdgeList::new()),
 			lock: AtomicBool::new(false),
 		}
 	}
@@ -133,9 +138,9 @@ where
 
 	///////////////////////////////////////////////////////////////////////////
 
-	pub fn find_outbound(&self, target: Vertex<K, N, E>) -> Option<usize> {
+	pub fn find_outbound(&self, target: NodeRef<K, N, E>) -> Option<usize> {
 		let mut i: usize = 0;
-		for edge in self.outbound.lock().unwrap().list.iter() {
+		for edge in self.outbound.borrow().list.iter() {
 			if edge.target() == target {
 				return Some(i);
 			}
@@ -144,9 +149,9 @@ where
 		None
 	}
 
-	pub fn find_inbound(&self, source: Vertex<K, N, E>) -> Option<usize> {
+	pub fn find_inbound(&self, source: NodeRef<K, N, E>) -> Option<usize> {
 		let mut i: usize = 0;
-		for edge in self.inbound.lock().unwrap().list.iter() {
+		for edge in self.inbound.borrow().list.iter() {
 			if edge.target() == source {
 				return Some(i);
 			}
@@ -157,69 +162,73 @@ where
 
 	///////////////////////////////////////////////////////////////////////////
 
-	pub fn bfs_directed(&self, target: &Vertex<K, N, E>) -> Option<EdgeList<K, N, E>> {
-        let mut queue = VecDeque::new();
-		let mut edge_list = EdgeList::new();
-        queue.push_back(self.clone());
-        while queue.len() > 0 {
-            let edges =
-				queue.pop_front()
-				.unwrap()
-				.outbound;
-            for e in edges.lock().unwrap().list.iter() {
-				if e.lock() == OPEN && e.target().lock() == OPEN {
-					e.close();
-					e.target().close();
-					e.source().close();
-					edge_list.add(e.clone());
-					if e.target() == *target {
-						edge_list.open_all();
-						return Some(edge_list);
-					}
-					queue.push_back(e.target().deref().clone());
+	fn traverse_consume_node(&self,
+		target: &NodeRef<K, N, E>,
+		queue: &mut VecDeque<NodeRef<K, N, E>>,
+		result: &mut EdgeList<K, N, E>) -> bool
+	{
+		let adj = &self.outbound.borrow().list;
+		for e in adj {
+			if e.lock() == OPEN && e.target().lock() == OPEN {
+				e.close();
+				e.target().close();
+				queue.push_back(e.target.clone());
+				result.add(e.clone());
+				if e.target == *target {
+					return true;
 				}
-            }
-        }
-		edge_list.open_all();
+			}
+		}
+		false
+	}
+
+	pub fn traverse_breadth(&self, target: &NodeRef<K, N, E>) -> Option<EdgeList<K, N, E>> {
+        let mut queue = VecDeque::new();
+		let mut result = EdgeList::new();
+		self.close();
+		if self.traverse_consume_node(target, &mut queue, &mut result) == true {
+			result.open_all();
+			return Some(result);
+		}
+		loop {
+			match queue.pop_front() {
+				Some(node) => {
+					if node.traverse_consume_node(target, &mut queue, &mut result) == true {
+						result.open_all();
+						return Some(result);
+					}
+				}
+				None => {
+					break ;
+				}
+			}
+		}
+		result.open_all();
 		None
 	}
 
-	pub fn bfs_undirected(&self, target: &Vertex<K, N, E>) -> EdgeList<K, N, E> {
+	pub fn shortest_path(&self, target: &NodeRef<K, N, E>) -> Option<EdgeList<K, N, E>> {
         let mut queue = VecDeque::new();
-		let mut edge_list = EdgeList::new();
-        queue.push_back(self.clone());
-        while queue.len() > 0 {
-			let node = queue.pop_front()
-				.unwrap();
-            for e in node.outbound.lock().unwrap().list.iter() {
-				if e.lock() == OPEN && e.target().lock() == OPEN {
-					e.close();
-					e.target().close();
-					e.source().close();
-					edge_list.add(e.clone());
-					if e.target() == *target {
-						edge_list.open_all();
-						return edge_list;
+		let mut result = EdgeList::new();
+		self.close();
+		if self.traverse_consume_node(target, &mut queue, &mut result) == true {
+			result.open_all();
+			return Some(result);
+		}
+		loop {
+			match queue.pop_front() {
+				Some(node) => {
+					if node.traverse_consume_node(target, &mut queue, &mut result) == true {
+						return result.backtrack();
 					}
-					queue.push_back(e.target().deref().clone());
 				}
-            }
-			for e in node.inbound.lock().unwrap().list.iter() {
-				if e.lock() == OPEN && e.target().lock() == OPEN {
-					e.close();
-					e.target().close();
-					e.source().close();
-					edge_list.add(e.clone());
-					if e.target() == *target {
-						edge_list.open_all();
-						return edge_list;
-					}
-					queue.push_back(e.target().deref().clone());
+				None => {
+					break ;
 				}
 			}
-        }
-		edge_list.open_all();
-		edge_list
+		}
+		result.open_all();
+		None
 	}
 
 	///////////////////////////////////////////////////////////////////////////
@@ -227,10 +236,10 @@ where
 	pub fn to_string(&self) -> String {
 		let mut outbound = vec![];
 		let mut inbound = vec![];
-		for edge in self.outbound.lock().unwrap().list.iter() {
+		for edge in self.outbound.borrow().list.iter() {
 			outbound.push(format!("	{}", edge.to_string()));
 		}
-		for edge in self.inbound.lock().unwrap().list.iter() {
+		for edge in self.inbound.borrow().list.iter() {
 			inbound.push(format!("	{}", edge.to_string()));
 		}
 		let lock_state = if self.lock() == false {"OPEN"} else {"CLOSED"};
@@ -241,7 +250,8 @@ where
 		let mut body : String;
 		if outbound.len() > 0 {
 			body = "\n".to_string() + &outbound.join("\n") + "\n";
-		} else {
+		}
+		else {
 			body = "".to_string();
 		}
 		if inbound.len() > 0 {
@@ -256,17 +266,17 @@ where
 ///
 /// Node: Procedural Implementations
 
-pub fn connect<K, N, E>(source: &Vertex<K, N, E>, target: &Vertex<K, N, E>, data: E) -> bool
+pub fn connect<K, N, E>(source: &NodeRef<K, N, E>, target: &NodeRef<K, N, E>, data: E) -> bool
 where
-    K: Hash + Eq + Clone + Debug + Display,
-    N: Clone + Debug + Display,
-    E: Clone + Debug + Display,
+    K: Hash + Eq + Clone + Debug + Display + Sync + Send,
+    N: Clone + Debug + Display + Sync + Send,
+    E: Clone + Debug + Display + Sync + Send,
 {
 	match source.find_outbound(target.clone()) {
 		Some(_) => false,
 		None => {
-			let mut outbound = source.outbound.lock().unwrap();
-			let mut inbound = target.inbound.lock().unwrap();
+			let mut outbound = source.outbound.borrow_mut();
+			let mut inbound = target.inbound.borrow_mut();
 			let new_edge = EdgeRef::new(Edge::new(source.clone(), target.clone(), data.clone()));
 			outbound.add(new_edge.clone());
 			inbound.add(new_edge);
@@ -275,18 +285,18 @@ where
 	}
 }
 
-pub fn disconnect<K, N, E>(source: &Vertex<K, N, E>, target: &Vertex<K, N, E>) -> bool
+pub fn disconnect<K, N, E>(source: &NodeRef<K, N, E>, target: &NodeRef<K, N, E>) -> bool
 where
-    K: Hash + Eq + Clone + Debug + Display,
-    N: Clone + Debug + Display,
-    E: Clone + Debug + Display,
+    K: Hash + Eq + Clone + Debug + Display + Sync + Send,
+    N: Clone + Debug + Display + Sync + Send,
+    E: Clone + Debug + Display + Sync + Send,
 {
 	let mut i: usize = 0;
 	let mut j: usize = 0;
-	let mut source_outbound = source.outbound.lock().unwrap();
+	let mut source_outbound = source.outbound.borrow_mut();
 	for edge_out in source_outbound.list.iter() {
 		if edge_out.target() == *target {
-			let mut target_inbound = target.inbound.lock().unwrap();
+			let mut target_inbound = target.inbound.borrow_mut();
 			for edge_in in target_inbound.list.iter() {
 				if edge_in.target() == *target {
 					target_inbound.del_index(j);

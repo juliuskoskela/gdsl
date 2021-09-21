@@ -23,11 +23,11 @@ use crate::edge_list::*;
 
 pub struct Digraph<K, N, E>
 where
-    K: Hash + Eq + Clone + Debug + Display,
-    N: Clone + Debug + Display,
-    E: Clone + Debug + Display,
+	K: Hash + Eq + Clone + Debug + Display + Sync + Send,
+	N: Clone + Debug + Display + Sync + Send,
+	E: Clone + Debug + Display + Sync + Send,
 {
-	nodes: VertexPool<K, N, E>
+	nodes: NodeRefPool<K, N, E>
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -36,13 +36,13 @@ where
 
 impl<K, N, E> Digraph<K, N, E>
 where
-    K: Hash + Eq + Clone + Debug + Display,
-    N: Clone + Debug + Display,
-    E: Clone + Debug + Display,
+	K: Hash + Eq + Clone + Debug + Display + Sync + Send,
+	N: Clone + Debug + Display + Sync + Send,
+	E: Clone + Debug + Display + Sync + Send,
 {
 	pub fn new() -> Self {
 		Self {
-			nodes: VertexPool::new()
+			nodes: NodeRefPool::new()
 		}
 	}
 
@@ -50,13 +50,15 @@ where
 		self.nodes.len()
 	}
 
-	pub fn insert(&mut self, key: K, data: N) {
+	pub fn insert(&mut self, key: K, data: N) -> bool {
 		if self.nodes.contains_key(&key) {
 			let node = self.nodes[&key].clone();
 			node.store(data.clone());
+			false
 		} else {
-			let node = Vertex::new(Node::new(key.clone(), data.clone()));
+			let node = NodeRef::new(Node::new(key.clone(), data.clone()));
 			self.nodes.insert(key.clone(), node);
+			true
 		}
 	}
 
@@ -73,16 +75,32 @@ where
 	}
 
 	pub fn bfs(&self, source: &K, target: &K) -> Option<EdgeList<K, N, E>> {
-		if self.nodes.contains_key(source) && self.nodes.contains_key(source) {
-			let res = self.nodes[source].bfs_directed(&self.nodes[target]);
-			match res {
-				Some(edges) => {
-					return Some(edges);
+		let s = self.nodes.get(source);
+		let t = self.nodes.get(target);
+
+		match s {
+			Some(ss) => {
+				match t {
+					Some(tt) => { return ss.traverse_breadth(tt); }
+					None => { return None; }
 				}
-				None => return None
 			}
-		} else {
-			None
+			None => { return None; }
+		}
+	}
+
+	pub fn shortest_path(&self, source: &K, target: &K) -> Option<EdgeList<K, N, E>> {
+		let s = self.nodes.get(source);
+		let t = self.nodes.get(target);
+
+		match s {
+			Some(ss) => {
+				match t {
+					Some(tt) => { return ss.shortest_path(tt); }
+					None => { return None; }
+				}
+			}
+			None => { return None; }
 		}
 	}
 }
