@@ -33,23 +33,29 @@ use crate::global::*;
 #[derive(Debug)]
 pub struct Edge<K, N, E>
 where
-    K: Hash + Eq + Clone + Debug + Display,
-    N: Clone + Debug + Display,
-    E: Clone + Debug + Display,
+    K: Hash + Eq + Clone + Debug + Display + Sync + Send,
+    N: Clone + Debug + Display + Sync + Send,
+    E: Clone + Debug + Display + Sync + Send,
 {
-	source: Vertex<K, N, E>,
-	target: Vertex<K, N, E>,
+	pub source: Vertex<K, N, E>,
+	pub target: Vertex<K, N, E>,
 	data: Mutex<E>,
 	lock: AtomicBool,
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
+unsafe impl<K, N, E> Sync for Edge<K, N, E> where
+	K: Hash + Eq + Clone + Debug + Display + Sync + Send,
+    N: Clone + Debug + Display + Sync + Send,
+    E: Clone + Debug + Display + Sync + Send,
+{}
+
 impl<K, N, E> Clone for Edge<K, N, E>
 where
-	K: Hash + Eq + Clone + Debug + Display,
-	N: Clone + Debug + Display,
-	E: Clone + Debug + Display,
+	K: Hash + Eq + Clone + Debug + Display + Sync + Send,
+    N: Clone + Debug + Display + Sync + Send,
+    E: Clone + Debug + Display + Sync + Send,
 {
     fn clone(&self) -> Self {
         Edge {
@@ -63,9 +69,9 @@ where
 
 impl<K, N, E> Display for Edge<K, N, E>
 where
-	K: Hash + Eq + Clone + Debug + Display,
-	N: Clone + Debug + Display,
-	E: Clone + Debug + Display,
+	K: Hash + Eq + Clone + Debug + Display + Sync + Send,
+    N: Clone + Debug + Display + Sync + Send,
+    E: Clone + Debug + Display + Sync + Send,
 {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
         write!(fmt, "Edge \"{}\" {}", self.source().key(), self.to_string())
@@ -76,9 +82,9 @@ where
 
 impl<K, N, E> Edge<K, N, E>
 where
-    K: Hash + Eq + Clone + Debug + Display,
-    N: Clone + Debug + Display,
-    E: Clone + Debug + Display,
+    K: Hash + Eq + Clone + Debug + Display + Sync + Send,
+    N: Clone + Debug + Display + Sync + Send,
+    E: Clone + Debug + Display + Sync + Send,
 {
 	pub fn new(
 		source: Vertex<K, N, E>,

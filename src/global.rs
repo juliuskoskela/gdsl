@@ -4,10 +4,9 @@
 
 use std:: {
 	collections::HashMap,
-	sync:: {
-		Mutex,
-		Arc,
-	}
+	cell::RefCell,
+	rc::Rc,
+	sync::Arc,
 };
 
 use crate::node::*;
@@ -34,9 +33,9 @@ pub const BI: i8 = 0;
 ///
 /// TYPES
 
-pub type Vertex<K, N, E> = Arc<Node<K, N, E>>;
-pub type EdgeRef<K, N, E> = Arc<Edge<K, N, E>>;
-pub type AdjacencyList<K, N, E> = Mutex<EdgeList<K, N, E>>;
+pub type Vertex<K, N, E> = Rc<Node<K, N, E>>;
+pub type EdgeRef<K, N, E> = Rc<Edge<K, N, E>>;
+pub type AdjacencyList<K, N, E> = RefCell<EdgeList<K, N, E>>;
 pub type VertexPool<K, N, E> = HashMap<K, Vertex<K, N, E>>;
 
 ///////////////////////////////////////////////////////////////////////////////

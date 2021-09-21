@@ -4,6 +4,7 @@ pub mod node;
 pub mod edge;
 pub mod edge_list;
 pub mod global;
+pub mod amat;
 
 #[cfg(test)]
 mod tests {
@@ -37,7 +38,7 @@ mod tests {
 		match res {
 			Some(edge_list) => {
 				for edge in edge_list {
-					println!("{}", edge.target());
+					println!("{}", edge);
 				}
 			}
 			None => println!("Target not found!")
