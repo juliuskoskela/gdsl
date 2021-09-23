@@ -1,6 +1,4 @@
-///////////////////////////////////////////////////////////////////////////////
-///
-/// INCLUDES
+/// Icludes
 
 use std:: {
 	fmt:: {
@@ -14,11 +12,6 @@ use crate::global::*;
 use crate::node::*;
 use crate::edge_list::*;
 
-///
-///////////////////////////////////////////////////////////////////////////////
-
-///////////////////////////////////////////////////////////////////////////////
-///
 /// Digraph
 
 pub struct Digraph<K, N, E>
@@ -30,9 +23,18 @@ where
 	nodes: NodeRefPool<K, N, E>
 }
 
-///////////////////////////////////////////////////////////////////////////////
-///
 /// Digraph: Implementations
+
+impl<K, N, E> Default for Digraph<K, N, E>
+where
+	K: Hash + Eq + Clone + Debug + Display + Sync + Send,
+	N: Clone + Debug + Display + Sync + Send,
+	E: Clone + Debug + Display + Sync + Send,
+{
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl<K, N, E> Digraph<K, N, E>
 where
@@ -40,24 +42,18 @@ where
 	N: Clone + Debug + Display + Sync + Send,
 	E: Clone + Debug + Display + Sync + Send,
 {
-	pub fn new() -> Self {
-		Self {
-			nodes: NodeRefPool::new()
-		}
-	}
+	pub fn new() -> Self { Self { nodes: NodeRefPool::new() } }
 
-	pub fn node_count(&self) -> usize {
-		self.nodes.len()
-	}
+	pub fn node_count(&self) -> usize {	self.nodes.len() }
 
 	pub fn insert(&mut self, key: K, data: N) -> bool {
 		if self.nodes.contains_key(&key) {
 			let node = self.nodes[&key].clone();
-			node.store(data.clone());
+			node.store(data);
 			false
 		} else {
-			let node = NodeRef::new(Node::new(key.clone(), data.clone()));
-			self.nodes.insert(key.clone(), node);
+			let node = NodeRef::new(Node::new(key.clone(), data));
+			self.nodes.insert(key, node);
 			true
 		}
 	}
@@ -74,6 +70,16 @@ where
 		}
 	}
 
+	pub fn get_leaves(&self) -> Vec<NodeRef<K, N, E>> {
+		let mut res: Vec<NodeRef<K, N, E>> = vec![];
+		for n in self.nodes.values() {
+			if n.outbound.borrow().list.is_empty() {
+				res.push(n.clone());
+			}
+		}
+		res
+	}
+
 	pub fn bfs(&self, source: &K, target: &K) -> Option<EdgeList<K, N, E>> {
 		let s = self.nodes.get(source);
 		let t = self.nodes.get(target);
@@ -81,11 +87,11 @@ where
 		match s {
 			Some(ss) => {
 				match t {
-					Some(tt) => { return ss.traverse_breadth(tt); }
-					None => { return None; }
+					Some(tt) => { ss.traverse_breadth(tt) }
+					None => { None }
 				}
 			}
-			None => { return None; }
+			None => { None }
 		}
 	}
 
@@ -96,13 +102,12 @@ where
 		match s {
 			Some(ss) => {
 				match t {
-					Some(tt) => { return ss.shortest_path(tt); }
-					None => { return None; }
+					Some(tt) => { ss.shortest_path(tt) }
+					None => { None }
 				}
 			}
-			None => { return None; }
+			None => { None }
 		}
 	}
 }
 
-///////////////////////////////////////////////////////////////////////////////
