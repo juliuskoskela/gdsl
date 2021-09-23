@@ -36,7 +36,7 @@ mod tests {
 		let res = g.bfs(&"N1", &"N6");
 		match res {
 			Some(edge_list) => {
-				for edge in edge_list {
+				for edge in edge_list.iter() {
 					println!("{}", edge);
 				}
 			}

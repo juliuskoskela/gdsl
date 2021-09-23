@@ -11,6 +11,7 @@ use std:: {
 };
 
 use crate::global::*;
+use rayon::prelude::*;
 
 ///
 ///////////////////////////////////////////////////////////////////////////////
@@ -28,46 +29,6 @@ where
 {
 	pub list: Vec<EdgeRef<K, N, E>>,
 	iterator: usize,
-}
-
-///////////////////////////////////////////////////////////////////////////////
-///
-/// EdgeList: Taits
-
-impl<K, N, E> Iterator for EdgeList<K, N, E>
-where
-    K: Hash + Eq + Clone + Debug + Display + Sync + Send,
-    N: Clone + Debug + Display + Sync + Send,
-    E: Clone + Debug + Display + Sync + Send,
-{
-	type Item = EdgeRef<K, N, E>;
-
-	fn next(&mut self) -> Option<Self::Item> {
-		if self.iterator == self.list.len() {
-			self.iterator = 0;
-			None
-		} else {
-			self.iterator += 1;
-			Some(self.list[self.iterator - 1].clone())
-		}
-	}
-}
-
-impl<K, N, E> DoubleEndedIterator for EdgeList<K, N, E>
-where
-    K: Hash + Eq + Clone + Debug + Display + Sync + Send,
-    N: Clone + Debug + Display + Sync + Send,
-    E: Clone + Debug + Display + Sync + Send,
-{
-	fn next_back(&mut self) -> Option<Self::Item> {
-		if self.iterator == self.list.len() {
-			self.iterator = 0;
-			None
-		} else {
-			self.iterator += 1;
-			Some(self.list[self.list.len() - self.iterator].clone())
-		}
-	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -100,6 +61,14 @@ where
 			i += 1;
 		}
 		None
+	}
+
+	pub fn iter(&self) -> std::slice::Iter<EdgeRef<K, N, E>> {
+		self.list.iter()
+	}
+
+	pub fn par_iter(&self) -> rayon::slice::Iter<EdgeRef<K, N, E>> {
+		self.list.par_iter()
 	}
 
 	pub fn del(&mut self, edge: EdgeRef<K, N, E>) {

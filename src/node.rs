@@ -1,18 +1,18 @@
 use crate::edge::*;
 use crate::edge_list::*;
 use crate::global::*;
+use std::slice::Iter;
 /// Includes
 use std::{
+    cell::{Ref, RefMut},
     collections::VecDeque,
     fmt::{Debug, Display, Formatter},
     hash::Hash,
     sync::{
         atomic::{AtomicBool, Ordering},
-        Mutex,
-		Arc,
+        Arc, Mutex,
     },
 };
-use std::slice::Iter;
 
 /// Node
 
@@ -124,12 +124,8 @@ where
         self.lock.store(OPEN, Ordering::Relaxed)
     }
 
-    pub fn outbound(&self) -> ListRef<K, N, E> {
-    	self.outbound.clone()
-    }
-
     pub fn find_outbound(&self, target: &NodeRef<K, N, E>) -> Option<usize> {
-        for (i, edge) in self.outbound.borrow().list.iter().enumerate() {
+        for (i, edge) in self.outbound().iter().enumerate() {
             if edge.target() == *target {
                 return Some(i);
             }
@@ -138,12 +134,27 @@ where
     }
 
     pub fn find_inbound(&self, source: &NodeRef<K, N, E>) -> Option<usize> {
-        for (i, edge) in self.inbound.borrow().list.iter().enumerate() {
+        for (i, edge) in self.inbound().iter().enumerate() {
             if edge.target() == *source {
                 return Some(i);
             }
         }
         None
+    }
+
+    pub fn outbound(&self) -> Ref<EdgeList<K, N, E>> {
+        self.outbound.borrow()
+    }
+
+    pub fn outbound_mut(&self) -> RefMut<EdgeList<K, N, E>> {
+        self.outbound.borrow_mut()
+    }
+
+    pub fn inbound(&self) -> Ref<EdgeList<K, N, E>> {
+        self.inbound.borrow()
+    }
+    pub fn inbound_mut(&self) -> RefMut<EdgeList<K, N, E>> {
+        self.inbound.borrow_mut()
     }
 
     fn traverse_consume_node(
@@ -152,7 +163,7 @@ where
         queue: &mut VecDeque<NodeRef<K, N, E>>,
         result: &mut EdgeList<K, N, E>,
     ) -> bool {
-        for edge in &self.outbound.borrow().list {
+        for edge in self.outbound().iter() {
             if edge.lock() == OPEN && edge.target().lock() == OPEN {
                 edge.close();
                 edge.target().close();
@@ -204,10 +215,10 @@ where
     pub fn display_string(&self) -> String {
         let mut outbound = vec![];
         let mut inbound = vec![];
-        for edge in self.outbound.borrow().list.iter() {
+        for edge in self.outbound().iter() {
             outbound.push(format!("	{}", edge.to_string()));
         }
-        for edge in self.inbound.borrow().list.iter() {
+        for edge in self.inbound().iter() {
             inbound.push(format!("	{}", edge.to_string()));
         }
         let lock_state = if self.lock() { "CLOSED" } else { "OPEN" };
@@ -242,11 +253,9 @@ where
     match source.find_outbound(target) {
         Some(_) => false,
         None => {
-            let mut outbound = source.outbound.borrow_mut();
-            let mut inbound = target.inbound.borrow_mut();
             let new_edge = EdgeRef::new(Edge::new(source.clone(), target.clone(), data));
-            outbound.add(new_edge.clone());
-            inbound.add(new_edge);
+            source.outbound_mut().add(new_edge.clone());
+            target.inbound_mut().add(new_edge);
             true
         }
     }
@@ -258,17 +267,15 @@ where
     N: Clone + Debug + Display + Sync + Send,
     E: Clone + Debug + Display + Sync + Send,
 {
-    let mut source_outbound = source.outbound.borrow_mut();
-    for (i, edge_out) in source_outbound.list.iter().enumerate() {
+    for (i, edge_out) in source.outbound().iter().enumerate() {
         if edge_out.target() == *target {
-            let mut target_inbound = target.inbound.borrow_mut();
-            for (j, edge_in) in target_inbound.list.iter().enumerate() {
+            for (j, edge_in) in target.inbound().iter().enumerate() {
                 if edge_in.target() == *target {
-                    target_inbound.del_index(j);
+                    target.inbound_mut().del_index(j);
                     break;
                 }
             }
-            source_outbound.del_index(i);
+            source.outbound_mut().del_index(i);
             return true;
         }
     }
