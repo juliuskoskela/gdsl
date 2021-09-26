@@ -26,30 +26,51 @@ fn create_graph() -> IntKeysGraph {
 	g
 }
 
-fn digraph_breadth_first(c: &mut Criterion) {
+fn create_graph_speed() {
+	let mut g = IntKeysGraph::new();
+	for i in 0..1000 {
+		g.insert(i, 0);
+	}
+	for i in 0..1000 {
+		for _ in 0..100 {
+			g.connect(&i, &rand_range(0, 100), 0);
+		}
+	}
+	std::mem::drop(g)
+}
+
+fn digraph_breadth_construction(c: &mut Criterion) {
+    c.bench_function("graph construction", |b| b.iter(|| create_graph_speed()));
+}
+
+fn digraph_breadth_first_search(c: &mut Criterion) {
 	fn digraph_bfs(g: &IntKeysGraph) {
 		g.breadth_first(&rand_range(0, NODE_COUNT), &rand_range(0, NODE_COUNT),
 	|_| { Collect });
 	}
 	let g = create_graph();
-    c.bench_function("breadth first", |b| b.iter(|| black_box(digraph_bfs(&g))));
-}
-
-fn digraph_breadth_first_search(c: &mut Criterion) {
-	fn digraph_bfs(g: &IntKeysGraph) {
-		g.bfs(&rand_range(0, NODE_COUNT), &rand_range(0, NODE_COUNT));
-	}
-	let g = create_graph();
+	println!("graph node count = {}", g.node_count());
+	println!("graph edge count = {}", g.edge_count());
+	println!("graph average degree = {}", g.edge_count() as f64 / g.node_count() as f64);
+	println!("sizeof graph = {} Mb", g.bytesize() as f64 / 1000_000.0);
     c.bench_function("breadth first search", |b| b.iter(|| black_box(digraph_bfs(&g))));
 }
 
 fn digraph_find_shortest_path(c: &mut Criterion) {
 	fn digraph_sp(g: &IntKeysGraph) {
-		g.shortest_path(&rand_range(0, NODE_COUNT), &rand_range(0, NODE_COUNT));
+		let res = g.breadth_first(&rand_range(0, NODE_COUNT), &rand_range(0, NODE_COUNT), |_| { Collect });
+		match res {
+			Some(r) => { r.backtrack(); }
+			None => {}
+		}
 	}
 	let g = create_graph();
+	println!("graph node count = {}", g.node_count());
+	println!("graph edge count = {}", g.edge_count());
+	println!("graph average degree = {}", g.edge_count() / g.node_count());
+	println!("sizeof graph = {} Mb", g.bytesize() as f64 / 1000_000.0);
     c.bench_function("find shortest path", |b| b.iter(|| black_box(digraph_sp(&g))));
 }
 
-criterion_group!(benches, digraph_breadth_first, digraph_breadth_first_search, digraph_find_shortest_path);
+criterion_group!(benches, digraph_breadth_construction, digraph_breadth_first_search, digraph_find_shortest_path);
 criterion_main!(benches);

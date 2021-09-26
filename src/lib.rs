@@ -3,7 +3,7 @@ pub mod node;
 pub mod edge;
 pub mod edge_list;
 pub mod global;
-pub mod example;
+pub mod results;
 
 #[cfg(test)]
 mod tests {
@@ -11,155 +11,121 @@ mod tests {
 	use crate::node::Node;
 	use crate::edge::Edge;
 
-    #[test]
-    fn digraph_test_breadth_first_search() {
-		type MyGraph<'a> = Digraph<&'a str, usize, usize>;
+	// #[test]
+	// fn digraph_test_get_leaves() {
+	// 	type MyGraph<'a> = Digraph<&'a str, usize, usize>;
 
-		let mut g = MyGraph::new();
-		g.insert("N1", 1);
-		g.insert("N2", 0);
-		g.insert("N3", 0);
-		g.insert("N4", 3);
-		g.insert("N5", 2);
-		g.insert("N6", 1);
-		g.connect(&"N1", &"N2", 16);
-		g.connect(&"N2", &"N3", 12);
-		g.connect(&"N3", &"N4", 19);
-		g.connect(&"N4", &"N5", 22);
-		g.connect(&"N5", &"N3", 25);
-		g.connect(&"N3", &"N6", 38);
-		g.connect(&"N1", &"N5", 23);
-		g.connect(&"N2", &"N4", 83);
-		g.connect(&"N6", &"N2", 67);
-		g.connect(&"N3", &"N1", 27);
-		g.connect(&"N1", &"N3", 58);
-		g.disconnect(&"N4", &"N5");
+	// 	let mut g = MyGraph::new();
+	// 	g.insert("N1", 1);
+	// 	g.insert("N2", 0);
+	// 	g.insert("N3", 0);
+	// 	g.insert("N4", 3);
+	// 	g.insert("N5", 2);
+	// 	g.insert("N6", 1);
+	// 	g.connect(&"N1", &"N2", 16);
+	// 	g.connect(&"N2", &"N3", 12);
+	// 	g.connect(&"N3", &"N4", 19);
+	// 	g.connect(&"N4", &"N5", 22);
+	// 	g.connect(&"N5", &"N3", 25);
+	// 	g.connect(&"N3", &"N6", 38);
+	// 	g.connect(&"N1", &"N5", 23);
+	// 	g.connect(&"N2", &"N4", 83);
+	// 	g.connect(&"N3", &"N1", 27);
+	// 	g.connect(&"N1", &"N3", 58);
 
-		let res = g.bfs(&"N1", &"N6");
-		match res {
-			Some(edge_list) => {
-				for edge in edge_list.iter() {
-					println!("{}", edge);
-				}
-			}
-			None => println!("Target not found!")
-		}
-	}
+	// 	let res = g.get_leaves();
 
-	#[test]
-	fn digraph_test_get_leaves() {
-		type MyGraph<'a> = Digraph<&'a str, usize, usize>;
+	// 	for n in res {
+	// 		println!("{}", n);
+	// 	}
+	// }
 
-		let mut g = MyGraph::new();
-		g.insert("N1", 1);
-		g.insert("N2", 0);
-		g.insert("N3", 0);
-		g.insert("N4", 3);
-		g.insert("N5", 2);
-		g.insert("N6", 1);
-		g.connect(&"N1", &"N2", 16);
-		g.connect(&"N2", &"N3", 12);
-		g.connect(&"N3", &"N4", 19);
-		g.connect(&"N4", &"N5", 22);
-		g.connect(&"N5", &"N3", 25);
-		g.connect(&"N3", &"N6", 38);
-		g.connect(&"N1", &"N5", 23);
-		g.connect(&"N2", &"N4", 83);
-		g.connect(&"N3", &"N1", 27);
-		g.connect(&"N1", &"N3", 58);
+	// #[test]
+	// fn digraph_test_depth_traversal() {
 
-		let res = g.get_leaves();
+	// 	type MyGraph<'a> = Digraph<&'a str, usize, usize>;
 
-		for n in res {
-			println!("{}", n);
-		}
-	}
+	// 	let mut g = MyGraph::new();
 
-	#[test]
-	fn digraph_test_depth_traversal() {
+	// 	g.insert("N1", 1);
+	// 	g.insert("N2", 0);
+	// 	g.insert("N3", 0);
+	// 	g.insert("N4", 3);
+	// 	g.insert("N5", 2);
+	// 	g.insert("N6", 1);
+	// 	g.connect(&"N1", &"N2", 16);
+	// 	g.connect(&"N2", &"N3", 12);
+	// 	g.connect(&"N3", &"N4", 19);
+	// 	g.connect(&"N4", &"N5", 22);
+	// 	g.connect(&"N5", &"N3", 25);
+	// 	g.connect(&"N3", &"N6", 38);
+	// 	g.connect(&"N1", &"N5", 23);
+	// 	g.connect(&"N2", &"N4", 83);
+	// 	g.connect(&"N3", &"N1", 27);
+	// 	g.connect(&"N1", &"N3", 58);
 
-		type MyGraph<'a> = Digraph<&'a str, usize, usize>;
+	// 	let e = g.edge(&"N1", &"N2");
 
-		let mut g = MyGraph::new();
+	// 	match e {
+	// 		Some(_) => { }
+	// 		None => { assert!(1 == 0) }
+	// 	}
 
-		g.insert("N1", 1);
-		g.insert("N2", 0);
-		g.insert("N3", 0);
-		g.insert("N4", 3);
-		g.insert("N5", 2);
-		g.insert("N6", 1);
-		g.connect(&"N1", &"N2", 16);
-		g.connect(&"N2", &"N3", 12);
-		g.connect(&"N3", &"N4", 19);
-		g.connect(&"N4", &"N5", 22);
-		g.connect(&"N5", &"N3", 25);
-		g.connect(&"N3", &"N6", 38);
-		g.connect(&"N1", &"N5", 23);
-		g.connect(&"N2", &"N4", 83);
-		g.connect(&"N3", &"N1", 27);
-		g.connect(&"N1", &"N3", 58);
+	// 	let res = g.depth_first(&"N1", &"N5",
+	// 		|e, t|
+	// 		{
+	// 			if e.target() == *t {
+	// 				return Finish ;
+	// 			}
+	// 			Collect
+	// 		}
+	// 	).unwrap();
 
-		let e = g.edge(&"N1", &"N2");
+	// 	for e in res.iter() {
+	// 		println!("{}", e);
+	// 	}
+	// }
 
-		match e {
-			Some(_) => { }
-			None => { assert!(1 == 0) }
-		}
+	// #[test]
+	// fn digraph_test_breadth_traversal() {
 
-		let res = g.depth_first(&"N1", &"N5",
-			|e, t|
-			{
-				if e.target() == *t {
-					return Finish ;
-				}
-				Collect
-			}
-		).unwrap();
+	// 	type MyGraph<'a> = Digraph<&'a str, usize, usize>;
 
-		for e in res.iter() {
-			println!("{}", e);
-		}
-	}
+	// 	let mut g = MyGraph::new();
 
-	#[test]
-	fn digraph_test_breadth_traversal() {
+	// 	g.insert("N1", 1);
+	// 	g.insert("N2", 0);
+	// 	g.insert("N3", 0);
+	// 	g.insert("N4", 3);
+	// 	g.insert("N5", 2);
+	// 	g.insert("N6", 1);
+	// 	g.connect(&"N1", &"N2", 16);
+	// 	g.connect(&"N2", &"N3", 12);
+	// 	g.connect(&"N3", &"N4", 19);
+	// 	g.connect(&"N4", &"N5", 22);
+	// 	g.connect(&"N5", &"N3", 25);
+	// 	g.connect(&"N3", &"N6", 38);
+	// 	g.connect(&"N1", &"N5", 23);
+	// 	g.connect(&"N2", &"N4", 83);
+	// 	g.connect(&"N3", &"N1", 27);
+	// 	g.connect(&"N1", &"N3", 58);
 
-		type MyGraph<'a> = Digraph<&'a str, usize, usize>;
+	// 	let res = g.breadth_first(&"N1", &"N6",
+	// 		|_|
+	// 		{
+	// 			Collect
+	// 		}
+	// 	).unwrap();
 
-		let mut g = MyGraph::new();
-
-		g.insert("N1", 1);
-		g.insert("N2", 0);
-		g.insert("N3", 0);
-		g.insert("N4", 3);
-		g.insert("N5", 2);
-		g.insert("N6", 1);
-		g.connect(&"N1", &"N2", 16);
-		g.connect(&"N2", &"N3", 12);
-		g.connect(&"N3", &"N4", 19);
-		g.connect(&"N4", &"N5", 22);
-		g.connect(&"N5", &"N3", 25);
-		g.connect(&"N3", &"N6", 38);
-		g.connect(&"N1", &"N5", 23);
-		g.connect(&"N2", &"N4", 83);
-		g.connect(&"N3", &"N1", 27);
-		g.connect(&"N1", &"N3", 58);
-
-		let res = g.breadth_first(&"N1", &"N6",
-			|_|
-			{
-				Collect
-			}
-		).unwrap();
-
-		for e in res.iter() {
-			println!("{}", e);
-		}
-	}
+	// 	for e in res.iter() {
+	// 		println!("{}", e);
+	// 	}
+	// }
 
 	#[test]
 	fn edmonds_karp() {
 
+		use std::sync::{Arc, Weak};
 		#[derive(Clone, Debug)]
 		struct Void;
 
@@ -173,7 +139,7 @@ mod tests {
 		struct Flow {
 			pub max: i64,
 			pub cur: i64,
-			pub rev: Option<EdgeRef<usize, Void, Flow>>,
+			pub rev: EdgeWeak<usize, Void, Flow>,
 		}
 
 		impl std::fmt::Display for Flow {
@@ -184,11 +150,6 @@ mod tests {
 
 		type FlowGraph<'a> = Digraph<usize, Void, Flow>;
 
-		println!("sizeof node = {}", std::mem::size_of::<Node<usize, Void, Flow>>());
-		println!("sizeof edge = {}", std::mem::size_of::<Edge<usize, Void, Flow>>());
-		let size = (std::mem::size_of::<Node<usize, Void, Flow>>() * 100_000)
-		+ (std::mem::size_of::<Edge<usize, Void, Flow>>() * 100_000 * 100);
-		println!("Expected size for a graph with 100,000 nodes of degree 100 = {} Mb", size / 1000_000);
 		let mut g = FlowGraph::new();
 
 		g.insert(1, Void);
@@ -198,29 +159,31 @@ mod tests {
 		g.insert(5, Void);
 		g.insert(6, Void);
 
-		fn connect_flow(g: &FlowGraph, u: &usize, v: &usize, flow: i64) {
-			g.connect(u, v, Flow { max: flow, cur: 0, rev: None });
-			g.connect(v, u, Flow { max: flow, cur: flow, rev: None });
+		fn connect_flow(g: &mut FlowGraph, u: &usize, v: &usize, flow: i64) {
+			g.connect(u, v, Flow { max: flow, cur: 0, rev: Weak::new() });
+			g.connect(v, u, Flow { max: flow, cur: flow, rev: Weak::new() });
 			let uv = g.edge(u, v).unwrap();
 			let vu = g.edge(v, u).unwrap();
 			let mut uv_data = uv.load();
 			let mut vu_data = vu.load();
-			uv_data.rev = Some(vu.clone());
-			vu_data.rev = Some(uv.clone());
+			uv_data.rev = Arc::downgrade(&vu);
+			vu_data.rev = Arc::downgrade(&uv);
 			uv.store(uv_data);
 			vu.store(vu_data);
 		}
 
-		connect_flow(&g, &1, &2, 16);
-		connect_flow(&g, &1, &3, 13);
-		connect_flow(&g, &2, &3, 10);
-		connect_flow(&g, &2, &4, 12);
-		connect_flow(&g, &3, &2, 4);
-		connect_flow(&g, &3, &5, 14);
-		connect_flow(&g, &4, &3, 9);
-		connect_flow(&g, &4, &6, 20);
-		connect_flow(&g, &5, &4, 7);
-		connect_flow(&g, &5, &6, 4);
+		connect_flow(&mut g, &1, &2, 16);
+		connect_flow(&mut g, &1, &3, 13);
+		connect_flow(&mut g, &2, &3, 10);
+		connect_flow(&mut g, &2, &4, 12);
+		connect_flow(&mut g, &3, &2, 4);
+		connect_flow(&mut g, &3, &5, 14);
+		connect_flow(&mut g, &4, &3, 9);
+		connect_flow(&mut g, &4, &6, 20);
+		connect_flow(&mut g, &5, &4, 7);
+		connect_flow(&mut g, &5, &6, 4);
+
+		println!("sizeof graph = {} Mb", g.bytesize() as f64 / 1000_000.0);
 
 		let mut max_flow: i64 = 0;
 
@@ -232,20 +195,32 @@ mod tests {
 		{
 			let mut aug_flow = std::i64::MAX;
 			let path = b.backtrack().unwrap();
-			for e in path.iter() {
-				let flow = e.load();
-				if flow.max - flow.cur < aug_flow {
-					aug_flow = flow.max - flow.cur;
+			for weak in path.iter() {
+				let alive = weak.upgrade();
+				match alive {
+					Some(e) => {
+						let flow = e.load();
+						if flow.max - flow.cur < aug_flow {
+							aug_flow = flow.max - flow.cur;
+						}
+					}
+					None => {}
 				}
 			}
-			for e in path.iter() {
-				let mut flow = e.load();
-				let r = flow.rev.as_ref().unwrap().clone();
-				let mut rev_flow = r.load();
-				flow.cur += aug_flow;
-				rev_flow.cur -= aug_flow;
-				e.store(flow);
-				r.store(rev_flow);
+			for weak in path.iter() {
+				let alive = weak.upgrade();
+				match alive {
+					Some(e) => {
+						let mut flow = e.load();
+						let r = flow.rev.upgrade().unwrap();
+						let mut rev_flow = r.load();
+						flow.cur += aug_flow;
+						rev_flow.cur -= aug_flow;
+						e.store(flow);
+						r.store(rev_flow);
+					}
+					None => {}
+				}
 			}
 
 			max_flow += aug_flow;
