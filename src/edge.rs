@@ -2,21 +2,18 @@
 ///
 /// INCLUDES
 
-use std:: {
-	fmt:: {
+use std:: {borrow::BorrowMut, fmt:: {
 		Debug,
 		Display,
 		Formatter,
-	},
-	hash::Hash,
-	sync:: {
+	}, hash::Hash, sync:: {
 		Mutex,
+		Arc,
 		atomic:: {
 			AtomicBool,
 			Ordering
 		}
-	}
-};
+	}};
 
 use crate::global::*;
 
@@ -40,7 +37,7 @@ where
 	pub source: NodeRef<K, N, E>,
 	pub target: NodeRef<K, N, E>,
 	data: Mutex<E>,
-	lock: AtomicBool,
+	pub lock: Arc<AtomicBool>,
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -62,7 +59,7 @@ where
 			source: self.source.clone(),
             target: self.target.clone(),
             data: Mutex::new(self.data.lock().unwrap().clone()),
-            lock: AtomicBool::new(self.lock.load(Ordering::Relaxed)),
+            lock: Arc::new(AtomicBool::new(self.lock.load(Ordering::Relaxed))),
         }
     }
 }
@@ -94,7 +91,7 @@ where
 			source,
 			target,
 			data: Mutex::new(data),
-			lock: AtomicBool::new(OPEN),
+			lock: Arc::new(AtomicBool::new(OPEN)),
 		}
 	}
 
@@ -123,7 +120,8 @@ where
 	}
 
 	pub fn store(&self, data: E) {
-		*self.data.lock().unwrap() = data;
+		let mut x = self.data.lock().expect("Error locking mutex!");
+		*x = data;
 	}
 
 	pub fn to_string(&self) -> String {

@@ -27,8 +27,7 @@ where
     N: Clone + Debug + Display + Sync + Send,
     E: Clone + Debug + Display + Sync + Send,
 {
-	pub list: Vec<EdgeRef<K, N, E>>,
-	iterator: usize,
+	list: Vec<EdgeRef<K, N, E>>,
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -44,7 +43,6 @@ where
 	pub fn new() -> Self {
 		Self {
 			list: Vec::new(),
-			iterator: 0,
 		}
 	}
 
@@ -52,15 +50,26 @@ where
 		self.list.push(edge);
 	}
 
-	pub fn find_index(&self, edge: EdgeRef<K, N, E>) -> Option<usize> {
-		let mut i = 0;
-		for e in self.list.iter() {
-			if e.target() == edge.target() && e.source() == edge.source() {
+	pub fn find(&self, source: &NodeRef<K, N, E>, target: &NodeRef<K, N, E>) -> Option<EdgeRef<K, N, E>> {
+        for edge in self.iter() {
+            if edge.target() == *target && edge.source() == *source{
+                return Some(edge.clone());
+            }
+        }
+        None
+    }
+
+	pub fn find_index(&self, target: &NodeRef<K, N, E>) -> Option<usize> {
+		for (i, e) in self.iter().enumerate() {
+			if e.target() == *target {
 				return Some(i);
 			}
-			i += 1;
 		}
 		None
+	}
+
+	pub fn is_empty(&self) -> bool {
+		self.list.is_empty()
 	}
 
 	pub fn iter(&self) -> std::slice::Iter<EdgeRef<K, N, E>> {
@@ -71,13 +80,13 @@ where
 		self.list.par_iter()
 	}
 
-	pub fn del(&mut self, edge: EdgeRef<K, N, E>) {
-		let index = self.find_index(edge);
+	pub fn del(&mut self, target: &NodeRef<K, N, E>) {
+		let index = self.find_index(target);
 		match index {
 			Some(i) => {
 				self.list.remove(i);
 			},
-			None => return,
+			None => {},
 		}
 	}
 
@@ -143,9 +152,6 @@ where
 		res.add(self.list[self.list.len() - 1].clone());
 		let mut i = 0;
 		for edge in self.list.iter().rev() {
-			edge.open();
-			edge.target().open();
-			edge.source().open();
 			let source = &res.list[i].source();
 			if edge.target() == *source {
 				res.list.push(edge.clone());
