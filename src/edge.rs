@@ -2,7 +2,8 @@
 ///
 /// INCLUDES
 
-use std:: {borrow::BorrowMut, fmt:: {
+use std:: {
+	fmt:: {
 		Debug,
 		Display,
 		Formatter,
@@ -13,8 +14,8 @@ use std:: {borrow::BorrowMut, fmt:: {
 			AtomicBool,
 			Ordering
 		}
-	}};
-
+	}
+};
 use crate::global::*;
 
 
@@ -84,12 +85,12 @@ where
     E: Clone + Debug + Display + Sync + Send,
 {
 	pub fn new(
-		source: NodeRef<K, N, E>,
-		target: NodeRef<K, N, E>,
+		source: &NodeRef<K, N, E>,
+		target: &NodeRef<K, N, E>,
 		data: E) -> Edge<K, N, E> {
 		Edge {
-			source: Arc::downgrade(&source),
-			target: Arc::downgrade(&target),
+			source: Arc::downgrade(source),
+			target: Arc::downgrade(target),
 			data: Mutex::new(data),
 			lock: Arc::new(AtomicBool::new(OPEN)),
 		}

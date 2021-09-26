@@ -1,5 +1,7 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use graph::digraph::*;
+use graph::node::Node;
+use graph::edge::Edge;
 use graph::node::Traverse::Collect;
 use rand::Rng;
 
@@ -36,7 +38,6 @@ fn create_graph_speed() {
 			g.connect(&i, &rand_range(0, 100), 0);
 		}
 	}
-	std::mem::drop(g)
 }
 
 fn digraph_breadth_construction(c: &mut Criterion) {
@@ -44,6 +45,7 @@ fn digraph_breadth_construction(c: &mut Criterion) {
 }
 
 fn digraph_breadth_first_search(c: &mut Criterion) {
+	println!("constructing graph of size = {} Mb", ((NODE_COUNT * std::mem::size_of::<Node<usize, usize, usize>>()) + (NODE_COUNT * NODE_DEGREE * std::mem::size_of::<Edge<usize, usize, usize>>())) / 1000_000);
 	fn digraph_bfs(g: &IntKeysGraph) {
 		g.breadth_first(&rand_range(0, NODE_COUNT), &rand_range(0, NODE_COUNT),
 	|_| { Collect });
@@ -57,6 +59,7 @@ fn digraph_breadth_first_search(c: &mut Criterion) {
 }
 
 fn digraph_find_shortest_path(c: &mut Criterion) {
+	println!("constructing graph of size = {} Mb", ((NODE_COUNT * std::mem::size_of::<Node<usize, usize, usize>>()) + (NODE_COUNT * NODE_DEGREE * std::mem::size_of::<Edge<usize, usize, usize>>())) / 1000_000);
 	fn digraph_sp(g: &IntKeysGraph) {
 		let res = g.breadth_first(&rand_range(0, NODE_COUNT), &rand_range(0, NODE_COUNT), |_| { Collect });
 		match res {

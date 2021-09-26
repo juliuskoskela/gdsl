@@ -7,9 +7,9 @@ pub mod results;
 
 #[cfg(test)]
 mod tests {
-	use crate::{digraph::*, global::*, node::depth_traversal_directed, node::Traverse::*};
-	use crate::node::Node;
-	use crate::edge::Edge;
+	use crate::{digraph::*, global::*, node::Traverse::*};
+	// use crate::node::Node;
+	// use crate::edge::Edge;
 
 	// #[test]
 	// fn digraph_test_get_leaves() {

@@ -10,7 +10,8 @@ use std:: {
 	collections::VecDeque,
     cell:: {
 		Ref,
-		RefMut
+		RefMut,
+		RefCell,
 	},
     fmt:: {
 		Debug,
@@ -40,7 +41,7 @@ where
     key: K,
     data: Mutex<N>,
     pub outbound: ListRef<K, N, E>,
-    pub inbound: ListRef<K, N, E>,
+    pub inbound: RefCell<Results<K, N, E>>,
     lock: Arc<AtomicBool>,
 }
 
@@ -108,7 +109,7 @@ where
             key,
             data: Mutex::new(data),
             outbound: ListRef::new(EdgeList::new()),
-            inbound: ListRef::new(EdgeList::new()),
+            inbound: RefCell::new(Results::new()),
             lock: Arc::new(AtomicBool::new(false)),
         }
     }
@@ -145,10 +146,10 @@ where
         self.outbound.borrow_mut()
     }
 
-    pub fn inbound(&self) -> Ref<EdgeList<K, N, E>> {
+    pub fn inbound(&self) -> Ref<Results<K, N, E>> {
         self.inbound.borrow()
     }
-    pub fn inbound_mut(&self) -> RefMut<EdgeList<K, N, E>> {
+    pub fn inbound_mut(&self) -> RefMut<Results<K, N, E>> {
         self.inbound.borrow_mut()
     }
 
@@ -159,7 +160,7 @@ where
             outbound.push(format!("	{}", edge.to_string()));
         }
         for edge in self.inbound().iter() {
-            inbound.push(format!("	{}", edge.to_string()));
+            inbound.push(format!("	{}", edge.upgrade().unwrap().to_string()));
         }
         let lock_state = if self.lock() { "CLOSED" } else { "OPEN" };
         let header = format!(
@@ -202,9 +203,9 @@ where
     E: Clone + Debug + Display + Sync + Send,
 {
 	if !overlaps(source, target) {
-		let new_edge = EdgeRef::new(Edge::new(source.clone(), target.clone(), data));
-		source.outbound_mut().add(new_edge.clone());
-		target.inbound_mut().add(new_edge);
+		let new_edge = EdgeRef::new(Edge::new(source, target, data));
+		target.inbound_mut().add_weak(&Arc::downgrade(&new_edge));
+		source.outbound_mut().add(new_edge);
 		return true;
 	}
     false

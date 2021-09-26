@@ -8,10 +8,7 @@ use std:: {
 		Display,
 	},
 	hash::Hash,
-	sync:: {
-		Arc,
-		Weak,
-	}
+	sync::Arc,
 };
 
 use crate::global::*;
@@ -60,7 +57,15 @@ where
 
 	pub fn find(&self, source: &NodeRef<K, N, E>, target: &NodeRef<K, N, E>) -> Option<EdgeRef<K, N, E>> {
         for weak in self.iter() {
-			return weak.upgrade();
+			let alive = weak.upgrade();
+			match alive {
+				Some(edge) => {
+					if edge.source() == *source && edge.target() == *target {
+						return Some(edge);
+					}
+				}
+				None => {}
+			}
         }
         None
     }
