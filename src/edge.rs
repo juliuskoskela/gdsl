@@ -2,7 +2,8 @@
 ///
 /// INCLUDES
 
-use std:: {borrow::BorrowMut, fmt:: {
+use std:: {
+	fmt:: {
 		Debug,
 		Display,
 		Formatter,
@@ -13,8 +14,8 @@ use std:: {borrow::BorrowMut, fmt:: {
 			AtomicBool,
 			Ordering
 		}
-	}};
-
+	}
+};
 use crate::global::*;
 
 
@@ -34,8 +35,8 @@ where
     N: Clone + Debug + Display + Sync + Send,
     E: Clone + Debug + Display + Sync + Send,
 {
-	pub source: NodeRef<K, N, E>,
-	pub target: NodeRef<K, N, E>,
+	pub source: NodeWeak<K, N, E>,
+	pub target: NodeWeak<K, N, E>,
 	data: Mutex<E>,
 	pub lock: Arc<AtomicBool>,
 }
@@ -84,12 +85,12 @@ where
     E: Clone + Debug + Display + Sync + Send,
 {
 	pub fn new(
-		source: NodeRef<K, N, E>,
-		target: NodeRef<K, N, E>,
+		source: &NodeRef<K, N, E>,
+		target: &NodeRef<K, N, E>,
 		data: E) -> Edge<K, N, E> {
 		Edge {
-			source,
-			target,
+			source: Arc::downgrade(source),
+			target: Arc::downgrade(target),
 			data: Mutex::new(data),
 			lock: Arc::new(AtomicBool::new(OPEN)),
 		}
@@ -108,11 +109,11 @@ where
 	}
 
 	pub fn source(&self) -> NodeRef<K, N, E> {
-		self.source.clone()
+		self.source.upgrade().unwrap()
 	}
 
 	pub fn target(&self) -> NodeRef<K, N, E> {
-		self.target.clone()
+		self.target.upgrade().unwrap()
 	}
 
 	pub fn load(&self) -> E {

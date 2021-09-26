@@ -8,6 +8,7 @@ use std:: {
 		Display,
 	},
 	hash::Hash,
+	sync::Arc,
 };
 
 use crate::global::*;
@@ -18,23 +19,23 @@ use rayon::prelude::*;
 
 ///////////////////////////////////////////////////////////////////////////////
 ///
-/// EdgeList
+/// Results
 
 #[derive(Debug, Clone)]
-pub struct EdgeList<K, N, E>
+pub struct Results<K, N, E>
 where
     K: Hash + Eq + Clone + Debug + Display + Sync + Send,
     N: Clone + Debug + Display + Sync + Send,
     E: Clone + Debug + Display + Sync + Send,
 {
-	list: Vec<EdgeRef<K, N, E>>,
+	list: Vec<EdgeWeak<K, N, E>>,
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 ///
-/// EdgeList: Implementations
+/// Results: Implementations
 
-impl<K, N, E> EdgeList<K, N, E>
+impl<K, N, E> Results<K, N, E>
 where
     K: Hash + Eq + Clone + Debug + Display + Sync + Send,
     N: Clone + Debug + Display + Sync + Send,
@@ -46,23 +47,39 @@ where
 		}
 	}
 
-	pub fn add(&mut self, edge: EdgeRef<K, N, E>) {
-		self.list.push(edge);
+	pub fn add(&mut self, edge: &EdgeRef<K, N, E>) {
+		self.list.push(Arc::downgrade(edge));
+	}
+
+	pub fn add_weak(&mut self, edge: &EdgeWeak<K, N, E>) {
+		self.list.push(edge.clone());
 	}
 
 	pub fn find(&self, source: &NodeRef<K, N, E>, target: &NodeRef<K, N, E>) -> Option<EdgeRef<K, N, E>> {
-        for edge in self.iter() {
-            if edge.target() == *target && edge.source() == *source{
-                return Some(edge.clone());
-            }
+        for weak in self.iter() {
+			let alive = weak.upgrade();
+			match alive {
+				Some(edge) => {
+					if edge.source() == *source && edge.target() == *target {
+						return Some(edge);
+					}
+				}
+				None => {}
+			}
         }
         None
     }
 
 	pub fn find_index(&self, target: &NodeRef<K, N, E>) -> Option<usize> {
-		for (i, e) in self.iter().enumerate() {
-			if e.target() == *target {
-				return Some(i);
+		for (i, weak) in self.iter().enumerate() {
+			let alive = weak.upgrade();
+			match alive {
+				Some(edge) => {
+					if edge.target() == *target {
+						return Some(i);
+					}
+				}
+				None => {}
 			}
 		}
 		None
@@ -72,11 +89,11 @@ where
 		self.list.is_empty()
 	}
 
-	pub fn iter(&self) -> std::slice::Iter<EdgeRef<K, N, E>> {
+	pub fn iter(&self) -> std::slice::Iter<EdgeWeak<K, N, E>> {
 		self.list.iter()
 	}
 
-	pub fn par_iter(&self) -> rayon::slice::Iter<EdgeRef<K, N, E>> {
+	pub fn par_iter(&self) -> rayon::slice::Iter<EdgeWeak<K, N, E>> {
 		self.list.par_iter()
 	}
 
@@ -98,63 +115,31 @@ where
 	}
 
 	pub fn open_all(&self) -> &Self {
-		for edge in self.list.iter() {
-			edge.open();
-			edge.target().open();
-			edge.source().open();
+		for weak in self.list.iter() {
+			let alive = weak.upgrade();
+			match alive {
+				Some(edge) => {
+					edge.open();
+					edge.target().open();
+					edge.source().open();
+				}
+				None => { panic!("Weak reference not alive!") }
+			}
 		}
 		self
 	}
 
-	pub fn open_nodes(&self) -> &Self {
-		for edge in self.list.iter() {
-			edge.target().open();
-			edge.source().open();
-		}
-		self
-	}
-
-	pub fn open_edges(&self) -> &Self {
-		for edge in self.list.iter() {
-			edge.open();
-		}
-		self
-	}
-
-	pub fn close_all(&self) -> &Self {
-		for edge in self.list.iter() {
-			edge.close();
-			edge.target().close();
-			edge.source().close();
-		}
-		self
-	}
-
-	pub fn close_nodes(&self) -> &Self {
-		for edge in self.list.iter() {
-			edge.target().close();
-			edge.source().close();
-		}
-		self
-	}
-
-	pub fn close_edges(&self) -> &Self {
-		for edge in self.list.iter() {
-			edge.close();
-		}
-		self
-	}
-
-	pub fn backtrack(&self) -> Option<EdgeList<K, N, E>> {
+	pub fn backtrack(&self) -> Option<Results<K, N, E>> {
 		if self.list.len() == 0 {
 			return None;
 		}
-		let mut res = EdgeList::new();
-		res.add(self.list[self.list.len() - 1].clone());
+		let mut res = Results::new();
+		let w = &self.list[self.list.len() - 1];
+		res.add_weak(w);
 		let mut i = 0;
 		for edge in self.list.iter().rev() {
-			let source = &res.list[i].source();
-			if edge.target() == *source {
+			let source = res.list[i].upgrade().unwrap().source();
+			if edge.upgrade().unwrap().target() == source {
 				res.list.push(edge.clone());
 				i += 1;
 			}

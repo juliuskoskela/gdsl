@@ -4,7 +4,8 @@ use std::{
     hash::Hash,
 };
 
-use crate::edge_list::*;
+use crate::results::*;
+use crate::edge::*;
 use crate::global::*;
 use crate::node::*;
 
@@ -17,6 +18,7 @@ where
     E: Clone + Debug + Display + Sync + Send,
 {
     nodes: NodeRefPool<K, N, E>,
+	edge_count: usize,
 }
 
 /// Digraph: Implementations
@@ -41,12 +43,23 @@ where
     pub fn new() -> Self {
         Self {
             nodes: NodeRefPool::new(),
+			edge_count: 0,
         }
     }
 
     pub fn node_count(&self) -> usize {
         self.nodes.len()
     }
+
+	pub fn edge_count(&self) -> usize {
+        self.edge_count
+    }
+
+	pub fn bytesize(&self) -> usize {
+		let node_size = std::mem::size_of::<Node<K, N, E>>();
+		let edge_size = std::mem::size_of::<Edge<K, N, E>>();
+		(self.node_count() * node_size) + (self.edge_count() * edge_size)
+	}
 
 	pub fn print(&self) {
 		for n in self.nodes.iter() {
@@ -82,15 +95,19 @@ where
         }
     }
 
-    pub fn connect(&self, source: &K, target: &K, data: E) {
+    pub fn connect(&mut self, source: &K, target: &K, data: E) {
         if self.nodes.contains_key(source) && self.nodes.contains_key(target) {
-            connect(&self.nodes[source], &self.nodes[target], data);
+            if connect(&self.nodes[source], &self.nodes[target], data) {
+				self.edge_count += 1;
+			}
         }
     }
 
-    pub fn disconnect(&self, source: &K, target: &K) {
+    pub fn disconnect(&mut self, source: &K, target: &K) {
         if self.nodes.contains_key(source) && self.nodes.contains_key(target) {
-            disconnect(&self.nodes[source], &self.nodes[target]);
+            if disconnect(&self.nodes[source], &self.nodes[target]) {
+				self.edge_count -= 1;
+			}
         }
     }
 
@@ -104,38 +121,12 @@ where
         res
     }
 
-    pub fn bfs(&self, source: &K, target: &K) -> Option<EdgeList<K, N, E>> {
-        let s = self.nodes.get(source);
-        let t = self.nodes.get(target);
-
-        match s {
-            Some(ss) => match t {
-                Some(tt) => ss.traverse_breadth(tt),
-                None => None,
-            },
-            None => None,
-        }
-    }
-
-    pub fn shortest_path(&self, source: &K, target: &K) -> Option<EdgeList<K, N, E>> {
-        let s = self.nodes.get(source);
-        let t = self.nodes.get(target);
-
-        match s {
-            Some(ss) => match t {
-                Some(tt) => ss.shortest_path(tt),
-                None => None,
-            },
-            None => None,
-        }
-    }
-
 	pub fn depth_first(
 		&self,
 		source: &K,
 		target: &K,
 		f: fn (&EdgeRef<K, N, E>, &NodeRef<K, N, E>) -> Traverse
-	) -> Option<EdgeList<K, N, E>> {
+	) -> Option<Results<K, N, E>> {
 		let s = self.node(source);
 		let t = self.node(target);
 
@@ -153,7 +144,7 @@ where
 		source: &K,
 		target: &K,
 		f: fn (&EdgeRef<K, N, E>) -> Traverse
-	) -> Option<EdgeList<K, N, E>> {
+	) -> Option<Results<K, N, E>> {
 		let s = self.node(source);
 		let t = self.node(target);
 
