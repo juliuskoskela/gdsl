@@ -97,54 +97,6 @@ where
 		}
 	}
 
-	pub fn open_all(&self) -> &Self {
-		for edge in self.list.iter() {
-			edge.open();
-			edge.target().open();
-			edge.source().open();
-		}
-		self
-	}
-
-	pub fn open_nodes(&self) -> &Self {
-		for edge in self.list.iter() {
-			edge.target().open();
-			edge.source().open();
-		}
-		self
-	}
-
-	pub fn open_edges(&self) -> &Self {
-		for edge in self.list.iter() {
-			edge.open();
-		}
-		self
-	}
-
-	pub fn close_all(&self) -> &Self {
-		for edge in self.list.iter() {
-			edge.close();
-			edge.target().close();
-			edge.source().close();
-		}
-		self
-	}
-
-	pub fn close_nodes(&self) -> &Self {
-		for edge in self.list.iter() {
-			edge.target().close();
-			edge.source().close();
-		}
-		self
-	}
-
-	pub fn close_edges(&self) -> &Self {
-		for edge in self.list.iter() {
-			edge.close();
-		}
-		self
-	}
-
 	pub fn backtrack(&self) -> Option<Adjacent<K, N, E>> {
 		if self.list.len() == 0 {
 			return None;

@@ -1,7 +1,7 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use graph::digraph::*;
 use graph::global::*;
-use graph::node::Traverse::Traverse;
+use graph::global::Traverse::Traverse;
 use rand::Rng;
 
 const NODE_COUNT: usize = 100000;

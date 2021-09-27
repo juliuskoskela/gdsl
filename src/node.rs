@@ -188,7 +188,7 @@ where
 }
 
 /// Node: Procedural Implementations
-pub fn overlaps<K, N, E>(source: &NodeRef<K, N, E>, target: &NodeRef<K, N, E>) -> bool
+fn overlaps<K, N, E>(source: &NodeRef<K, N, E>, target: &NodeRef<K, N, E>) -> bool
 where
     K: Hash + Eq + Clone + Debug + Display + Sync + Send,
     N: Clone + Debug + Display + Sync + Send,
@@ -228,12 +228,6 @@ where
 	} else {
     	false
 	}
-}
-
-pub enum Traverse {
-	Skip,
-	Traverse,
-	Finish,
 }
 
 fn depth_traversal_directed_recursion<K, N, E>(

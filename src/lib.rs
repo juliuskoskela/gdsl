@@ -7,9 +7,9 @@ pub mod edge_list;
 
 #[cfg(test)]
 mod tests {
-	use crate::{digraph::*, global::*, node::Traverse::*};
+	use crate::{digraph::*, global::*};
 	use std::sync::{Arc, Weak};
-
+	use crate::global::Traverse::{Traverse, Skip};
 	// Digraph Test: Maximum Flow Edmond's Karp
 
 	// A struct which records the maximum flow and current flow for an edge

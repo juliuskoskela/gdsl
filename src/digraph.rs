@@ -7,6 +7,7 @@ use std::{
 use crate::edge_list::*;
 use crate::edge::*;
 use crate::global::*;
+use crate::global::Traverse;
 use crate::node::*;
 
 /// Digraph

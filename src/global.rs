@@ -51,4 +51,10 @@ impl std::fmt::Display for Void {
 	}
 }
 
+pub enum Traverse {
+	Skip,
+	Traverse,
+	Finish,
+}
+
 ///////////////////////////////////////////////////////////////////////////////
