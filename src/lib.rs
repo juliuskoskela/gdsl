@@ -1,9 +1,9 @@
 pub mod digraph;
 pub mod node;
 pub mod edge;
-pub mod edge_list;
+pub mod adjacent;
 pub mod global;
-pub mod results;
+pub mod edge_list;
 
 #[cfg(test)]
 mod tests {

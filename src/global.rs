@@ -11,7 +11,7 @@ use std:: {
 
 use crate::node::*;
 use crate::edge::*;
-use crate::edge_list::*;
+use crate::adjacent::*;
 
 ///
 ///////////////////////////////////////////////////////////////////////////////

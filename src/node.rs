@@ -1,9 +1,9 @@
 /// Includes
 
 use crate::edge::*;
-use crate::edge_list::*;
+use crate::adjacent::*;
 use crate::global::*;
-use crate::results::*;
+use crate::edge_list::*;
 
 use std:: {
 	hash::Hash,

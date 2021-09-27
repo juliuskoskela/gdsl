@@ -4,7 +4,7 @@ use std::{
     hash::Hash,
 };
 
-use crate::results::*;
+use crate::edge_list::*;
 use crate::edge::*;
 use crate::global::*;
 use crate::node::*;
