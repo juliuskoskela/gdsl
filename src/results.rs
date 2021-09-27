@@ -19,10 +19,10 @@ use rayon::prelude::*;
 
 ///////////////////////////////////////////////////////////////////////////////
 ///
-/// Results
+/// EdgeList
 
 #[derive(Debug, Clone)]
-pub struct Results<K, N, E>
+pub struct EdgeList<K, N, E>
 where
     K: Hash + Eq + Clone + Debug + Display + Sync + Send,
     N: Clone + Debug + Display + Sync + Send,
@@ -33,9 +33,9 @@ where
 
 ///////////////////////////////////////////////////////////////////////////////
 ///
-/// Results: Implementations
+/// EdgeList: Implementations
 
-impl<K, N, E> Results<K, N, E>
+impl<K, N, E> EdgeList<K, N, E>
 where
     K: Hash + Eq + Clone + Debug + Display + Sync + Send,
     N: Clone + Debug + Display + Sync + Send,
@@ -129,11 +129,11 @@ where
 		self
 	}
 
-	pub fn backtrack(&self) -> Option<Results<K, N, E>> {
+	pub fn backtrack(&self) -> Option<EdgeList<K, N, E>> {
 		if self.list.len() == 0 {
 			return None;
 		}
-		let mut res = Results::new();
+		let mut res = EdgeList::new();
 		let w = &self.list[self.list.len() - 1];
 		res.add_weak(w);
 		let mut i = 0;

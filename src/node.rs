@@ -40,8 +40,8 @@ where
 {
     key: K,
     data: Mutex<N>,
-    pub outbound: ListRef<K, N, E>,
-    pub inbound: RefCell<Results<K, N, E>>,
+    outbound: ListRef<K, N, E>,
+    inbound: RefCell<EdgeList<K, N, E>>,
     lock: Arc<AtomicBool>,
 }
 
@@ -52,7 +52,7 @@ where
     K: Hash + Eq + Clone + Debug + Display + Sync + Send,
     N: Clone + Debug + Display + Sync + Send,
     E: Clone + Debug + Display + Sync + Send,
-{ }
+{}
 
 impl<K, N, E> Clone for Node<K, N, E>
 where
@@ -108,8 +108,8 @@ where
         Node {
             key,
             data: Mutex::new(data),
-            outbound: ListRef::new(EdgeList::new()),
-            inbound: RefCell::new(Results::new()),
+            outbound: ListRef::new(Adjacent::new()),
+            inbound: RefCell::new(EdgeList::new()),
             lock: Arc::new(AtomicBool::new(false)),
         }
     }
@@ -126,9 +126,13 @@ where
         &self.key
     }
 
-    pub fn lock(&self) -> bool {
+    pub fn try_lock(&self) -> bool {
         self.lock.load(Ordering::Relaxed)
     }
+
+	pub fn get_lock(&self) -> Weak<AtomicBool> {
+		Arc::downgrade(&self.lock)
+	}
 
     pub fn close(&self) {
         self.lock.store(CLOSED, Ordering::Relaxed)
@@ -138,18 +142,18 @@ where
         self.lock.store(OPEN, Ordering::Relaxed)
     }
 
-    pub fn outbound(&self) -> Ref<EdgeList<K, N, E>> {
+    pub fn outbound(&self) -> Ref<Adjacent<K, N, E>> {
         self.outbound.borrow()
     }
 
-    pub fn outbound_mut(&self) -> RefMut<EdgeList<K, N, E>> {
+    pub fn outbound_mut(&self) -> RefMut<Adjacent<K, N, E>> {
         self.outbound.borrow_mut()
     }
 
-    pub fn inbound(&self) -> Ref<Results<K, N, E>> {
+    pub fn inbound(&self) -> Ref<EdgeList<K, N, E>> {
         self.inbound.borrow()
     }
-    pub fn inbound_mut(&self) -> RefMut<Results<K, N, E>> {
+    pub fn inbound_mut(&self) -> RefMut<EdgeList<K, N, E>> {
         self.inbound.borrow_mut()
     }
 
@@ -162,7 +166,7 @@ where
         for edge in self.inbound().iter() {
             inbound.push(format!("	{}", edge.upgrade().unwrap().to_string()));
         }
-        let lock_state = if self.lock() { "CLOSED" } else { "OPEN" };
+        let lock_state = if self.try_lock() { "CLOSED" } else { "OPEN" };
         let header = format!(
             "\"{}\" : \"{}\" : \"{}\" {{ ",
             self.key,
@@ -228,15 +232,16 @@ where
 
 pub enum Traverse {
 	Skip,
-	Collect,
+	Traverse,
 	Finish,
 }
 
 fn depth_traversal_directed_recursion<K, N, E>(
-	results: &mut Results<K, N, E>,
 	source: &NodeRef<K, N, E>,
 	target: &NodeRef<K, N, E>,
-	f: fn (&EdgeRef<K, N, E>, &NodeRef<K, N, E>) -> Traverse
+	results: &mut EdgeList<K, N, E>,
+	locks: &mut Vec<Weak<AtomicBool>>,
+	f: fn (&EdgeRef<K, N, E>) -> Traverse
 ) -> bool
 where
     K: Hash + Eq + Clone + Debug + Display + Sync + Send,
@@ -245,16 +250,26 @@ where
 {
 	source.close();
 	for edge in source.outbound().iter() {
-		if edge.lock() == OPEN && edge.target().lock() == OPEN {
+		if edge.try_lock() == OPEN && edge.target().try_lock() == OPEN {
 			edge.close();
-			edge.target().close();
-			let traverse = f(edge, target);
+			locks.push(edge.get_lock());
+			let traverse = f(edge);
 			match traverse {
-				crate::node::Traverse::Collect => { results.add(&edge); }
-				crate::node::Traverse::Finish => { results.add(&edge); return true; }
+				crate::node::Traverse::Traverse => {
+					edge.target().close();
+					results.add(&edge);
+					locks.push(Arc::downgrade(&edge.target().lock));
+					if edge.target() == *target {
+						return true;
+					}
+				}
+				crate::node::Traverse::Finish => {
+					results.add(&edge);
+					return true;
+				}
 				crate::node::Traverse::Skip => {}
 			}
-			return depth_traversal_directed_recursion(results, &edge.target(), target, f);
+			return depth_traversal_directed_recursion(&edge.target(), target, results, locks, f);
 		}
 	}
 	false
@@ -263,18 +278,27 @@ where
 pub fn depth_traversal_directed<K, N, E>(
 	source: &NodeRef<K, N, E>,
 	target: &NodeRef<K, N, E>,
-	f: fn (&EdgeRef<K, N, E>, &NodeRef<K, N, E>) -> Traverse
-) -> Results<K, N, E>
+	f: fn (&EdgeRef<K, N, E>) -> Traverse
+) -> Option<EdgeList<K, N, E>>
 where
     K: Hash + Eq + Clone + Debug + Display + Sync + Send,
     N: Clone + Debug + Display + Sync + Send,
     E: Clone + Debug + Display + Sync + Send,
 {
-	let mut edge_list = Results::new();
-	let res = depth_traversal_directed_recursion(&mut edge_list, source, target, f);
+	let mut result = EdgeList::new();
+	let mut locks = Vec::new();
+	let res = depth_traversal_directed_recursion(source, target, &mut result, &mut locks, f);
+	for weak in locks {
+		let arc = weak.upgrade().unwrap();
+		arc.store(OPEN, Ordering::Relaxed);
+	}
 	match res {
-		true => { edge_list.open_all(); edge_list }
-		false => { edge_list.open_all(); Results::new() }
+		true => {
+			Some(result)
+		}
+		false => {
+			None
+		}
 	}
 }
 
@@ -282,7 +306,7 @@ fn breadth_traversal_node<'a, K, N, E>(
 	source: &NodeRef<K, N, E>,
 	target: &NodeRef<K, N, E>,
 	queue: &mut VecDeque<NodeRef<K, N, E>>,
-	result: &mut Results<K, N, E>,
+	result: &mut EdgeList<K, N, E>,
 	locks: &mut Vec<Weak<AtomicBool>>,
 	f: fn (&EdgeRef<K, N, E>) -> Traverse,
 ) -> bool
@@ -292,17 +316,16 @@ where
     E: Clone + Debug + Display + Sync + Send,
 {
 	for edge in source.outbound().iter() {
-		if edge.lock() == OPEN && edge.target().lock() == OPEN {
+		if edge.try_lock() == OPEN && edge.target().try_lock() == OPEN {
 			edge.close();
-			locks.push(Arc::downgrade(&edge.lock));
+			locks.push(edge.get_lock());
 			let traverse = f(edge);
 			match traverse {
-				crate::node::Traverse::Skip => { }
-				crate::node::Traverse::Collect => {
+				crate::node::Traverse::Traverse => {
 					edge.target().close();
 					queue.push_back(edge.target());
 					result.add(&edge);
-					locks.push(Arc::downgrade(&edge.target().lock));
+					locks.push(edge.target().get_lock());
 					if edge.target() == *target {
 						return true;
 					}
@@ -311,6 +334,7 @@ where
 					result.add(&edge);
 					return true;
 				}
+				crate::node::Traverse::Skip => {}
 			}
 		}
 	}
@@ -321,17 +345,17 @@ pub fn breadth_traversal_directed<K, N, E>(
 	source: &NodeRef<K, N, E>,
 	target: &NodeRef<K, N, E>,
 	f: fn (&EdgeRef<K, N, E>) -> Traverse
-) -> Option<Results<K, N, E>>
+) -> Option<EdgeList<K, N, E>>
 where
     K: Hash + Eq + Clone + Debug + Display + Sync + Send,
     N: Clone + Debug + Display + Sync + Send,
     E: Clone + Debug + Display + Sync + Send,
 {
+	let mut result = EdgeList::new();
 	let mut locks = Vec::new();
 	let mut queue = VecDeque::new();
-	let mut result = Results::new();
 	source.close();
-	locks.push(Arc::downgrade(&source.lock));
+	locks.push(source.get_lock());
 	if breadth_traversal_node(source, target, &mut queue, &mut result, &mut locks, f) {
 		for weak in locks {
 			let arc = weak.upgrade().unwrap();

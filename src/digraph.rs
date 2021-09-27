@@ -125,14 +125,14 @@ where
 		&self,
 		source: &K,
 		target: &K,
-		f: fn (&EdgeRef<K, N, E>, &NodeRef<K, N, E>) -> Traverse
-	) -> Option<Results<K, N, E>> {
+		f: fn (&EdgeRef<K, N, E>) -> Traverse
+	) -> Option<EdgeList<K, N, E>> {
 		let s = self.node(source);
 		let t = self.node(target);
 
 		match s {
             Some(ss) => match t {
-                Some(tt) => Some(depth_traversal_directed(ss, tt, f)),
+                Some(tt) => depth_traversal_directed(ss, tt, f),
                 None => None,
             },
             None => None,
@@ -144,7 +144,7 @@ where
 		source: &K,
 		target: &K,
 		f: fn (&EdgeRef<K, N, E>) -> Traverse
-	) -> Option<Results<K, N, E>> {
+	) -> Option<EdgeList<K, N, E>> {
 		let s = self.node(source);
 		let t = self.node(target);
 

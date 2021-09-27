@@ -18,10 +18,10 @@ use rayon::prelude::*;
 
 ///////////////////////////////////////////////////////////////////////////////
 ///
-/// EdgeList
+/// Adjacent
 
 #[derive(Debug, Clone)]
-pub struct EdgeList<K, N, E>
+pub struct Adjacent<K, N, E>
 where
     K: Hash + Eq + Clone + Debug + Display + Sync + Send,
     N: Clone + Debug + Display + Sync + Send,
@@ -32,9 +32,9 @@ where
 
 ///////////////////////////////////////////////////////////////////////////////
 ///
-/// EdgeList: Implementations
+/// Adjacent: Implementations
 
-impl<K, N, E> EdgeList<K, N, E>
+impl<K, N, E> Adjacent<K, N, E>
 where
     K: Hash + Eq + Clone + Debug + Display + Sync + Send,
     N: Clone + Debug + Display + Sync + Send,
@@ -145,11 +145,11 @@ where
 		self
 	}
 
-	pub fn backtrack(&self) -> Option<EdgeList<K, N, E>> {
+	pub fn backtrack(&self) -> Option<Adjacent<K, N, E>> {
 		if self.list.len() == 0 {
 			return None;
 		}
-		let mut res = EdgeList::new();
+		let mut res = Adjacent::new();
 		res.add(self.list[self.list.len() - 1].clone());
 		let mut i = 0;
 		for edge in self.list.iter().rev() {

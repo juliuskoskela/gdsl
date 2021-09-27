@@ -10,6 +10,7 @@ use std:: {
 	}, hash::Hash, sync:: {
 		Mutex,
 		Arc,
+		Weak,
 		atomic:: {
 			AtomicBool,
 			Ordering
@@ -35,10 +36,10 @@ where
     N: Clone + Debug + Display + Sync + Send,
     E: Clone + Debug + Display + Sync + Send,
 {
-	pub source: NodeWeak<K, N, E>,
-	pub target: NodeWeak<K, N, E>,
+	source: NodeWeak<K, N, E>,
+	target: NodeWeak<K, N, E>,
 	data: Mutex<E>,
-	pub lock: Arc<AtomicBool>,
+	lock: Arc<AtomicBool>,
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -96,8 +97,12 @@ where
 		}
 	}
 
-	pub fn lock(&self) -> bool {
+	pub fn try_lock(&self) -> bool {
 		self.lock.load(Ordering::Relaxed)
+	}
+
+	pub fn get_lock(&self) -> Weak<AtomicBool> {
+		Arc::downgrade(&self.lock)
 	}
 
 	pub fn close(&self) {
@@ -126,7 +131,7 @@ where
 	}
 
 	pub fn to_string(&self) -> String {
-		let lock_state = if self.lock() == false {"OPEN"} else {"CLOSED"};
+		let lock_state = if self.try_lock() == false {"OPEN"} else {"CLOSED"};
 		format!("-> \"{}\" : \"{}\" : \"{}\"",
 			self.target().key(),
 			lock_state,
