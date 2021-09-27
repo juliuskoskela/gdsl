@@ -243,6 +243,7 @@ where
     E: Clone + Debug + Display + Sync + Send,
 {
 	source.close();
+	locks.push(source.get_lock());
 	for edge in source.outbound().iter() {
 		if edge.try_lock() == OPEN && edge.target().try_lock() == OPEN {
 			edge.close();
@@ -252,7 +253,7 @@ where
 				crate::node::Traverse::Traverse => {
 					edge.target().close();
 					results.add(&edge);
-					locks.push(Arc::downgrade(&edge.target().lock));
+					locks.push(edge.target().get_lock());
 					if edge.target() == *target {
 						return true;
 					}
