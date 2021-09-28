@@ -53,7 +53,7 @@ where
     }
 
 	pub fn edge_count(&self) -> usize {
-        self.edge_count
+		self.edge_count
     }
 
 	pub fn bytesize(&self) -> usize {
@@ -122,39 +122,33 @@ where
         res
     }
 
-	pub fn depth_first(
+	pub fn depth_first<F>(
 		&self,
 		source: &K,
-		target: &K,
-		f: fn (&EdgeRef<K, N, E>) -> Traverse
-	) -> Option<EdgeList<K, N, E>> {
+		f: F
+	) -> Option<EdgeList<K, N, E>>
+	where
+		F: Fn (&EdgeRef<K, N, E>) -> Traverse,
+	{
 		let s = self.node(source);
-		let t = self.node(target);
-
 		match s {
-            Some(ss) => match t {
-                Some(tt) => depth_traversal_directed(ss, tt, f),
-                None => None,
-            },
-            None => None,
-        }
+    	    Some(ss) => depth_traversal_directed(ss, f),
+    	    None => None,
+    	}
 	}
 
-	pub fn breadth_first(
+	pub fn breadth_first<F>(
 		&self,
 		source: &K,
-		target: &K,
-		f: fn (&EdgeRef<K, N, E>) -> Traverse
-	) -> Option<EdgeList<K, N, E>> {
+		f: F
+	) -> Option<EdgeList<K, N, E>>
+	where
+		F: Fn (&EdgeRef<K, N, E>) -> Traverse,
+	{
 		let s = self.node(source);
-		let t = self.node(target);
-
 		match s {
-            Some(ss) => match t {
-                Some(tt) => breadth_traversal_directed(ss, tt, f),
-                None => None,
-            },
-            None => None,
-        }
+    	    Some(ss) => breadth_traversal_directed(ss, f),
+    	    None => None,
+    	}
 	}
 }

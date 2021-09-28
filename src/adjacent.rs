@@ -50,6 +50,10 @@ where
 		self.list.push(edge);
 	}
 
+	pub fn len(&self) -> usize {
+		self.list.len()
+	}
+
 	pub fn find(&self, source: &NodeRef<K, N, E>, target: &NodeRef<K, N, E>) -> Option<EdgeRef<K, N, E>> {
         for edge in self.iter() {
             if edge.target() == *target && edge.source() == *source{

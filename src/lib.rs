@@ -9,16 +9,52 @@ pub mod examples;
 #[cfg(test)]
 mod tests {
 	use crate::global::*;
+	use crate::global::Traverse::*;
+	use crate::digraph::*;
 	use crate::examples::*;
-	// Digraph Test: Maximum Flow Edmond's Karp
 
-	// A struct which records the maximum flow and current flow for an edge
-	// and stores a weak pointer to the reverse edge. We store the reverse
-	// edge so we don't have to search for it in the outbound edges of the
-	// edge's target node.
+	type SimpleGraph = Digraph<usize, Void, Void>;
 
-	// Example graph for the test with a max flow of 23.
-	fn flow_graph_example() -> FlowGraph {
+	#[test]
+	fn digraph_test_breadth_traversal() {
+		let mut g = SimpleGraph::new();
+
+		g.insert(1, Void);
+		g.insert(2, Void);
+		g.insert(3, Void);
+		g.insert(4, Void);
+		g.insert(5, Void);
+		g.insert(6, Void);
+
+		g.connect(&1, &2, Void);
+		g.connect(&1, &3, Void);
+		g.connect(&2, &1, Void);
+		g.connect(&2, &3, Void);
+		g.connect(&3, &1, Void);
+		g.connect(&3, &5, Void);
+		g.connect(&5, &2, Void);
+		g.connect(&5, &4, Void);
+		g.connect(&5, &1, Void);
+		g.connect(&4, &5, Void);
+		g.connect(&4, &3, Void);
+		g.connect(&4, &2, Void);
+		g.connect(&4, &6, Void);
+
+		let path = g.breadth_first(&1,
+		|edge|{
+			if edge.target().key() == &6 {
+				Finish
+			} else {
+				Traverse
+			}
+		}).unwrap().backtrack().unwrap();
+
+		for edge in path.iter() {
+			println!("{}", edge.upgrade().unwrap());
+		}
+	}
+
+	fn flow_graph_example_1to6_23() -> FlowGraph {
 		let mut g = FlowGraph::new();
 		g.insert(1, Void);
 		g.insert(2, Void);
@@ -41,8 +77,20 @@ mod tests {
 
 	#[test]
 	fn digraph_test_maximum_flow_edmonds_karp() {
-		let g = flow_graph_example();
-		let max_flow = maximum_flow_edmonds_karp(&g);
+		let g = flow_graph_example_1to6_23();
+		let max_flow = maximum_flow_edmonds_karp(&g, 1, 6);
 		assert!(max_flow == 23);
 	}
+
+	#[test]
+	fn digraph_test_maximum_flow_ford_fulkerson() {
+		let g = flow_graph_example_1to6_23();
+		let max_flow = maximum_flow_ford_fulkerson(&g, 1, 6);
+		println!("max flow = {}", max_flow);
+		// assert!(max_flow == 23);
+	}
+
+	type Op = fn (i64, i64) -> i64;
+	type Val = (i64, i64);
+	type Calculator = Digraph<usize, Val, Op>;
 }

@@ -22,9 +22,6 @@ use crate::adjacent::*;
 
 pub const OPEN: bool = false;
 pub const CLOSED: bool = true;
-pub const TO: i8 = -1;
-pub const FROM: i8 = 1;
-pub const BI: i8 = 0;
 
 ///
 ///////////////////////////////////////////////////////////////////////////////
