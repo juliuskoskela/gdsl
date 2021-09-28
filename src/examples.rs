@@ -12,7 +12,7 @@ use crate::global::Traverse::{Traverse, Skip, Finish};
 pub struct Flow {
 	pub max: usize,
 	pub cur: usize,
-	pub rev: EdgeWeak<usize, Void, Flow>,
+	pub rev: WeakEdge<usize, Void, Flow>,
 }
 
 impl std::fmt::Display for Flow {

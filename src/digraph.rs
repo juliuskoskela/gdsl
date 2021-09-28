@@ -18,7 +18,7 @@ where
     N: Clone + Debug + Display + Sync + Send,
     E: Clone + Debug + Display + Sync + Send,
 {
-    nodes: NodeRefPool<K, N, E>,
+    nodes: RefNodePool<K, N, E>,
 	edge_count: usize,
 }
 
@@ -43,7 +43,7 @@ where
 {
     pub fn new() -> Self {
         Self {
-            nodes: NodeRefPool::new(),
+            nodes: RefNodePool::new(),
 			edge_count: 0,
         }
     }
@@ -68,11 +68,11 @@ where
 		}
 	}
 
-	pub fn node(&self, key: &K) -> Option<&NodeRef<K, N, E>> {
+	pub fn node(&self, key: &K) -> Option<&RefNode<K, N, E>> {
 		self.nodes.get(key)
 	}
 
-	pub fn edge(&self, source: &K, target: &K) -> Option<EdgeRef<K, N, E>> {
+	pub fn edge(&self, source: &K, target: &K) -> Option<RefEdge<K, N, E>> {
 		let s = self.nodes.get(source);
 		let t = self.nodes.get(target);
 		match s {
@@ -90,7 +90,7 @@ where
             node.store(data);
             false
         } else {
-            let node = NodeRef::new(Node::new(key.clone(), data));
+            let node = RefNode::new(Node::new(key.clone(), data));
             self.nodes.insert(key, node);
             true
         }
@@ -112,8 +112,8 @@ where
         }
     }
 
-    pub fn get_leaves(&self) -> Vec<NodeRef<K, N, E>> {
-        let mut res: Vec<NodeRef<K, N, E>> = vec![];
+    pub fn get_leaves(&self) -> Vec<RefNode<K, N, E>> {
+        let mut res: Vec<RefNode<K, N, E>> = vec![];
         for n in self.nodes.values() {
             if n.outbound().is_empty() {
                 res.push(n.clone());
@@ -128,7 +128,7 @@ where
 		f: F
 	) -> Option<EdgeList<K, N, E>>
 	where
-		F: Fn (&EdgeRef<K, N, E>) -> Traverse,
+		F: Fn (&RefEdge<K, N, E>) -> Traverse,
 	{
 		let s = self.node(source);
 		match s {
@@ -143,7 +143,7 @@ where
 		f: F
 	) -> Option<EdgeList<K, N, E>>
 	where
-		F: Fn (&EdgeRef<K, N, E>) -> Traverse,
+		F: Fn (&RefEdge<K, N, E>) -> Traverse,
 	{
 		let s = self.node(source);
 		match s {

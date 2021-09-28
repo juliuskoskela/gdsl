@@ -21,7 +21,7 @@ where
     N: Clone + Debug + Display + Sync + Send,
     E: Clone + Debug + Display + Sync + Send,
 {
-	list: Vec<EdgeWeak<K, N, E>>,
+	list: Vec<WeakEdge<K, N, E>>,
 }
 
 /// EdgeList: Implementations
@@ -38,15 +38,15 @@ where
 		}
 	}
 
-	pub fn add(&mut self, edge: &EdgeRef<K, N, E>) {
+	pub fn add(&mut self, edge: &RefEdge<K, N, E>) {
 		self.list.push(Arc::downgrade(edge));
 	}
 
-	pub fn add_weak(&mut self, edge: &EdgeWeak<K, N, E>) {
+	pub fn add_weak(&mut self, edge: &WeakEdge<K, N, E>) {
 		self.list.push(edge.clone());
 	}
 
-	pub fn find(&self, source: &NodeRef<K, N, E>, target: &NodeRef<K, N, E>) -> Option<EdgeRef<K, N, E>> {
+	pub fn find(&self, source: &RefNode<K, N, E>, target: &RefNode<K, N, E>) -> Option<RefEdge<K, N, E>> {
         for weak in self.iter() {
 			let alive = weak.upgrade();
 			match alive {
@@ -61,7 +61,7 @@ where
         None
     }
 
-	pub fn find_index(&self, target: &NodeRef<K, N, E>) -> Option<usize> {
+	pub fn find_index(&self, target: &RefNode<K, N, E>) -> Option<usize> {
 		for (i, weak) in self.iter().enumerate() {
 			let alive = weak.upgrade();
 			match alive {
@@ -80,15 +80,15 @@ where
 		self.list.is_empty()
 	}
 
-	pub fn iter(&self) -> std::slice::Iter<EdgeWeak<K, N, E>> {
+	pub fn iter(&self) -> std::slice::Iter<WeakEdge<K, N, E>> {
 		self.list.iter()
 	}
 
-	pub fn par_iter(&self) -> rayon::slice::Iter<EdgeWeak<K, N, E>> {
+	pub fn par_iter(&self) -> rayon::slice::Iter<WeakEdge<K, N, E>> {
 		self.list.par_iter()
 	}
 
-	pub fn del(&mut self, target: &NodeRef<K, N, E>) -> bool {
+	pub fn del(&mut self, target: &RefNode<K, N, E>) -> bool {
 		let index = self.find_index(target);
 		match index {
 			Some(i) => {

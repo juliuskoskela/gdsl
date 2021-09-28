@@ -27,7 +27,7 @@ where
 {
     key: K,
     data: Mutex<N>,
-    outbound: ListRef<K, N, E>,
+    outbound: RefAdjacent<K, N, E>,
     inbound: RefCell<EdgeList<K, N, E>>,
     lock: Arc<AtomicBool>,
 }
@@ -52,9 +52,9 @@ where
         Node {
             key: self.key.clone(),
             data: Mutex::new(self.data.lock().unwrap().clone()),
-            outbound: self.outbound.clone(),
-            inbound: self.inbound.clone(),
-            lock: Arc::new(AtomicBool::new(self.lock.load(Ordering::Relaxed))),
+            outbound: RefAdjacent::new(Adjacent::new()),
+            inbound: RefCell::new(EdgeList::new()),
+            lock: Arc::new(AtomicBool::new(OPEN)),
         }
     }
 }
@@ -96,7 +96,7 @@ where
         Node {
             key,
             data: Mutex::new(data),
-            outbound: ListRef::new(Adjacent::new()),
+            outbound: RefAdjacent::new(Adjacent::new()),
             inbound: RefCell::new(EdgeList::new()),
             lock: Arc::new(AtomicBool::new(false)),
         }
@@ -184,7 +184,7 @@ where
 }
 
 /// Node: Procedural Implementations
-fn overlaps<K, N, E>(source: &NodeRef<K, N, E>, target: &NodeRef<K, N, E>) -> bool
+fn overlaps<K, N, E>(source: &RefNode<K, N, E>, target: &RefNode<K, N, E>) -> bool
 where
     K: Hash + Eq + Clone + Debug + Display + Sync + Send,
     N: Clone + Debug + Display + Sync + Send,
@@ -193,14 +193,14 @@ where
     source.outbound().find(source, target).is_some()
 }
 
-pub fn connect<K, N, E>(source: &NodeRef<K, N, E>, target: &NodeRef<K, N, E>, data: E) -> bool
+pub fn connect<K, N, E>(source: &RefNode<K, N, E>, target: &RefNode<K, N, E>, data: E) -> bool
 where
     K: Hash + Eq + Clone + Debug + Display + Sync + Send,
     N: Clone + Debug + Display + Sync + Send,
     E: Clone + Debug + Display + Sync + Send,
 {
     if !overlaps(source, target) {
-        let new_edge = EdgeRef::new(Edge::new(source, target, data));
+        let new_edge = RefEdge::new(Edge::new(source, target, data));
         target.inbound_mut().add_weak(&Arc::downgrade(&new_edge));
         source.outbound_mut().add(new_edge);
         return true;
@@ -208,7 +208,7 @@ where
     false
 }
 
-pub fn disconnect<K, N, E>(source: &NodeRef<K, N, E>, target: &NodeRef<K, N, E>) -> bool
+pub fn disconnect<K, N, E>(source: &RefNode<K, N, E>, target: &RefNode<K, N, E>) -> bool
 where
     K: Hash + Eq + Clone + Debug + Display + Sync + Send,
     N: Clone + Debug + Display + Sync + Send,
@@ -220,7 +220,7 @@ where
 }
 
 fn depth_traversal_directed_recursion<K, N, E, F>(
-    source: &NodeRef<K, N, E>,
+    source: &RefNode<K, N, E>,
     results: &mut EdgeList<K, N, E>,
     locks: &mut Vec<Weak<AtomicBool>>,
     f: F,
@@ -229,7 +229,7 @@ where
     K: Hash + Eq + Clone + Debug + Display + Sync + Send,
     N: Clone + Debug + Display + Sync + Send,
     E: Clone + Debug + Display + Sync + Send,
-	F: Fn (&EdgeRef<K, N, E>) -> Traverse,
+	F: Fn (&RefEdge<K, N, E>) -> Traverse,
 {
     source.close();
     locks.push(source.get_lock());
@@ -260,14 +260,14 @@ where
 }
 
 pub fn depth_traversal_directed<K, N, E, F>(
-    source: &NodeRef<K, N, E>,
+    source: &RefNode<K, N, E>,
     f: F,
 ) -> Option<EdgeList<K, N, E>>
 where
     K: Hash + Eq + Clone + Debug + Display + Sync + Send,
     N: Clone + Debug + Display + Sync + Send,
     E: Clone + Debug + Display + Sync + Send,
-	F: Fn (&EdgeRef<K, N, E>) -> Traverse,
+	F: Fn (&RefEdge<K, N, E>) -> Traverse,
 {
     let mut result = EdgeList::new();
     let mut locks = Vec::new();
@@ -283,8 +283,8 @@ where
 }
 
 fn breadth_traversal_node<K, N, E, F>(
-    source: &NodeRef<K, N, E>,
-    queue: &mut VecDeque<NodeRef<K, N, E>>,
+    source: &RefNode<K, N, E>,
+    queue: &mut VecDeque<RefNode<K, N, E>>,
     result: &mut EdgeList<K, N, E>,
     locks: &mut Vec<Weak<AtomicBool>>,
     f: &F,
@@ -293,7 +293,7 @@ where
     K: Hash + Eq + Clone + Debug + Display + Sync + Send,
     N: Clone + Debug + Display + Sync + Send,
     E: Clone + Debug + Display + Sync + Send,
-	F: Fn (&EdgeRef<K, N, E>) -> Traverse,
+	F: Fn (&RefEdge<K, N, E>) -> Traverse,
 {
     for edge in source.outbound().iter() {
         if edge.try_lock() == OPEN && edge.target().try_lock() == OPEN {
@@ -323,14 +323,14 @@ where
 }
 
 pub fn breadth_traversal_directed<K, N, E, F>(
-    source: &NodeRef<K, N, E>,
+    source: &RefNode<K, N, E>,
     f: F,
 ) -> Option<EdgeList<K, N, E>>
 where
     K: Hash + Eq + Clone + Debug + Display + Sync + Send,
     N: Clone + Debug + Display + Sync + Send,
     E: Clone + Debug + Display + Sync + Send,
-	F: Fn (&EdgeRef<K, N, E>) -> Traverse,
+	F: Fn (&RefEdge<K, N, E>) -> Traverse,
 {
     let mut result = EdgeList::new();
     let mut locks = Vec::new();

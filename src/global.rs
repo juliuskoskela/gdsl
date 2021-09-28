@@ -30,12 +30,12 @@ pub const CLOSED: bool = true;
 ///
 /// TYPES
 
-pub type NodeRef<K, N, E> = Arc<Node<K, N, E>>;
-pub type NodeWeak<K, N, E> = Weak<Node<K, N, E>>;
-pub type EdgeRef<K, N, E> = Arc<Edge<K, N, E>>;
-pub type EdgeWeak<K, N, E> = Weak<Edge<K, N, E>>;
-pub type ListRef<K, N, E> = RefCell<Adjacent<K, N, E>>;
-pub type NodeRefPool<K, N, E> = HashMap<K, NodeRef<K, N, E>>;
+pub type RefNode<K, N, E> = Arc<Node<K, N, E>>;
+pub type WeakNode<K, N, E> = Weak<Node<K, N, E>>;
+pub type RefEdge<K, N, E> = Arc<Edge<K, N, E>>;
+pub type WeakEdge<K, N, E> = Weak<Edge<K, N, E>>;
+pub type RefAdjacent<K, N, E> = RefCell<Adjacent<K, N, E>>;
+pub type RefNodePool<K, N, E> = HashMap<K, RefNode<K, N, E>>;
 
 // Helper void type which implements the necessary traits to be used as a
 // placeholder for Node parameters which are not used.

@@ -89,8 +89,4 @@ mod tests {
 		println!("max flow = {}", max_flow);
 		// assert!(max_flow == 23);
 	}
-
-	type Op = fn (i64, i64) -> i64;
-	type Val = (i64, i64);
-	type Calculator = Digraph<usize, Val, Op>;
 }

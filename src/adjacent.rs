@@ -27,7 +27,7 @@ where
     N: Clone + Debug + Display + Sync + Send,
     E: Clone + Debug + Display + Sync + Send,
 {
-	list: Vec<EdgeRef<K, N, E>>,
+	list: Vec<RefEdge<K, N, E>>,
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -46,7 +46,7 @@ where
 		}
 	}
 
-	pub fn add(&mut self, edge: EdgeRef<K, N, E>) {
+	pub fn add(&mut self, edge: RefEdge<K, N, E>) {
 		self.list.push(edge);
 	}
 
@@ -54,7 +54,7 @@ where
 		self.list.len()
 	}
 
-	pub fn find(&self, source: &NodeRef<K, N, E>, target: &NodeRef<K, N, E>) -> Option<EdgeRef<K, N, E>> {
+	pub fn find(&self, source: &RefNode<K, N, E>, target: &RefNode<K, N, E>) -> Option<RefEdge<K, N, E>> {
         for edge in self.iter() {
             if edge.target() == *target && edge.source() == *source{
                 return Some(edge.clone());
@@ -63,7 +63,7 @@ where
         None
     }
 
-	pub fn find_index(&self, target: &NodeRef<K, N, E>) -> Option<usize> {
+	pub fn find_index(&self, target: &RefNode<K, N, E>) -> Option<usize> {
 		for (i, e) in self.iter().enumerate() {
 			if e.target() == *target {
 				return Some(i);
@@ -76,15 +76,15 @@ where
 		self.list.is_empty()
 	}
 
-	pub fn iter(&self) -> std::slice::Iter<EdgeRef<K, N, E>> {
+	pub fn iter(&self) -> std::slice::Iter<RefEdge<K, N, E>> {
 		self.list.iter()
 	}
 
-	pub fn par_iter(&self) -> rayon::slice::Iter<EdgeRef<K, N, E>> {
+	pub fn par_iter(&self) -> rayon::slice::Iter<RefEdge<K, N, E>> {
 		self.list.par_iter()
 	}
 
-	pub fn del(&mut self, target: &NodeRef<K, N, E>) -> bool {
+	pub fn del(&mut self, target: &RefNode<K, N, E>) -> bool {
 		let index = self.find_index(target);
 		match index {
 			Some(i) => {
