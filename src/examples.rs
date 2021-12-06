@@ -12,7 +12,7 @@ use crate::global::Traverse::{Traverse, Skip, Finish};
 pub struct Flow {
 	pub max: usize,
 	pub cur: usize,
-	pub rev: WeakEdge<usize, Void, Flow>,
+	pub rev: WeakEdge<usize, Null, Flow>,
 }
 
 impl std::fmt::Display for Flow {
@@ -22,7 +22,7 @@ impl std::fmt::Display for Flow {
 }
 
 // A type for the flow graph.
-pub type FlowGraph = Digraph<usize, Void, Flow>;
+pub type FlowGraph = Digraph<usize, Null, Flow>;
 
 // Edge insertion in the flow-graph is a bit more involved. We need to save
 // a reverse edge for each forward edge with a maxed out capacity. When we
@@ -48,16 +48,22 @@ pub fn maximum_flow_edmonds_karp(g: &FlowGraph, s: usize, t: usize) -> usize {
 	// it. The Traverse enum will collect the edge in the results. Otherwise we
 	// skip the edge.
 	let target = g.node(&t).unwrap();
-	let mut max_flow: usize = 0;
-	while let Some(b) = g.breadth_first(&s,
-		|e| {
-			let flow = e.load();
-			if flow.cur < flow.max {
-				if *target == e.target() { Finish }
-				else { Traverse }
+	let explorer = |e: &RefEdge<usize, Null, Flow>| {
+		let flow = e.load();
+		if flow.cur < flow.max {
+			if *target == e.target() {
+				Finish
 			}
-			else { Skip }
-	})
+			else {
+				Traverse
+			}
+		}
+		else {
+			Skip
+		}
+	};
+	let mut max_flow: usize = 0;
+	while let Some(b) = g.breadth_first(&s, explorer)
 	{
 		// We backtrack the results from the breadth first traversal which will
 		// produce the shortest path.
@@ -66,10 +72,15 @@ pub fn maximum_flow_edmonds_karp(g: &FlowGraph, s: usize, t: usize) -> usize {
 		// We find the bottleneck value of the path.
 		let mut aug_flow = std::usize::MAX;
 		for weak in path.iter() {
-			let e = weak.upgrade().unwrap();
-			let flow = e.load();
-			if flow.max - flow.cur < aug_flow {
-				aug_flow = flow.max - flow.cur;
+			let e = weak.upgrade();
+			match e {
+				Some(edge) => {
+					let flow = edge.load();
+						if flow.max - flow.cur < aug_flow {
+							aug_flow = flow.max - flow.cur;
+					}
+				}
+				None => { panic!("Weak pointer invalid!") }
 			}
 		}
 
@@ -99,11 +110,6 @@ pub fn maximum_flow_edmonds_karp(g: &FlowGraph, s: usize, t: usize) -> usize {
 
 // Maximum flow of a directed graph using the Ford-Fulkerson method.
 pub fn maximum_flow_ford_fulkerson(g: &FlowGraph, s: usize, t: usize) -> usize {
-
-	// We loop over the graph doing a breadth first search. Inside the closure
-	// we check the flow of each edge. If the edge is not saturated, we traverse
-	// it. The Traverse enum will collect the edge in the results. Otherwise we
-	// skip the edge.
 	let target = g.node(&t).unwrap();
 	let mut max_flow: usize = 0;
 	while let Some(b) = g.depth_first(&s,
@@ -112,49 +118,37 @@ pub fn maximum_flow_ford_fulkerson(g: &FlowGraph, s: usize, t: usize) -> usize {
 			if flow.cur < flow.max {
 				if *target == e.target() {
 					Finish
-				}
-				else {
+				} else {
 					Traverse
 				}
-			}
-			else {
-				Skip
-			}
-	})
+			} else { Skip }})
 	{
-		// We backtrack the results from the breadth first traversal which will
-		// produce the shortest path.
 		let path = b.backtrack().unwrap();
-
-		// We find the bottleneck value of the path.
+		for e in b.iter() {
+			println!("{}", e.upgrade().unwrap())
+		}
+		println!("\n\n");
 		let mut aug_flow = std::usize::MAX;
 		for weak in path.iter() {
-			let e = weak.upgrade().unwrap();
-			let flow = e.load();
-			if flow.max - flow.cur < aug_flow {
-				aug_flow = flow.max - flow.cur;
+			if let Some(edge) = weak.upgrade() {
+				let flow = edge.load();
+				if flow.max - flow.cur < aug_flow {
+					aug_flow = flow.max - flow.cur;
+				}
 			}
 		}
-
-		// We update the flow along the path.
 		for weak in path.iter() {
-
-			// Increase flow in the forward edge.
-			let e = weak.upgrade().unwrap();
-			let mut flow = e.load();
-			flow.cur += aug_flow;
-
-			// Decrease flow in the reverse edge.
-			let r = flow.rev.upgrade().unwrap();
-			let mut rev_flow = r.load();
-			rev_flow.cur -= aug_flow;
-
-			// Store results.
-			e.store(flow);
-			r.store(rev_flow);
+			if let Some(edge) = weak.upgrade() {
+				let mut flow = edge.load();
+				flow.cur += aug_flow;
+				if let Some(rev_edge) = flow.rev.upgrade() {
+					let mut rev_flow = rev_edge.load();
+					rev_flow.cur -= aug_flow;
+					edge.store(flow);
+					rev_edge.store(rev_flow);
+				}
+			}
 		}
-
-		// Max flow is the sum of all augmenting flows.
 		max_flow += aug_flow;
 	}
 	max_flow

@@ -73,7 +73,7 @@ where
     E: Clone + Debug + Display + Sync + Send,
 {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(fmt, "Edge \"{}\" {}", self.source().key(), self.to_string())
+        write!(fmt, "Edge \"{}\" {}", self.source().key(), self.display_string())
 	}
 }
 
@@ -130,7 +130,7 @@ where
 		*x = data;
 	}
 
-	pub fn to_string(&self) -> String {
+	pub fn display_string(&self) -> String {
 		let lock_state = if self.try_lock() == false {"OPEN"} else {"CLOSED"};
 		format!("-> \"{}\" : \"{}\" : \"{}\"",
 			self.target().key(),

@@ -1,8 +1,6 @@
-/// Includes
-
 use crate::adjacent::*;
 use crate::edge::*;
-use crate::edge_list::*;
+use crate::path::*;
 use crate::global::*;
 
 use std::{
@@ -28,7 +26,7 @@ where
     key: K,
     data: Mutex<N>,
     outbound: RefAdjacent<K, N, E>,
-    inbound: RefCell<EdgeList<K, N, E>>,
+    inbound: RefCell<Path<K, N, E>>,
     lock: Arc<AtomicBool>,
 }
 
@@ -53,7 +51,7 @@ where
             key: self.key.clone(),
             data: Mutex::new(self.data.lock().unwrap().clone()),
             outbound: RefAdjacent::new(Adjacent::new()),
-            inbound: RefCell::new(EdgeList::new()),
+            inbound: RefCell::new(Path::new()),
             lock: Arc::new(AtomicBool::new(OPEN)),
         }
     }
@@ -97,7 +95,7 @@ where
             key,
             data: Mutex::new(data),
             outbound: RefAdjacent::new(Adjacent::new()),
-            inbound: RefCell::new(EdgeList::new()),
+            inbound: RefCell::new(Path::new()),
             lock: Arc::new(AtomicBool::new(false)),
         }
     }
@@ -138,10 +136,10 @@ where
         self.outbound.borrow_mut()
     }
 
-    pub fn inbound(&self) -> Ref<EdgeList<K, N, E>> {
+    pub fn inbound(&self) -> Ref<Path<K, N, E>> {
         self.inbound.borrow()
     }
-    pub fn inbound_mut(&self) -> RefMut<EdgeList<K, N, E>> {
+    pub fn inbound_mut(&self) -> RefMut<Path<K, N, E>> {
         self.inbound.borrow_mut()
     }
 
@@ -154,36 +152,20 @@ where
 	}
 
     pub fn display_string(&self) -> String {
-        let mut outbound = vec![];
-        let mut inbound = vec![];
-        for edge in self.outbound().iter() {
-            outbound.push(format!("	{}", edge.to_string()));
-        }
-        for edge in self.inbound().iter() {
-            inbound.push(format!("	{}", edge.upgrade().unwrap().to_string()));
-        }
         let lock_state = if self.try_lock() { "CLOSED" } else { "OPEN" };
         let header = format!(
-            "\"{}\" : \"{}\" : \"{}\" {{ ",
+            "\"{}\" : \"{}\" : \"{}\"",
             self.key,
             lock_state,
             self.data.lock().unwrap()
         );
-        let mut body: String;
-        if outbound.is_empty() {
-            body = "\n".to_string() + &outbound.join("\n") + "\n";
-        } else {
-            body = "".to_string();
-        }
-        if inbound.is_empty() {
-            body = body + "\n" + &inbound.join("\n") + "\n";
-        }
-        let end = "}";
-        header + &body + end
+        header
     }
 }
 
 /// Node: Procedural Implementations
+
+#[inline]
 fn overlaps<K, N, E>(source: &RefNode<K, N, E>, target: &RefNode<K, N, E>) -> bool
 where
     K: Hash + Eq + Clone + Debug + Display + Sync + Send,
@@ -193,6 +175,7 @@ where
     source.outbound().find(source, target).is_some()
 }
 
+#[inline]
 pub fn connect<K, N, E>(source: &RefNode<K, N, E>, target: &RefNode<K, N, E>, data: E) -> bool
 where
     K: Hash + Eq + Clone + Debug + Display + Sync + Send,
@@ -221,7 +204,7 @@ where
 
 fn depth_traversal_directed_recursion<K, N, E, F>(
     source: &RefNode<K, N, E>,
-    results: &mut EdgeList<K, N, E>,
+    results: &mut Path<K, N, E>,
     locks: &mut Vec<Weak<AtomicBool>>,
     f: F,
 ) -> bool
@@ -262,14 +245,14 @@ where
 pub fn depth_traversal_directed<K, N, E, F>(
     source: &RefNode<K, N, E>,
     f: F,
-) -> Option<EdgeList<K, N, E>>
+) -> Option<Path<K, N, E>>
 where
     K: Hash + Eq + Clone + Debug + Display + Sync + Send,
     N: Clone + Debug + Display + Sync + Send,
     E: Clone + Debug + Display + Sync + Send,
 	F: Fn (&RefEdge<K, N, E>) -> Traverse,
 {
-    let mut result = EdgeList::new();
+    let mut result = Path::new();
     let mut locks = Vec::new();
     let res = depth_traversal_directed_recursion(source, &mut result, &mut locks, f);
     for weak in locks {
@@ -282,10 +265,11 @@ where
     }
 }
 
+#[inline]
 fn breadth_traversal_node<K, N, E, F>(
     source: &RefNode<K, N, E>,
     queue: &mut VecDeque<RefNode<K, N, E>>,
-    result: &mut EdgeList<K, N, E>,
+    result: &mut Path<K, N, E>,
     locks: &mut Vec<Weak<AtomicBool>>,
     f: &F,
 ) -> bool
@@ -325,14 +309,14 @@ where
 pub fn breadth_traversal_directed<K, N, E, F>(
     source: &RefNode<K, N, E>,
     f: F,
-) -> Option<EdgeList<K, N, E>>
+) -> Option<Path<K, N, E>>
 where
     K: Hash + Eq + Clone + Debug + Display + Sync + Send,
     N: Clone + Debug + Display + Sync + Send,
     E: Clone + Debug + Display + Sync + Send,
 	F: Fn (&RefEdge<K, N, E>) -> Traverse,
 {
-    let mut result = EdgeList::new();
+    let mut result = Path::new();
     let mut locks = Vec::new();
     let mut queue = VecDeque::new();
     source.close();
@@ -359,5 +343,3 @@ where
     }
     None
 }
-
-///////////////////////////////////////////////////////////////////////////////

@@ -6,17 +6,17 @@ use graph::global::Traverse::{Traverse, Finish};
 use rand::Rng;
 use lazy_static::lazy_static;
 
-const SIMPLE_NODE_COUNT: usize = 100000;
-const SIMPLE_NODE_DEGREE: usize = 100;
+const SIMPLE_NODE_COUNT: usize = 1000000;
+const SIMPLE_NODE_DEGREE: usize = 10;
 const FLOW_NODE_COUNT: usize = 1000;
 const FLOW_NODE_DEGREE: usize = 10;
 
-type IntKeysGraph = Digraph<usize, Void, Void>;
+type IntKeysGraph = Digraph<usize, Null, Null>;
 
 fn create_graph_flow() -> FlowGraph {
 	let mut g = FlowGraph::new();
 	for i in 0..FLOW_NODE_COUNT {
-		g.insert(i, Void);
+		g.insert(i, Null);
 	}
 	for i in 0..FLOW_NODE_COUNT {
 		for _ in 0..FLOW_NODE_DEGREE {
@@ -29,11 +29,11 @@ fn create_graph_flow() -> FlowGraph {
 fn create_graph_simple() -> IntKeysGraph {
 	let mut g = IntKeysGraph::new();
 	for i in 0..SIMPLE_NODE_COUNT {
-		g.insert(i, Void);
+		g.insert(i, Null);
 	}
 	for i in 0..SIMPLE_NODE_COUNT {
 		for _ in 0..SIMPLE_NODE_DEGREE {
-			g.connect(&i, &rand_range(0, SIMPLE_NODE_COUNT), Void);
+			g.connect(&i, &rand_range(0, SIMPLE_NODE_COUNT), Null);
 		}
 	}
 	g
@@ -52,11 +52,11 @@ fn rand_range(start: usize, end: usize) -> usize {
 fn create_graph_speed() {
 	let mut g = IntKeysGraph::new();
 	for i in 0..1000 {
-		g.insert(i, Void);
+		g.insert(i, Null);
 	}
 	for i in 0..1000 {
 		for _ in 0..100 {
-			g.connect(&i, &rand_range(0, 100), Void);
+			g.connect(&i, &rand_range(0, 100), Null);
 		}
 	}
 }

@@ -100,23 +100,6 @@ where
 			self.list.remove(index);
 		}
 	}
-
-	pub fn backtrack(&self) -> Option<Adjacent<K, N, E>> {
-		if self.list.len() == 0 {
-			return None;
-		}
-		let mut res = Adjacent::new();
-		res.add(self.list[self.list.len() - 1].clone());
-		let mut i = 0;
-		for edge in self.list.iter().rev() {
-			let source = &res.list[i].source();
-			if edge.target() == *source {
-				res.list.push(edge.clone());
-				i += 1;
-			}
-		}
-		Some(res)
-	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////

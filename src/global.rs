@@ -40,9 +40,9 @@ pub type RefNodePool<K, N, E> = HashMap<K, RefNode<K, N, E>>;
 // Helper void type which implements the necessary traits to be used as a
 // placeholder for Node parameters which are not used.
 #[derive(Clone, Debug)]
-pub struct Void;
+pub struct Null;
 
-impl std::fmt::Display for Void {
+impl std::fmt::Display for Null {
 	fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		write!(fmt, "_")
 	}

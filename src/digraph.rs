@@ -1,10 +1,11 @@
 /// Icludes
+
 use std::{
     fmt::{Debug, Display},
     hash::Hash,
 };
 
-use crate::edge_list::*;
+use crate::path::*;
 use crate::edge::*;
 use crate::global::*;
 use crate::global::Traverse;
@@ -12,13 +13,13 @@ use crate::node::*;
 
 /// Digraph
 
-pub struct Digraph<K, N, E>
+pub struct Digraph<K, N = Null, E = Null>
 where
     K: Hash + Eq + Clone + Debug + Display + Sync + Send,
     N: Clone + Debug + Display + Sync + Send,
     E: Clone + Debug + Display + Sync + Send,
 {
-    nodes: RefNodePool<K, N, E>,
+    pub nodes: RefNodePool<K, N, E>,
 	edge_count: usize,
 }
 
@@ -45,6 +46,34 @@ where
         Self {
             nodes: RefNodePool::new(),
 			edge_count: 0,
+        }
+    }
+
+	pub fn insert(&mut self, key: K, data: N) -> bool {
+        if self.nodes.contains_key(&key) {
+            let node = self.nodes[&key].clone();
+            node.store(data);
+            false
+        } else {
+            let node = RefNode::new(Node::new(key.clone(), data));
+            self.nodes.insert(key, node);
+            true
+        }
+    }
+
+    pub fn connect(&mut self, source: &K, target: &K, data: E) {
+        if self.nodes.contains_key(source) && self.nodes.contains_key(target) {
+            if connect(&self.nodes[source], &self.nodes[target], data) {
+				self.edge_count += 1;
+			}
+        }
+    }
+
+	pub fn disconnect(&mut self, source: &K, target: &K) {
+        if self.nodes.contains_key(source) && self.nodes.contains_key(target) {
+            if disconnect(&self.nodes[source], &self.nodes[target]) {
+				self.edge_count -= 1;
+			}
         }
     }
 
@@ -84,34 +113,6 @@ where
         }
 	}
 
-    pub fn insert(&mut self, key: K, data: N) -> bool {
-        if self.nodes.contains_key(&key) {
-            let node = self.nodes[&key].clone();
-            node.store(data);
-            false
-        } else {
-            let node = RefNode::new(Node::new(key.clone(), data));
-            self.nodes.insert(key, node);
-            true
-        }
-    }
-
-    pub fn connect(&mut self, source: &K, target: &K, data: E) {
-        if self.nodes.contains_key(source) && self.nodes.contains_key(target) {
-            if connect(&self.nodes[source], &self.nodes[target], data) {
-				self.edge_count += 1;
-			}
-        }
-    }
-
-    pub fn disconnect(&mut self, source: &K, target: &K) {
-        if self.nodes.contains_key(source) && self.nodes.contains_key(target) {
-            if disconnect(&self.nodes[source], &self.nodes[target]) {
-				self.edge_count -= 1;
-			}
-        }
-    }
-
     pub fn get_leaves(&self) -> Vec<RefNode<K, N, E>> {
         let mut res: Vec<RefNode<K, N, E>> = vec![];
         for n in self.nodes.values() {
@@ -126,7 +127,7 @@ where
 		&self,
 		source: &K,
 		f: F
-	) -> Option<EdgeList<K, N, E>>
+	) -> Option<Path<K, N, E>>
 	where
 		F: Fn (&RefEdge<K, N, E>) -> Traverse,
 	{
@@ -141,7 +142,7 @@ where
 		&self,
 		source: &K,
 		f: F
-	) -> Option<EdgeList<K, N, E>>
+	) -> Option<Path<K, N, E>>
 	where
 		F: Fn (&RefEdge<K, N, E>) -> Traverse,
 	{
@@ -150,5 +151,11 @@ where
     	    Some(ss) => breadth_traversal_directed(ss, f),
     	    None => None,
     	}
+	}
+
+	pub fn print_nodes(&self) {
+		for (_, node) in self.nodes.iter() {
+			println!("{}", node);
+		}
 	}
 }
