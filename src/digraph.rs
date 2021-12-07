@@ -153,6 +153,21 @@ where
     	}
 	}
 
+	pub fn par_breadth_first<F>(
+		&self,
+		source: &K,
+		f: F
+	) -> Option<Path<K, N, E>>
+	where
+		F: Fn (&RefEdge<K, N, E>) -> Traverse + std::marker::Sync + std::marker::Send,
+	{
+		let s = self.node(source);
+		match s {
+    	    Some(ss) => par_breadth_traversal_directed(ss, f),
+    	    None => None,
+    	}
+	}
+
 	pub fn print_nodes(&self) {
 		for (_, node) in self.nodes.iter() {
 			println!("{}", node);

@@ -63,7 +63,7 @@ pub fn maximum_flow_edmonds_karp(g: &FlowGraph, s: usize, t: usize) -> usize {
 		}
 	};
 	let mut max_flow: usize = 0;
-	while let Some(b) = g.breadth_first(&s, explorer)
+	while let Some(b) = g.par_breadth_first(&s, explorer)
 	{
 		// We backtrack the results from the breadth first traversal which will
 		// produce the shortest path.

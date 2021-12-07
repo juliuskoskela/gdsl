@@ -56,6 +56,47 @@ mod tests {
 	}
 
 	#[test]
+	fn digraph_test_par_breadth_traversal() {
+		let mut g = SimpleGraph::new();
+
+		g.insert(1, Null);
+		g.insert(2, Null);
+		g.insert(3, Null);
+		g.insert(4, Null);
+		g.insert(5, Null);
+		g.insert(6, Null);
+
+		g.connect(&1, &2, Null);
+		g.connect(&1, &3, Null);
+		g.connect(&2, &1, Null);
+		g.connect(&2, &3, Null);
+		g.connect(&3, &1, Null);
+		g.connect(&3, &5, Null);
+		g.connect(&5, &2, Null);
+		g.connect(&5, &4, Null);
+		g.connect(&5, &1, Null);
+		g.connect(&4, &5, Null);
+		g.connect(&4, &3, Null);
+		g.connect(&4, &2, Null);
+		g.connect(&4, &6, Null);
+
+		let path = g.par_breadth_first(&1,
+		|edge|{
+			if edge.target().key() == &6 {
+				Finish
+			} else {
+				Traverse
+			}
+		}).unwrap().backtrack().unwrap();
+
+		println!("Breadth First Search\n");
+		for edge in path.iter() {
+			println!("{}", edge.upgrade().unwrap());
+		}
+		g.print_nodes();
+	}
+
+	#[test]
 	fn digraph_test_depth_traversal() {
 		let mut g = SimpleGraph::new();
 

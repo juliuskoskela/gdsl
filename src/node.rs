@@ -1,3 +1,7 @@
+
+use rayon::iter::ParallelIterator;
+use rayon::iter::IntoParallelRefIterator;
+
 use crate::adjacent::*;
 use crate::edge::*;
 use crate::path::*;
@@ -341,5 +345,85 @@ where
         let lock = weak.upgrade().unwrap();
         lock.store(OPEN, Ordering::Relaxed);
     }
+    None
+}
+
+pub fn par_breadth_traversal_directed<K, N, E, F>(
+    source: &RefNode<K, N, E>,
+    f: F,
+) -> Option<Path<K, N, E>>
+where
+    K: Hash + Eq + Clone + Debug + Display + Sync + Send,
+    N: Clone + Debug + Display + Sync + Send,
+    E: Clone + Debug + Display + Sync + Send,
+	F: Fn (&RefEdge<K, N, E>) -> Traverse + Sync + Send,
+{
+    let mut result = Path::new();
+    let mut locks = Vec::new();
+    let mut queue = VecDeque::new();
+
+    source.close();
+    locks.push(source.get_lock());
+    queue.push_back(source.clone());
+
+	while queue.len() > 0 {
+		let iter = queue.par_iter().map(
+			| node | {
+				let mut partition = VecDeque::new();
+				let mut result = Path::new();
+				let mut found: bool = false;
+				for edge in node.outbound().iter() {
+					if edge.try_lock() == OPEN && edge.target().try_lock() == OPEN {
+						edge.target().close();
+						edge.close();
+						let traverse = f(edge);
+						match traverse {
+							crate::node::Traverse::Traverse => {
+								partition.push_back(edge.target());
+								result.add(edge);
+							}
+							crate::node::Traverse::Finish => {
+								partition.push_back(edge.target());
+								result.add(edge);
+								found = true;
+								break;
+							}
+							crate::node::Traverse::Skip => {
+								edge.target().open();
+							}
+						}
+					}
+				}
+				(partition, result, found)
+			}
+		);
+
+		let frontier: Vec<(VecDeque<Arc<Node<K, N, E>>>, Path<K, N, E>, bool)> = iter.collect();
+
+		queue.clear();
+		for segment in frontier {
+			for node in segment.0 {
+				queue.push_back(node);
+			}
+			for edge in segment.1.iter() {
+				result.add(&edge.upgrade().unwrap());
+			}
+			if segment.2 == true {
+				for edge in result.iter() {
+					let e = edge.upgrade().unwrap();
+					e.open();
+					e.source().open();
+					e.target().open();
+				}
+				return Some(result);
+			}
+		}
+	}
+	for edge in result.iter() {
+		let e = edge.upgrade().unwrap();
+		e.open();
+		e.source().open();
+		e.target().open();
+	}
     None
 }

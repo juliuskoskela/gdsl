@@ -10,7 +10,6 @@ use std:: {
 };
 
 use crate::global::*;
-use rayon::prelude::*;
 
 /// Path
 
@@ -78,10 +77,6 @@ where
 
 	pub fn iter(&self) -> std::slice::Iter<WeakEdge<K, N, E>> {
 		self.edges.iter()
-	}
-
-	pub fn par_iter(&self) -> rayon::slice::Iter<WeakEdge<K, N, E>> {
-		self.edges.par_iter()
 	}
 
 	pub fn del(&mut self, target: &RefNode<K, N, E>) -> bool {

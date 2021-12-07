@@ -79,11 +79,25 @@ fn digraph_breadth_first_search(c: &mut Criterion) {
     c.bench_function("breadth first search", |b| b.iter(|| black_box(digraph_bfs())));
 }
 
+fn digraph_par_breadth_first_search(c: &mut Criterion) {
+	// println!("constructing graph of size = {} Mb", ((SIMPLE_NODE_COUNT * std::mem::size_of::<Node<usize, usize, usize>>()) + (SIMPLE_NODE_COUNT * SIMPLE_NODE_DEGREE * std::mem::size_of::<Edge<usize, usize, usize>>())) / 1000_000);
+	fn digraph_par_bfs() {
+		let t = SIMPLE_GRAPH.node(&rand_range(0, SIMPLE_NODE_COUNT)).unwrap();
+		SIMPLE_GRAPH.par_breadth_first(&rand_range(0, SIMPLE_NODE_COUNT),
+	|e| if *t == e.target() { Finish } else { Traverse });
+	}
+	println!("graph node count = {}", SIMPLE_GRAPH.node_count());
+	println!("graph edge count = {}", SIMPLE_GRAPH.edge_count());
+	println!("graph average degree = {}", SIMPLE_GRAPH.edge_count() as f64 / SIMPLE_GRAPH.node_count() as f64);
+	println!("sizeof graph = {} Mb", SIMPLE_GRAPH.bytesize() as f64 / 1000_000.0);
+    c.bench_function("par breadth first search", |b| b.iter(|| black_box(digraph_par_bfs())));
+}
+
 fn digraph_find_shortest_path(c: &mut Criterion) {
 	// println!("constructing graph of size = {} Mb", ((SIMPLE_NODE_COUNT * std::mem::size_of::<Node<usize, usize, usize>>()) + (SIMPLE_NODE_COUNT * SIMPLE_NODE_DEGREE * std::mem::size_of::<Edge<usize, usize, usize>>())) / 1000_000);
 	fn digraph_sp() {
 		let t = SIMPLE_GRAPH.node(&rand_range(0, SIMPLE_NODE_COUNT)).unwrap();
-		let res = SIMPLE_GRAPH.breadth_first(&rand_range(0, SIMPLE_NODE_COUNT), |e| if *t == e.target() { Finish } else { Traverse });
+		let res = SIMPLE_GRAPH.par_breadth_first(&rand_range(0, SIMPLE_NODE_COUNT), |e| if *t == e.target() { Finish } else { Traverse });
 		match res {
 			Some(r) => { r.backtrack(); }
 			None => {}
@@ -107,5 +121,5 @@ fn digraph_max_flow(c: &mut Criterion) {
     c.bench_function("maximum flow edmonds karp", |b| b.iter(|| black_box(digraph_mf())));
 }
 
-criterion_group!(benches, digraph_breadth_construction, digraph_breadth_first_search, digraph_find_shortest_path, digraph_max_flow);
+criterion_group!(benches, digraph_breadth_construction, digraph_breadth_first_search, digraph_par_breadth_first_search, digraph_find_shortest_path, digraph_max_flow);
 criterion_main!(benches);
