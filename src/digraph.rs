@@ -163,7 +163,11 @@ where
 	{
 		let s = self.node(source);
 		match s {
-    	    Some(ss) => par_breadth_traversal_directed(ss, f),
+			Some(ss) => {
+				let ret = par_breadth_traversal_directed(ss, f);
+				// self.clear_locks();
+				ret
+			},
     	    None => None,
     	}
 	}
@@ -171,6 +175,23 @@ where
 	pub fn print_nodes(&self) {
 		for (_, node) in self.nodes.iter() {
 			println!("{}", node);
+		}
+	}
+
+	pub fn print_edges(&self) {
+		for (_, node) in self.nodes.iter() {
+			for edge in node.outbound().iter() {
+				println!("{}", edge);
+			}
+		}
+	}
+
+	pub fn clear_locks(&self) {
+		for (_, node) in self.nodes.iter() {
+			node.open();
+			for edge in node.outbound().iter() {
+				edge.open();
+			}
 		}
 	}
 }

@@ -164,6 +164,8 @@ mod tests {
 	fn digraph_test_maximum_flow_edmonds_karp() {
 		let g = flow_graph_example_1to6_23();
 		let max_flow = maximum_flow_edmonds_karp(&g, 1, 6);
+		g.print_nodes();
+		g.print_edges();
 		assert!(max_flow == 23);
 	}
 

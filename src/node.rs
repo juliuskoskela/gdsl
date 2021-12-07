@@ -359,11 +359,10 @@ where
 	F: Fn (&RefEdge<K, N, E>) -> Traverse + Sync + Send,
 {
     let mut result = Path::new();
-    let mut locks = Vec::new();
     let mut queue = VecDeque::new();
+	let sigterm = AtomicBool::new(false);
 
     source.close();
-    locks.push(source.get_lock());
     queue.push_back(source.clone());
 
 	while queue.len() > 0 {
@@ -373,6 +372,9 @@ where
 				let mut result = Path::new();
 				let mut found: bool = false;
 				for edge in node.outbound().iter() {
+					if sigterm.load(Ordering::Relaxed) == true {
+						break ;
+					}
 					if edge.try_lock() == OPEN && edge.target().try_lock() == OPEN {
 						edge.target().close();
 						edge.close();
@@ -383,6 +385,7 @@ where
 								result.add(edge);
 							}
 							crate::node::Traverse::Finish => {
+								sigterm.store(true, Ordering::Relaxed);
 								partition.push_back(edge.target());
 								result.add(edge);
 								found = true;
@@ -409,21 +412,22 @@ where
 				result.add(&edge.upgrade().unwrap());
 			}
 			if segment.2 == true {
-				for edge in result.iter() {
-					let e = edge.upgrade().unwrap();
-					e.open();
-					e.source().open();
-					e.target().open();
+				source.open();
+				for weak_edge in result.iter() {
+					let edge = weak_edge.upgrade().unwrap();
+					edge.open();
+					edge.source().open();
+					edge.target().open();
 				}
 				return Some(result);
 			}
 		}
 	}
-	for edge in result.iter() {
-		let e = edge.upgrade().unwrap();
-		e.open();
-		e.source().open();
-		e.target().open();
+	for weak_edge in result.iter() {
+		let edge = weak_edge.upgrade().unwrap();
+		edge.open();
+		edge.source().open();
+		edge.target().open();
 	}
     None
 }
