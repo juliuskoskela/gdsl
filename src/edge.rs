@@ -36,8 +36,8 @@ where
     N: Clone + Debug + Display + Sync + Send,
     E: Clone + Debug + Display + Sync + Send,
 {
-	source: NodeWeak<K, N, E>,
-	target: NodeWeak<K, N, E>,
+	source: WeakNode<K, N, E>,
+	target: WeakNode<K, N, E>,
 	data: Mutex<E>,
 	lock: Arc<AtomicBool>,
 }
@@ -73,7 +73,7 @@ where
     E: Clone + Debug + Display + Sync + Send,
 {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(fmt, "Edge \"{}\" {}", self.source().key(), self.to_string())
+        write!(fmt, "Edge \"{}\" {}", self.source().key(), self.display_string())
 	}
 }
 
@@ -86,8 +86,8 @@ where
     E: Clone + Debug + Display + Sync + Send,
 {
 	pub fn new(
-		source: &NodeRef<K, N, E>,
-		target: &NodeRef<K, N, E>,
+		source: &RefNode<K, N, E>,
+		target: &RefNode<K, N, E>,
 		data: E) -> Edge<K, N, E> {
 		Edge {
 			source: Arc::downgrade(source),
@@ -113,11 +113,11 @@ where
 		self.lock.store(OPEN, Ordering::Relaxed)
 	}
 
-	pub fn source(&self) -> NodeRef<K, N, E> {
+	pub fn source(&self) -> RefNode<K, N, E> {
 		self.source.upgrade().unwrap()
 	}
 
-	pub fn target(&self) -> NodeRef<K, N, E> {
+	pub fn target(&self) -> RefNode<K, N, E> {
 		self.target.upgrade().unwrap()
 	}
 
@@ -130,7 +130,7 @@ where
 		*x = data;
 	}
 
-	pub fn to_string(&self) -> String {
+	pub fn display_string(&self) -> String {
 		let lock_state = if self.try_lock() == false {"OPEN"} else {"CLOSED"};
 		format!("-> \"{}\" : \"{}\" : \"{}\"",
 			self.target().key(),

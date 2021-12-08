@@ -1,24 +1,26 @@
 /// Icludes
+
 use std::{
     fmt::{Debug, Display},
     hash::Hash,
 };
 
-use crate::edge_list::*;
+use crate::path::*;
 use crate::edge::*;
 use crate::global::*;
 use crate::global::Traverse;
 use crate::node::*;
+use crate::par_bfs::*;
 
 /// Digraph
 
-pub struct Digraph<K, N, E>
+pub struct Digraph<K, N = Null, E = Null>
 where
     K: Hash + Eq + Clone + Debug + Display + Sync + Send,
     N: Clone + Debug + Display + Sync + Send,
     E: Clone + Debug + Display + Sync + Send,
 {
-    nodes: NodeRefPool<K, N, E>,
+    pub nodes: RefNodePool<K, N, E>,
 	edge_count: usize,
 }
 
@@ -43,8 +45,36 @@ where
 {
     pub fn new() -> Self {
         Self {
-            nodes: NodeRefPool::new(),
+            nodes: RefNodePool::new(),
 			edge_count: 0,
+        }
+    }
+
+	pub fn insert(&mut self, key: K, data: N) -> bool {
+        if self.nodes.contains_key(&key) {
+            let node = self.nodes[&key].clone();
+            node.store(data);
+            false
+        } else {
+            let node = RefNode::new(Node::new(key.clone(), data));
+            self.nodes.insert(key, node);
+            true
+        }
+    }
+
+    pub fn connect(&mut self, source: &K, target: &K, data: E) {
+        if self.nodes.contains_key(source) && self.nodes.contains_key(target) {
+            if connect(&self.nodes[source], &self.nodes[target], data) {
+				self.edge_count += 1;
+			}
+        }
+    }
+
+	pub fn disconnect(&mut self, source: &K, target: &K) {
+        if self.nodes.contains_key(source) && self.nodes.contains_key(target) {
+            if disconnect(&self.nodes[source], &self.nodes[target]) {
+				self.edge_count -= 1;
+			}
         }
     }
 
@@ -53,7 +83,7 @@ where
     }
 
 	pub fn edge_count(&self) -> usize {
-        self.edge_count
+		self.edge_count
     }
 
 	pub fn bytesize(&self) -> usize {
@@ -68,11 +98,11 @@ where
 		}
 	}
 
-	pub fn node(&self, key: &K) -> Option<&NodeRef<K, N, E>> {
+	pub fn node(&self, key: &K) -> Option<&RefNode<K, N, E>> {
 		self.nodes.get(key)
 	}
 
-	pub fn edge(&self, source: &K, target: &K) -> Option<EdgeRef<K, N, E>> {
+	pub fn edge(&self, source: &K, target: &K) -> Option<RefEdge<K, N, E>> {
 		let s = self.nodes.get(source);
 		let t = self.nodes.get(target);
 		match s {
@@ -84,36 +114,8 @@ where
         }
 	}
 
-    pub fn insert(&mut self, key: K, data: N) -> bool {
-        if self.nodes.contains_key(&key) {
-            let node = self.nodes[&key].clone();
-            node.store(data);
-            false
-        } else {
-            let node = NodeRef::new(Node::new(key.clone(), data));
-            self.nodes.insert(key, node);
-            true
-        }
-    }
-
-    pub fn connect(&mut self, source: &K, target: &K, data: E) {
-        if self.nodes.contains_key(source) && self.nodes.contains_key(target) {
-            if connect(&self.nodes[source], &self.nodes[target], data) {
-				self.edge_count += 1;
-			}
-        }
-    }
-
-    pub fn disconnect(&mut self, source: &K, target: &K) {
-        if self.nodes.contains_key(source) && self.nodes.contains_key(target) {
-            if disconnect(&self.nodes[source], &self.nodes[target]) {
-				self.edge_count -= 1;
-			}
-        }
-    }
-
-    pub fn get_leaves(&self) -> Vec<NodeRef<K, N, E>> {
-        let mut res: Vec<NodeRef<K, N, E>> = vec![];
+    pub fn get_leaves(&self) -> Vec<RefNode<K, N, E>> {
+        let mut res: Vec<RefNode<K, N, E>> = vec![];
         for n in self.nodes.values() {
             if n.outbound().is_empty() {
                 res.push(n.clone());
@@ -122,39 +124,75 @@ where
         res
     }
 
-	pub fn depth_first(
+	pub fn depth_first<F>(
 		&self,
 		source: &K,
-		target: &K,
-		f: fn (&EdgeRef<K, N, E>) -> Traverse
-	) -> Option<EdgeList<K, N, E>> {
+		f: F
+	) -> Option<Path<K, N, E>>
+	where
+		F: Fn (&RefEdge<K, N, E>) -> Traverse,
+	{
 		let s = self.node(source);
-		let t = self.node(target);
-
 		match s {
-            Some(ss) => match t {
-                Some(tt) => depth_traversal_directed(ss, tt, f),
-                None => None,
-            },
-            None => None,
-        }
+    	    Some(ss) => depth_traversal_directed(ss, f),
+    	    None => None,
+    	}
 	}
 
-	pub fn breadth_first(
+	pub fn breadth_first<F>(
 		&self,
 		source: &K,
-		target: &K,
-		f: fn (&EdgeRef<K, N, E>) -> Traverse
-	) -> Option<EdgeList<K, N, E>> {
+		f: F
+	) -> Option<Path<K, N, E>>
+	where
+		F: Fn (&RefEdge<K, N, E>) -> Traverse,
+	{
 		let s = self.node(source);
-		let t = self.node(target);
-
 		match s {
-            Some(ss) => match t {
-                Some(tt) => breadth_traversal_directed(ss, tt, f),
-                None => None,
-            },
-            None => None,
-        }
+    	    Some(ss) => breadth_traversal_directed(ss, f),
+    	    None => None,
+    	}
+	}
+
+	pub fn par_breadth_first<F>(
+		&self,
+		source: &K,
+		f: F
+	) -> Option<Path<K, N, E>>
+	where
+		F: Fn (&RefEdge<K, N, E>) -> Traverse + std::marker::Sync + std::marker::Send + std::marker::Copy,
+	{
+		let s = self.node(source);
+		match s {
+			Some(ss) => {
+				let ret = parallel_directed_breadth_first_traversal(ss, f);
+				// self.clear_locks();
+				ret
+			},
+    	    None => None,
+    	}
+	}
+
+	pub fn print_nodes(&self) {
+		for (_, node) in self.nodes.iter() {
+			println!("{}", node);
+		}
+	}
+
+	pub fn print_edges(&self) {
+		for (_, node) in self.nodes.iter() {
+			for edge in node.outbound().iter() {
+				println!("{}", edge);
+			}
+		}
+	}
+
+	pub fn clear_locks(&self) {
+		for (_, node) in self.nodes.iter() {
+			node.open();
+			for edge in node.outbound().iter() {
+				edge.open();
+			}
+		}
 	}
 }

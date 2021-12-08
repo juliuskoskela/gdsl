@@ -10,23 +10,22 @@ use std:: {
 };
 
 use crate::global::*;
-use rayon::prelude::*;
 
-/// EdgeList
+/// Path
 
 #[derive(Debug, Clone)]
-pub struct EdgeList<K, N, E>
+pub struct Path<K, N, E>
 where
     K: Hash + Eq + Clone + Debug + Display + Sync + Send,
     N: Clone + Debug + Display + Sync + Send,
     E: Clone + Debug + Display + Sync + Send,
 {
-	list: Vec<EdgeWeak<K, N, E>>,
+	edges: Vec<WeakEdge<K, N, E>>,
 }
 
-/// EdgeList: Implementations
+/// Path: Implementations
 
-impl<K, N, E> EdgeList<K, N, E>
+impl<K, N, E> Path<K, N, E>
 where
     K: Hash + Eq + Clone + Debug + Display + Sync + Send,
     N: Clone + Debug + Display + Sync + Send,
@@ -34,19 +33,25 @@ where
 {
 	pub fn new() -> Self {
 		Self {
-			list: Vec::new(),
+			edges: Vec::new(),
 		}
 	}
 
-	pub fn add(&mut self, edge: &EdgeRef<K, N, E>) {
-		self.list.push(Arc::downgrade(edge));
+	pub fn from(src: Vec<WeakEdge<K, N, E>>) -> Self {
+		Self {
+			edges: Vec::from(src),
+		}
 	}
 
-	pub fn add_weak(&mut self, edge: &EdgeWeak<K, N, E>) {
-		self.list.push(edge.clone());
+	pub fn add(&mut self, edge: &RefEdge<K, N, E>) {
+		self.edges.push(Arc::downgrade(edge));
 	}
 
-	pub fn find(&self, source: &NodeRef<K, N, E>, target: &NodeRef<K, N, E>) -> Option<EdgeRef<K, N, E>> {
+	pub fn add_weak(&mut self, edge: &WeakEdge<K, N, E>) {
+		self.edges.push(edge.clone());
+	}
+
+	pub fn find(&self, source: &RefNode<K, N, E>, target: &RefNode<K, N, E>) -> Option<RefEdge<K, N, E>> {
         for weak in self.iter() {
 			let alive = weak.upgrade();
 			match alive {
@@ -61,38 +66,30 @@ where
         None
     }
 
-	pub fn find_index(&self, target: &NodeRef<K, N, E>) -> Option<usize> {
+	pub fn find_index(&self, target: &RefNode<K, N, E>) -> Option<usize> {
 		for (i, weak) in self.iter().enumerate() {
-			let alive = weak.upgrade();
-			match alive {
-				Some(edge) => {
-					if edge.target() == *target {
-						return Some(i);
-					}
+			if let Some(edge) = weak.upgrade() {
+				if edge.target() == *target {
+					return Some(i);
 				}
-				None => {}
 			}
 		}
 		None
 	}
 
 	pub fn is_empty(&self) -> bool {
-		self.list.is_empty()
+		self.edges.is_empty()
 	}
 
-	pub fn iter(&self) -> std::slice::Iter<EdgeWeak<K, N, E>> {
-		self.list.iter()
+	pub fn iter(&self) -> std::slice::Iter<WeakEdge<K, N, E>> {
+		self.edges.iter()
 	}
 
-	pub fn par_iter(&self) -> rayon::slice::Iter<EdgeWeak<K, N, E>> {
-		self.list.par_iter()
-	}
-
-	pub fn del(&mut self, target: &NodeRef<K, N, E>) -> bool {
+	pub fn del(&mut self, target: &RefNode<K, N, E>) -> bool {
 		let index = self.find_index(target);
 		match index {
 			Some(i) => {
-				self.list.remove(i);
+				self.edges.remove(i);
 				return true;
 			},
 			None => { return false; },
@@ -100,13 +97,13 @@ where
 	}
 
 	pub fn del_index(&mut self, index: usize) {
-		if index < self.list.len() {
-			self.list.remove(index);
+		if index < self.edges.len() {
+			self.edges.remove(index);
 		}
 	}
 
 	pub fn open_all(&self) -> &Self {
-		for weak in self.list.iter() {
+		for weak in self.edges.iter() {
 			let alive = weak.upgrade();
 			match alive {
 				Some(edge) => {
@@ -120,23 +117,21 @@ where
 		self
 	}
 
-	pub fn backtrack(&self) -> Option<EdgeList<K, N, E>> {
-		if self.list.len() == 0 {
+	pub fn backtrack(&self) -> Option<Path<K, N, E>> {
+		if self.edges.len() == 0 {
 			return None;
 		}
-		let mut res = EdgeList::new();
-		let w = &self.list[self.list.len() - 1];
+		let mut res = Path::new();
+		let w = &self.edges[self.edges.len() - 1];
 		res.add_weak(w);
 		let mut i = 0;
-		for edge in self.list.iter().rev() {
-			let source = res.list[i].upgrade().unwrap().source();
+		for edge in self.edges.iter().rev() {
+			let source = res.edges[i].upgrade().unwrap().source();
 			if edge.upgrade().unwrap().target() == source {
-				res.list.push(edge.clone());
+				res.edges.push(edge.clone());
 				i += 1;
 			}
 		}
 		Some(res)
 	}
 }
-
-///////////////////////////////////////////////////////////////////////////////
