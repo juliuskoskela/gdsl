@@ -1,6 +1,6 @@
 use crate::{digraph::*, global::*};
 use std::sync::{Arc, Weak};
-use crate::global::Traverse::{Traverse, Skip, Finish};
+use crate::global::Traverse::{Include, Skip, Finish};
 
 // Flow Graph
 
@@ -55,7 +55,7 @@ pub fn maximum_flow_edmonds_karp(g: &FlowGraph, s: usize, t: usize) -> usize {
 				Finish
 			}
 			else {
-				Traverse
+				Include
 			}
 		}
 		else {
@@ -119,7 +119,7 @@ pub fn maximum_flow_ford_fulkerson(g: &FlowGraph, s: usize, t: usize) -> usize {
 				if *target == e.target() {
 					Finish
 				} else {
-					Traverse
+					Include
 				}
 			} else { Skip }})
 	{

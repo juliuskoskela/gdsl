@@ -37,6 +37,12 @@ where
 		}
 	}
 
+	pub fn from(src: Vec<WeakEdge<K, N, E>>) -> Self {
+		Self {
+			edges: Vec::from(src),
+		}
+	}
+
 	pub fn add(&mut self, edge: &RefEdge<K, N, E>) {
 		self.edges.push(Arc::downgrade(edge));
 	}

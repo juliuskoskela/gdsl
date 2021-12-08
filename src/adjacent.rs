@@ -11,6 +11,7 @@ use std:: {
 };
 
 use crate::global::*;
+use rayon::prelude::*;
 
 ///
 ///////////////////////////////////////////////////////////////////////////////
@@ -77,6 +78,10 @@ where
 
 	pub fn iter(&self) -> std::slice::Iter<RefEdge<K, N, E>> {
 		self.list.iter()
+	}
+
+	pub fn par_iter(&self) -> rayon::slice::Iter<RefEdge<K, N, E>> {
+		self.list.par_iter()
 	}
 
 	pub fn del(&mut self, target: &RefNode<K, N, E>) -> bool {

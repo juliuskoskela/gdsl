@@ -2,7 +2,7 @@ use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use graph::digraph::*;
 use graph::global::*;
 use graph::examples::*;
-use graph::global::Traverse::{Traverse, Finish};
+use graph::global::Traverse::{Include, Finish};
 use rand::Rng;
 use lazy_static::lazy_static;
 
@@ -70,7 +70,7 @@ fn digraph_breadth_first_search(c: &mut Criterion) {
 	fn digraph_bfs() {
 		let t = SIMPLE_GRAPH.node(&rand_range(0, SIMPLE_NODE_COUNT)).unwrap();
 		SIMPLE_GRAPH.breadth_first(&rand_range(0, SIMPLE_NODE_COUNT),
-	|e| if *t == e.target() { Finish } else { Traverse });
+	|e| if *t == e.target() { Finish } else { Include });
 	}
 	println!("graph node count = {}", SIMPLE_GRAPH.node_count());
 	println!("graph edge count = {}", SIMPLE_GRAPH.edge_count());
@@ -84,7 +84,7 @@ fn digraph_par_breadth_first_search(c: &mut Criterion) {
 	fn digraph_par_bfs() {
 		let t = SIMPLE_GRAPH.node(&rand_range(0, SIMPLE_NODE_COUNT)).unwrap();
 		SIMPLE_GRAPH.par_breadth_first(&rand_range(0, SIMPLE_NODE_COUNT),
-	|e| if *t == e.target() { Finish } else { Traverse });
+	|e| if *t == e.target() { Finish } else { Include });
 	}
 	println!("graph node count = {}", SIMPLE_GRAPH.node_count());
 	println!("graph edge count = {}", SIMPLE_GRAPH.edge_count());
@@ -97,7 +97,7 @@ fn digraph_find_shortest_path(c: &mut Criterion) {
 	// println!("constructing graph of size = {} Mb", ((SIMPLE_NODE_COUNT * std::mem::size_of::<Node<usize, usize, usize>>()) + (SIMPLE_NODE_COUNT * SIMPLE_NODE_DEGREE * std::mem::size_of::<Edge<usize, usize, usize>>())) / 1000_000);
 	fn digraph_sp() {
 		let t = SIMPLE_GRAPH.node(&rand_range(0, SIMPLE_NODE_COUNT)).unwrap();
-		let res = SIMPLE_GRAPH.par_breadth_first(&rand_range(0, SIMPLE_NODE_COUNT), |e| if *t == e.target() { Finish } else { Traverse });
+		let res = SIMPLE_GRAPH.par_breadth_first(&rand_range(0, SIMPLE_NODE_COUNT), |e| if *t == e.target() { Finish } else { Include});
 		match res {
 			Some(r) => { r.backtrack(); }
 			None => {}

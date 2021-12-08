@@ -159,12 +159,12 @@ where
 		f: F
 	) -> Option<Path<K, N, E>>
 	where
-		F: Fn (&RefEdge<K, N, E>) -> Traverse + std::marker::Sync + std::marker::Send,
+		F: Fn (&RefEdge<K, N, E>) -> Traverse + std::marker::Sync + std::marker::Send + std::marker::Copy,
 	{
 		let s = self.node(source);
 		match s {
 			Some(ss) => {
-				let ret = par_breadth_traversal_directed(ss, f);
+				let ret = parallel_directed_breadth_first_traversal(ss, f);
 				// self.clear_locks();
 				ret
 			},

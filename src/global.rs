@@ -51,7 +51,7 @@ impl std::fmt::Display for Null {
 
 pub enum Traverse {
 	Skip,
-	Traverse,
+	Include,
 	Finish,
 }
 
