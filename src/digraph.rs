@@ -3,6 +3,7 @@
 use std::{
     fmt::{Debug, Display},
     hash::Hash,
+	sync::Arc
 };
 
 use crate::path::*;
@@ -10,7 +11,8 @@ use crate::edge::*;
 use crate::global::*;
 use crate::global::Traverse;
 use crate::node::*;
-use crate::par_bfs::*;
+use crate::directed_bfs::*;
+use crate::par_directed_bfs::*;
 
 /// Digraph
 
@@ -58,6 +60,17 @@ where
         } else {
             let node = RefNode::new(Node::new(key.clone(), data));
             self.nodes.insert(key, node);
+            true
+        }
+    }
+
+	pub fn insert_node(&mut self, node: Node<K, N, E>) -> bool {
+        if self.nodes.contains_key(&node.key()) {
+            let node = self.nodes[&node.key()].clone();
+            node.store(node.load());
+            false
+        } else {
+            self.nodes.insert(node.key().clone(), Arc::new(node.clone()));
             true
         }
     }
@@ -145,11 +158,11 @@ where
 		f: F
 	) -> Option<Path<K, N, E>>
 	where
-		F: Fn (&RefEdge<K, N, E>) -> Traverse,
+		F: Fn (&RefEdge<K, N, E>) -> Traverse + std::marker::Sync + std::marker::Send + std::marker::Copy,
 	{
 		let s = self.node(source);
 		match s {
-    	    Some(ss) => breadth_traversal_directed(ss, f),
+    	    Some(ss) => directed_breadth_first_traversal(ss, f),
     	    None => None,
     	}
 	}

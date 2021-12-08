@@ -41,7 +41,7 @@ pub fn connect_flow(g: &mut FlowGraph, u: &usize, v: &usize, flow: usize) {
 }
 
 // Maximum flow of a directed graph using the Edmond's-Karp algorithm.
-pub fn maximum_flow_edmonds_karp(g: &FlowGraph, s: usize, t: usize) -> usize {
+pub fn parallel_maximum_flow_edmonds_karp(g: &FlowGraph, s: usize, t: usize) -> usize {
 
 	// We loop over the graph doing a breadth first search. Inside the closure
 	// we check the flow of each edge. If the edge is not saturated, we traverse
@@ -63,7 +63,7 @@ pub fn maximum_flow_edmonds_karp(g: &FlowGraph, s: usize, t: usize) -> usize {
 		}
 	};
 	let mut max_flow: usize = 0;
-	while let Some(b) = g.breadth_first(&s, explorer)
+	while let Some(b) = g.par_breadth_first(&s, explorer)
 	{
 		// We backtrack the results from the breadth first traversal which will
 		// produce the shortest path.
@@ -103,6 +103,54 @@ pub fn maximum_flow_edmonds_karp(g: &FlowGraph, s: usize, t: usize) -> usize {
 		}
 
 		// Max flow is the sum of all augmenting flows.
+		max_flow += aug_flow;
+	}
+	max_flow
+}
+
+pub fn maximum_flow_edmonds_karp(g: &FlowGraph, s: usize, t: usize) -> usize {
+	let target = g.node(&t).unwrap();
+	let explorer = |e: &RefEdge<usize, Null, Flow>| {
+		let flow = e.load();
+		if flow.cur < flow.max {
+			if *target == e.target() {
+				Finish
+			}
+			else {
+				Include
+			}
+		}
+		else {
+			Skip
+		}
+	};
+	let mut max_flow: usize = 0;
+	while let Some(b) = g.breadth_first(&s, explorer)
+	{
+		let path = b.backtrack().unwrap();
+		let mut aug_flow = std::usize::MAX;
+		for weak in path.iter() {
+			let e = weak.upgrade();
+			match e {
+				Some(edge) => {
+					let flow = edge.load();
+						if flow.max - flow.cur < aug_flow {
+							aug_flow = flow.max - flow.cur;
+					}
+				}
+				None => { panic!("Weak pointer invalid!") }
+			}
+		}
+		for weak in path.iter() {
+			let e = weak.upgrade().unwrap();
+			let mut flow = e.load();
+			flow.cur += aug_flow;
+			let r = flow.rev.upgrade().unwrap();
+			let mut rev_flow = r.load();
+			rev_flow.cur -= aug_flow;
+			e.store(flow);
+			r.store(rev_flow);
+		}
 		max_flow += aug_flow;
 	}
 	max_flow

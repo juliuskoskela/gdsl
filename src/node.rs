@@ -100,34 +100,42 @@ where
         }
     }
 
+	#[inline(always)]
     pub fn load(&self) -> N {
         self.data.lock().unwrap().clone()
     }
 
+	#[inline(always)]
     pub fn store(&self, data: N) {
         *self.data.lock().unwrap() = data;
     }
 
+	#[inline(always)]
     pub fn key(&self) -> &K {
         &self.key
     }
 
+	#[inline(always)]
     pub fn try_lock(&self) -> bool {
         self.lock.load(Ordering::Relaxed)
     }
 
+	#[inline(always)]
     pub fn get_lock(&self) -> Weak<AtomicBool> {
         Arc::downgrade(&self.lock)
     }
 
+	#[inline(always)]
     pub fn close(&self) {
         self.lock.store(CLOSED, Ordering::Relaxed)
     }
 
+	#[inline(always)]
     pub fn open(&self) {
         self.lock.store(OPEN, Ordering::Relaxed)
     }
 
+	#[inline(always)]
     pub fn outbound(&self) -> RwLockReadGuard<Adjacent<K, N, E>> {
         let lock = self.outbound.read();
 		match lock {
@@ -136,6 +144,7 @@ where
 		}
     }
 
+	#[inline(always)]
     pub fn outbound_mut(&self) -> RwLockWriteGuard<Adjacent<K, N, E>> {
         let lock = self.outbound.write();
 		match lock {
@@ -144,21 +153,27 @@ where
 		}
     }
 
+	#[inline(always)]
     pub fn inbound(&self) -> Ref<Path<K, N, E>> {
         self.inbound.borrow()
     }
+
+	#[inline(always)]
     pub fn inbound_mut(&self) -> RefMut<Path<K, N, E>> {
         self.inbound.borrow_mut()
     }
 
+	#[inline(always)]
 	pub fn degree(&self) -> usize {
 		self.outbound().len()
 	}
 
+	#[inline(always)]
 	pub fn is_leaf(&self) -> bool {
 		self.outbound().len() == 0
 	}
 
+	#[inline(always)]
     pub fn display_string(&self) -> String {
         let lock_state = if self.try_lock() { "CLOSED" } else { "OPEN" };
         let header = format!(
@@ -169,6 +184,42 @@ where
         );
         header
     }
+
+	#[inline]
+	pub fn filter_adjacent(
+	    &self,
+	    user_closure: &dyn Fn (&RefEdge<K, N, E>) -> Traverse,
+	) -> Return<Vec<WeakEdge<K, N, E>>>
+	where
+	    K: Hash + Eq + Clone + Debug + Display + Sync + Send,
+	    N: Clone + Debug + Display + Sync + Send,
+	    E: Clone + Debug + Display + Sync + Send,
+	{
+		let mut segment: Vec<WeakEdge<K, N, E>> = Vec::new();
+		let adjacent_edges = self.outbound();
+
+		for edge in adjacent_edges.iter() {
+			if edge.try_lock() == OPEN && edge.target().try_lock() == OPEN {
+				edge.target().close();
+				edge.close();
+				let traversal_state = user_closure(edge);
+				match traversal_state {
+					crate::global::Traverse::Include => {
+						segment.push(Arc::downgrade(edge));
+					}
+					crate::global::Traverse::Finish => {
+						segment.push(Arc::downgrade(edge));
+						return Return::Yes(segment);
+					}
+					crate::global::Traverse::Skip => {
+						edge.open();
+						edge.target().open();
+					}
+				}
+			}
+		}
+		Return::No(segment)
+	}
 }
 
 /// Node: Procedural Implementations

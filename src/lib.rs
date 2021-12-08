@@ -5,7 +5,8 @@ pub mod adjacent;
 pub mod global;
 pub mod path;
 pub mod examples;
-pub mod par_bfs;
+pub mod directed_bfs;
+pub mod par_directed_bfs;
 
 #[cfg(test)]
 mod tests {
@@ -80,7 +81,7 @@ mod tests {
 	#[test]
 	fn digraph_test_maximum_flow_edmonds_karp() {
 		let g = flow_graph_example_1to6_23();
-		let max_flow = maximum_flow_edmonds_karp(&g, 1, 6);
+		let max_flow = parallel_maximum_flow_edmonds_karp(&g, 1, 6);
 		g.print_nodes();
 		g.print_edges();
 		assert!(max_flow == 23);
