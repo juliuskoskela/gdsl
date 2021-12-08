@@ -1,8 +1,3 @@
-
-use rayon::iter::ParallelIterator;
-use rayon::iter::IntoParallelRefIterator;
-use rayon::iter::IntoParallelIterator;
-
 use crate::adjacent::*;
 use crate::edge::*;
 use crate::path::*;
@@ -15,7 +10,7 @@ use std::{
     hash::Hash,
     sync::{
         atomic::{AtomicBool, Ordering},
-        Arc, Mutex, Weak,
+        Arc, Mutex, Weak, RwLockReadGuard, RwLockWriteGuard
     },
 };
 
@@ -133,12 +128,20 @@ where
         self.lock.store(OPEN, Ordering::Relaxed)
     }
 
-    pub fn outbound(&self) -> Ref<Adjacent<K, N, E>> {
-        self.outbound.borrow()
+    pub fn outbound(&self) -> RwLockReadGuard<Adjacent<K, N, E>> {
+        let lock = self.outbound.read();
+		match lock {
+			Ok(guard) => { guard }
+			Err(error) => { panic!("RwLock error {}", error) }
+		}
     }
 
-    pub fn outbound_mut(&self) -> RefMut<Adjacent<K, N, E>> {
-        self.outbound.borrow_mut()
+    pub fn outbound_mut(&self) -> RwLockWriteGuard<Adjacent<K, N, E>> {
+        let lock = self.outbound.write();
+		match lock {
+			Ok(guard) => { guard }
+			Err(error) => { panic!("RwLock error {}", error) }
+		}
     }
 
     pub fn inbound(&self) -> Ref<Path<K, N, E>> {
@@ -349,281 +352,188 @@ where
     None
 }
 
-// type Locks = Mutex<RefCell<Vec<Weak<AtomicBool>>>>;
+// fn open_locks<K, N, E>(result: &Frontier<K, N, E>)
+// where
+//     K: Hash + Eq + Clone + Debug + Display + Sync + Send,
+//     N: Clone + Debug + Display + Sync + Send,
+//     E: Clone + Debug + Display + Sync + Send,
+// {
+// 	for weak in result.iter() {
+// 		let alive = weak.upgrade();
+// 		match alive {
+// 			Some(edge) => {
+// 				edge.open();
+// 				edge.target().open();
+// 				edge.source().open();
+// 			}
+// 			None => { panic!("Weak reference not alive!") }
+// 		}
+// 	}
+// }
 
-pub fn par_breadth_traversal_directed<K, N, E, F>(
-    source: &RefNode<K, N, E>,
-    f: F,
-) -> Option<Path<K, N, E>>
-where
-    K: Hash + Eq + Clone + Debug + Display + Sync + Send,
-    N: Clone + Debug + Display + Sync + Send,
-    E: Clone + Debug + Display + Sync + Send,
-	F: Fn (&RefEdge<K, N, E>) -> Traverse + Sync + Send,
-{
-    let mut result = Path::new();
-    let mut queue = VecDeque::new();
-	let mut all_locks = Vec::new();
-	let sigterm = AtomicBool::new(false);
+// type Frontier<K, N, E> = Vec<WeakEdge<K, N, E>>;
 
-    source.close();
-    queue.push_back(source.clone());
+// fn process_node<K, N, E, F>(
+//     current_node: &RefNode<K, N, E>,
+//     user_closure: F,
+// 	terminate: &Arc<AtomicBool>
+// ) -> Frontier<K, N, E>
+// where
+//     K: Hash + Eq + Clone + Debug + Display + Sync + Send,
+//     N: Clone + Debug + Display + Sync + Send,
+//     E: Clone + Debug + Display + Sync + Send,
+// 	F: Fn (&RefEdge<K, N, E>) -> Traverse + Sync + Send,
+// {
+// 	let segment: Frontier<K, N, E>;
+// 	let adjacent_edges = current_node.outbound();
 
-	while queue.len() > 0 {
-		let iter = queue.par_iter().map(
-			| node | {
-				let mut partition = VecDeque::new();
-				let mut result = Path::new();
-				let mut locks: Vec<Weak<AtomicBool>> = Vec::new();
-				for edge in node.outbound().iter() {
-					if sigterm.load(Ordering::Relaxed) == true {
-						break ;
-					}
-					if edge.try_lock() == OPEN && edge.target().try_lock() == OPEN {
-						edge.target().close();
-						edge.close();
-						let edge_lock = edge.get_lock();
-						let node_lock = edge.target().get_lock();
-						locks.push(edge_lock);
-						locks.push(node_lock);
-						let traverse = f(edge);
-						match traverse {
-							crate::node::Traverse::Include => {
-								partition.push_back(edge.target());
-								result.add(edge);
-							}
-							crate::node::Traverse::Finish => {
-								sigterm.store(true, Ordering::Relaxed);
-								partition.push_back(edge.target());
-								result.add(edge);
-								break;
-							}
-							crate::node::Traverse::Skip => {
-								edge.open();
-								edge.target().open();
-							}
-						}
-					}
-				}
-				(partition, result, locks)
-			}
-		);
+// 	// We construct a parallel iterator from a filter map operation on
+// 	// the node's adjacent edges.
+// 	let parallel_iterator= adjacent_edges.par_iter().filter_map(
+// 		|edge| {
 
-		let frontier: Vec<(VecDeque<Arc<Node<K, N, E>>>, Path<K, N, E>, Vec<Weak<AtomicBool>>)> = iter.collect();
+// 			// Try if edge is traversable and check for finishing condition. The loop
+// 			// in the thread won't finish, but the rest of the nodes won't be included in
+// 			// the segment.
+// 			if edge.try_lock() == OPEN
+// 			&& edge.target().try_lock() == OPEN
+// 			&& terminate.load(Ordering::Relaxed) == false {
 
-		queue.clear();
-		for segment in frontier {
-			for node in segment.0 {
-				queue.push_back(node);
-			}
-			for edge in segment.1.iter() {
-				result.add(&edge.upgrade().unwrap());
-			}
-			for lock in segment.2.into_iter() {
-				all_locks.push(lock);
-			}
-			if sigterm.load(Ordering::Relaxed) == true {
-				source.open();
-				for lock in all_locks.iter() {
-					let x = lock.upgrade().unwrap();
-					x.store(false, Ordering::Relaxed);
-				}
-				return Some(result);
-			}
-		}
-	}
-	source.open();
-	for lock in all_locks.iter() {
-		let x = lock.upgrade().unwrap();
-		x.store(false, Ordering::Relaxed);
-	}
-    None
-}
+// 				// Close target edge and node. This operation is atomic.
+// 				edge.target().close();
+// 				edge.close();
 
-/// kkkkkkkkkkkkkkkkkkkkkkk
+// 				// Get the traversal state by executing the user closure on the edge.
+// 				// The User closure will return a Traverse enum with 3 states Include,
+// 				// Finish and Skip.
+// 				let traversal_state = user_closure(edge);
+// 				match traversal_state {
+// 					crate::node::Traverse::Include => {
 
-fn open_locks<K, N, E>(result: &Frontier<K, N, E>)
-where
-    K: Hash + Eq + Clone + Debug + Display + Sync + Send,
-    N: Clone + Debug + Display + Sync + Send,
-    E: Clone + Debug + Display + Sync + Send,
-{
-	for weak in result.iter() {
-		let alive = weak.upgrade();
-		match alive {
-			Some(edge) => {
-				edge.open();
-				edge.target().open();
-				edge.source().open();
-			}
-			None => { panic!("Weak reference not alive!") }
-		}
-	}
-}
+// 						// In the include case we include the edge in the segment.
+// 						Some(Arc::downgrade(edge))
+// 					}
+// 					crate::node::Traverse::Finish => {
 
-type Frontier<K, N, E> = Vec<WeakEdge<K, N, E>>;
+// 						// In the finish case we include the edge in the segment and
+// 						// set the finish boolean to true to signal we have found the
+// 						// sink node and the whole algorithm can finish.
+// 						terminate.store(true, Ordering::Relaxed);
+// 						Some(Arc::downgrade(edge))
+// 					}
+// 					crate::node::Traverse::Skip => {
 
-fn process_node<K, N, E, F>(
-    current_node: &RefNode<K, N, E>,
-    user_closure: F,
-	terminate: &Arc<AtomicBool>
-) -> Frontier<K, N, E>
-where
-    K: Hash + Eq + Clone + Debug + Display + Sync + Send,
-    N: Clone + Debug + Display + Sync + Send,
-    E: Clone + Debug + Display + Sync + Send,
-	F: Fn (&RefEdge<K, N, E>) -> Traverse + Sync + Send,
-{
-	let segment: Frontier<K, N, E>;
-	let adjacent_edges = current_node.outbound();
+// 						// We skip the edge for a user defined reason.
+// 						edge.open();
+// 						edge.target().open();
+// 						None
+// 					}
+// 				}
 
-	// We construct a parallel iterator from a filter map operation on
-	// the node's adjacent edges.
-	let parallel_iterator= adjacent_edges.par_iter().filter_map(
-		|edge| {
+// 			// When an edge can't be traversed we return a none.
+// 			} else {
+// 				None
+// 			}
+// 		}
+// 	);
 
-			// Try if edge is traversable and check for finishing condition. The loop
-			// in the thread won't finish, but the rest of the nodes won't be included in
-			// the segment.
-			if edge.try_lock() == OPEN
-			&& edge.target().try_lock() == OPEN
-			&& terminate.load(Ordering::Relaxed) == false {
+// 	// We collect the parallel_iterator into a segment.
+// 	segment = parallel_iterator.collect();
 
-				// Close target edge and node. This operation is atomic.
-				edge.target().close();
-				edge.close();
+// 	return segment;
+// }
 
-				// Get the traversal state by executing the user closure on the edge.
-				// The User closure will return a Traverse enum with 3 states Include,
-				// Finish and Skip.
-				let traversal_state = user_closure(edge);
-				match traversal_state {
-					crate::node::Traverse::Include => {
+// fn advance<K, N, E, F>(
+// 	mut frontiers: Frontier<K, N, E>,
+//     user_closure: F,
+// 	terminate: &Arc<AtomicBool>
+// ) -> Option<Frontier<K, N, E>>
+// where
+//     K: Hash + Eq + Clone + Debug + Display + Sync + Send,
+//     N: Clone + Debug + Display + Sync + Send,
+//     E: Clone + Debug + Display + Sync + Send,
+// 	F: Fn (&RefEdge<K, N, E>) -> Traverse + Sync + Send + Copy,
+// {
+// 	let mut bounds: (usize, usize) = (0, 0);
+// 	loop {
 
-						// In the include case we include the edge in the segment.
-						Some(Arc::downgrade(edge))
-					}
-					crate::node::Traverse::Finish => {
+// 		// Base case
+// 		if terminate.load(Ordering::Relaxed) == true{
+// 			break ;
+// 		}
 
-						// In the finish case we include the edge in the segment and
-						// set the finish boolean to true to signal we have found the
-						// sink node and the whole algorithm can finish.
-						terminate.store(true, Ordering::Relaxed);
-						Some(Arc::downgrade(edge))
-					}
-					crate::node::Traverse::Skip => {
+// 		// We update the upper bound and check if the lower bound has caught the upper bound
+// 		bounds.1 = frontiers.len();
+// 		if bounds.0 >= bounds.1 {
+// 			break ;
+// 		}
 
-						// We skip the edge for a user defined reason.
-						edge.open();
-						edge.target().open();
-						None
-					}
-				}
+// 		// A slice representing the current frontier
+// 		let current_frontier = &frontiers[bounds.0..bounds.1];
 
-			// When an edge can't be traversed we return a none.
-			} else {
-				None
-			}
-		}
-	);
+// 		// Update the lower bound
+// 		bounds.0 = bounds.1;
 
-	// We collect the parallel_iterator into a segment.
-	segment = parallel_iterator.collect();
+// 		// Iterator over Edges in the current frontier
+// 		let iterator = current_frontier.into_par_iter().map(
+// 			|edge| {
+// 				if terminate.load(Ordering::Relaxed) == true {
+// 					None
+// 				} else {
+// 					Some(process_node(&edge.upgrade().unwrap().target(), user_closure, &terminate))
+// 				}
+// 			}
+// 		).while_some();
 
-	return segment;
-}
+// 		// Collect the segments from the iterator
+// 		let frontier_segments: Vec<_> = iterator.collect();
 
-fn advance<K, N, E, F>(
-	mut frontiers: Frontier<K, N, E>,
-    user_closure: F,
-	terminate: &Arc<AtomicBool>
-) -> Option<Frontier<K, N, E>>
-where
-    K: Hash + Eq + Clone + Debug + Display + Sync + Send,
-    N: Clone + Debug + Display + Sync + Send,
-    E: Clone + Debug + Display + Sync + Send,
-	F: Fn (&RefEdge<K, N, E>) -> Traverse + Sync + Send + Copy,
-{
-	let mut bounds: (usize, usize) = (0, 0);
-	loop {
+// 		// Append the segments to the frontiers
+// 		for mut segment in frontier_segments {
+// 			frontiers.append(&mut segment);
+// 		}
+// 	}
 
-		// Base case
-		if terminate.load(Ordering::Relaxed) == true{
-			break ;
-		}
+// 	// If target was found, returns the frontiers, else None
+// 	open_locks(&frontiers);
+// 	if terminate.load(Ordering::Relaxed) == true {
+// 		Some(frontiers)
+// 	} else {
+// 		None
+// 	}
+// }
 
-		// We update the upper bound and check if the lower bound has caught the upper bound
-		bounds.1 = frontiers.len();
-		if bounds.0 >= bounds.1 {
-			break ;
-		}
+// pub fn parallel_directed_breadth_first_traversal<K, N, E, F>(
+//     source: &RefNode<K, N, E>,
+//     user_closure: F,
+// ) -> Option<Path<K, N, E>>
+// where
+//     K: Hash + Eq + Clone + Debug + Display + Sync + Send,
+//     N: Clone + Debug + Display + Sync + Send,
+//     E: Clone + Debug + Display + Sync + Send,
+// 	F: Fn (&RefEdge<K, N, E>) -> Traverse + Sync + Send + Copy,
+// {
+// 	source.close();
 
-		// A slice representing the current frontier
-		let current_frontier = &frontiers[bounds.0..bounds.1];
+// 	// A termination signal shared by all threads for if the target is found
+// 	let terminate: Arc<AtomicBool> = Arc::new(AtomicBool::new(false));
 
-		// Update the lower bound
-		bounds.0 = bounds.1;
+// 	// Initialize frontier with source node
+// 	let current_frontier = process_node(source, user_closure, &terminate);
 
-		// Iterator over Edges in the current frontier
-		let iterator = current_frontier.into_par_iter().map(
-			|edge| {
-				if terminate.load(Ordering::Relaxed) == true {
-					None
-				} else {
-					Some(process_node(&edge.upgrade().unwrap().target(), user_closure, &terminate))
-				}
-			}
-		).while_some();
-
-		// Collect the segments from the iterator
-		let frontier_segments: Vec<_> = iterator.collect();
-
-		// Append the segments to the frontiers
-		for mut segment in frontier_segments {
-			frontiers.append(&mut segment);
-		}
-	}
-
-	// If target was found, returns the frontiers, else None
-	open_locks(&frontiers);
-	if terminate.load(Ordering::Relaxed) == true {
-		Some(frontiers)
-	} else {
-		None
-	}
-}
-
-pub fn parallel_directed_breadth_first_traversal<K, N, E, F>(
-    source: &RefNode<K, N, E>,
-    user_closure: F,
-) -> Option<Path<K, N, E>>
-where
-    K: Hash + Eq + Clone + Debug + Display + Sync + Send,
-    N: Clone + Debug + Display + Sync + Send,
-    E: Clone + Debug + Display + Sync + Send,
-	F: Fn (&RefEdge<K, N, E>) -> Traverse + Sync + Send + Copy,
-{
-	source.close();
-
-	// A termination signal shared by all threads for if the target is found
-	let terminate: Arc<AtomicBool> = Arc::new(AtomicBool::new(false));
-
-	// Initialize frontier with source node
-	let current_frontier = process_node(source, user_closure, &terminate);
-
-	// In case target was found from the source node, terminate, otehrwise continue to advance
-	if terminate.load(Ordering::Relaxed) == true {
-		open_locks(&current_frontier);
-		let result = Path::from(current_frontier);
-		Some(result)
-	} else {
-		let network = advance(current_frontier, user_closure, &terminate);
-		match network {
-			Some(paths) => {
-				let result = Path::from(paths);
-				Some(result)
-			}
-			None => { None }
-		}
-	}
-}
+// 	// In case target was found from the source node, terminate, otehrwise continue to advance
+// 	if terminate.load(Ordering::Relaxed) == true {
+// 		open_locks(&current_frontier);
+// 		let result = Path::from(current_frontier);
+// 		Some(result)
+// 	} else {
+// 		let network = advance(current_frontier, user_closure, &terminate);
+// 		match network {
+// 			Some(paths) => {
+// 				let result = Path::from(paths);
+// 				Some(result)
+// 			}
+// 			None => { None }
+// 		}
+// 	}
+// }

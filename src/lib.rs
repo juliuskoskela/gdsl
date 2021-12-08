@@ -5,6 +5,7 @@ pub mod adjacent;
 pub mod global;
 pub mod path;
 pub mod examples;
+pub mod par_bfs;
 
 #[cfg(test)]
 mod tests {

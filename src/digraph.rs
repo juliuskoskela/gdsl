@@ -10,6 +10,7 @@ use crate::edge::*;
 use crate::global::*;
 use crate::global::Traverse;
 use crate::node::*;
+use crate::par_bfs::*;
 
 /// Digraph
 

@@ -4,9 +4,7 @@
 
 use std:: {
 	collections::HashMap,
-	cell::RefCell,
-	sync::Arc,
-	sync::Weak,
+	sync::{RwLock, Arc, Weak}
 };
 
 use crate::node::*;
@@ -35,7 +33,7 @@ pub type RefNode<K, N, E> = Arc<Node<K, N, E>>;
 pub type WeakNode<K, N, E> = Weak<Node<K, N, E>>;
 pub type RefEdge<K, N, E> = Arc<Edge<K, N, E>>;
 pub type WeakEdge<K, N, E> = Weak<Edge<K, N, E>>;
-pub type RefAdjacent<K, N, E> = RefCell<Adjacent<K, N, E>>;
+pub type RefAdjacent<K, N, E> = RwLock<Adjacent<K, N, E>>;
 pub type RefNodePool<K, N, E> = HashMap<K, RefNode<K, N, E>>;
 
 // Helper void type which implements the necessary traits to be used as a
