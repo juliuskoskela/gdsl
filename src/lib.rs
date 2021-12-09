@@ -5,31 +5,31 @@ pub mod adjacent;
 pub mod global;
 pub mod path;
 pub mod examples;
-pub mod directed_bfs;
-pub mod par_directed_bfs;
+pub mod traverse;
 
 #[cfg(test)]
 mod tests {
 	use crate::global::*;
-	use crate::global::Traverse::*;
+	use crate::traverse::Traverse::*;
 	use crate::digraph::*;
 	use crate::examples::*;
 
-	type SimpleGraph = Digraph<usize, Null, Null>;
+	type SimpleGraph = Digraph<usize, Empty, Empty>;
 
 	#[test]
 	fn digraph_test_breadth_traversal() {
 		let g = test_digraph_1();
 
-		let path = g.breadth_first(&1,
+		let res = g.breadth_first(&1,
 		|edge|{
 			if edge.target().key() == &6 {
 				Finish
 			} else {
 				Include
 			}
-		}).unwrap().backtrack().unwrap();
+		}).unwrap();
 
+		let path = backtrack_edges(&res);
 		println!("Breadth First Search\n");
 		for edge in path.iter() {
 			println!("{}", edge.upgrade().unwrap());
@@ -40,16 +40,17 @@ mod tests {
 	fn digraph_test_par_breadth_traversal() {
 		let g = test_digraph_1();
 
-		let path = g.par_breadth_first(&1,
+		let res = g.par_breadth_first(&1,
 		|edge|{
 			if edge.target().key() == &6 {
 				Finish
 			} else {
 				Include
 			}
-		}).unwrap().backtrack().unwrap();
+		}).unwrap();
 
-		println!("Breadth First Search\n");
+		let path = backtrack_edges(&res);
+		println!("Parallel Breadth First Search\n");
 		for edge in path.iter() {
 			println!("{}", edge.upgrade().unwrap());
 		}
@@ -104,21 +105,21 @@ mod tests {
 		g.insert(2, 0);
 		g.insert(3, 0);
 		g.insert(4, 0);
-		g.connect(&1, &2,  Null);
-		g.connect(&1, &3,  Null);
-		// g.connect(&1, &4,  Null);
+		g.connect(&1, &2,  Empty);
+		g.connect(&1, &3,  Empty);
+		// g.connect(&1, &4,  Empty);
 
-		g.connect(&2, &1,  Null);
-		g.connect(&2, &3,  Null);
-		// g.connect(&2, &4,  Null);
+		g.connect(&2, &1,  Empty);
+		g.connect(&2, &3,  Empty);
+		// g.connect(&2, &4,  Empty);
 
-		g.connect(&3, &1,  Null);
-		g.connect(&3, &2,  Null);
-		// g.connect(&3, &4,  Null);
+		g.connect(&3, &1,  Empty);
+		g.connect(&3, &2,  Empty);
+		// g.connect(&3, &4,  Empty);
 
-		g.connect(&4, &1,  Null);
-		g.connect(&4, &2,  Null);
-		// g.connect(&4, &3,  Null);
+		g.connect(&4, &1,  Empty);
+		g.connect(&4, &2,  Empty);
+		// g.connect(&4, &3,  Empty);
 
 		for (_, node) in g.nodes.iter() {
 			let mut unavailable = vec![];
@@ -148,37 +149,37 @@ mod tests {
 	fn test_digraph_1() -> SimpleGraph {
 		let mut g = SimpleGraph::new();
 
-		g.insert(1, Null);
-		g.insert(2, Null);
-		g.insert(3, Null);
-		g.insert(4, Null);
-		g.insert(5, Null);
-		g.insert(6, Null);
+		g.insert(1, Empty);
+		g.insert(2, Empty);
+		g.insert(3, Empty);
+		g.insert(4, Empty);
+		g.insert(5, Empty);
+		g.insert(6, Empty);
 
-		g.connect(&1, &2, Null);
-		g.connect(&1, &3, Null);
-		g.connect(&2, &1, Null);
-		g.connect(&2, &3, Null);
-		g.connect(&3, &1, Null);
-		g.connect(&3, &5, Null);
-		g.connect(&5, &2, Null);
-		g.connect(&5, &4, Null);
-		g.connect(&5, &1, Null);
-		g.connect(&4, &5, Null);
-		g.connect(&4, &3, Null);
-		g.connect(&4, &2, Null);
-		g.connect(&4, &6, Null);
+		g.connect(&1, &2, Empty);
+		g.connect(&1, &3, Empty);
+		g.connect(&2, &1, Empty);
+		g.connect(&2, &3, Empty);
+		g.connect(&3, &1, Empty);
+		g.connect(&3, &5, Empty);
+		g.connect(&5, &2, Empty);
+		g.connect(&5, &4, Empty);
+		g.connect(&5, &1, Empty);
+		g.connect(&4, &5, Empty);
+		g.connect(&4, &3, Empty);
+		g.connect(&4, &2, Empty);
+		g.connect(&4, &6, Empty);
 		g
 	}
 
 	fn flow_graph_example_1to6_23() -> FlowGraph {
 		let mut g = FlowGraph::new();
-		g.insert(1, Null);
-		g.insert(2, Null);
-		g.insert(3, Null);
-		g.insert(4, Null);
-		g.insert(5, Null);
-		g.insert(6, Null);
+		g.insert(1, Empty);
+		g.insert(2, Empty);
+		g.insert(3, Empty);
+		g.insert(4, Empty);
+		g.insert(5, Empty);
+		g.insert(6, Empty);
 		connect_flow(&mut g, &1, &2, 16);
 		connect_flow(&mut g, &1, &3, 13);
 		connect_flow(&mut g, &2, &3, 10);

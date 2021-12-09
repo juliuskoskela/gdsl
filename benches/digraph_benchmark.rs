@@ -3,7 +3,7 @@ use graph::digraph::*;
 use graph::global::*;
 use graph::edge::*;
 use graph::examples::*;
-use graph::global::Traverse::{Include, Finish};
+use graph::traverse::Traverse;
 use rand::Rng;
 use lazy_static::lazy_static;
 use std::sync::Arc;
@@ -13,12 +13,12 @@ const SIMPLE_NODE_DEGREE: usize = 100;
 const FLOW_NODE_COUNT: usize = 1000;
 const FLOW_NODE_DEGREE: usize = 20;
 
-type IntKeysGraph = Digraph<usize, usize, Null>;
+type IntKeysGraph = Digraph<usize, usize, Empty>;
 
 fn create_graph_flow() -> FlowGraph {
 	let mut g = FlowGraph::new();
 	for i in 0..FLOW_NODE_COUNT {
-		g.insert(i, Null);
+		g.insert(i, Empty);
 	}
 	for i in 0..FLOW_NODE_COUNT {
 		for _ in 0..FLOW_NODE_DEGREE {
@@ -35,7 +35,7 @@ fn create_graph_simple() -> IntKeysGraph {
 	}
 	for i in 0..SIMPLE_NODE_COUNT {
 		for _ in 0..SIMPLE_NODE_DEGREE {
-			g.connect(&i, &rand_range(0, SIMPLE_NODE_COUNT), Null);
+			g.connect(&i, &rand_range(0, SIMPLE_NODE_COUNT), Empty);
 		}
 	}
 	g
@@ -58,7 +58,7 @@ fn create_graph_speed() {
 	}
 	for i in 0..1000 {
 		for _ in 0..100 {
-			g.connect(&i, &rand_range(0, 100), Null);
+			g.connect(&i, &rand_range(0, 100), Empty);
 		}
 	}
 }
@@ -71,7 +71,7 @@ fn digraph_breadth_first_search(c: &mut Criterion) {
 	// println!("constructing graph of size = {} Mb", ((SIMPLE_NODE_COUNT * std::mem::size_of::<Node<usize, usize, usize>>()) + (SIMPLE_NODE_COUNT * SIMPLE_NODE_DEGREE * std::mem::size_of::<Edge<usize, usize, usize>>())) / 1000_000);
 	fn digraph_bfs() {
 		let t = SIMPLE_GRAPH.node(&rand_range(0, SIMPLE_NODE_COUNT)).unwrap();
-		let closure = | e: &Arc<Edge<usize, usize, Null>> | {
+		let closure = | e: &Arc<Edge<usize, usize, Empty>> | {
 
 			let mut n = e.target().load();
 
@@ -80,9 +80,9 @@ fn digraph_breadth_first_search(c: &mut Criterion) {
 				e.target().store(n);
 			}
 			if *t == e.target() {
-				Finish
+				Traverse::Finish
 			} else {
-				Include
+				Traverse::Include
 			}
 		};
 		SIMPLE_GRAPH.breadth_first(&rand_range(0, SIMPLE_NODE_COUNT), closure);
@@ -98,7 +98,7 @@ fn digraph_par_breadth_first_search(c: &mut Criterion) {
 	// println!("constructing graph of size = {} Mb", ((SIMPLE_NODE_COUNT * std::mem::size_of::<Node<usize, usize, usize>>()) + (SIMPLE_NODE_COUNT * SIMPLE_NODE_DEGREE * std::mem::size_of::<Edge<usize, usize, usize>>())) / 1000_000);
 	fn digraph_par_bfs() {
 		let t = SIMPLE_GRAPH.node(&rand_range(0, SIMPLE_NODE_COUNT)).unwrap();
-		let closure = | e: &Arc<Edge<usize, usize, Null>> | {
+		let closure = | e: &Arc<Edge<usize, usize, Empty>> | {
 
 			let mut n = e.target().load();
 
@@ -107,9 +107,9 @@ fn digraph_par_breadth_first_search(c: &mut Criterion) {
 				e.target().store(n);
 			}
 			if *t == e.target() {
-				Finish
+				Traverse::Finish
 			} else {
-				Include
+				Traverse::Include
 			}
 		};
 		SIMPLE_GRAPH.par_breadth_first(&rand_range(0, SIMPLE_NODE_COUNT), closure);
@@ -125,9 +125,9 @@ fn digraph_find_shortest_path(c: &mut Criterion) {
 	// println!("constructing graph of size = {} Mb", ((SIMPLE_NODE_COUNT * std::mem::size_of::<Node<usize, usize, usize>>()) + (SIMPLE_NODE_COUNT * SIMPLE_NODE_DEGREE * std::mem::size_of::<Edge<usize, usize, usize>>())) / 1000_000);
 	fn digraph_sp() {
 		let t = SIMPLE_GRAPH.node(&rand_range(0, SIMPLE_NODE_COUNT)).unwrap();
-		let res = SIMPLE_GRAPH.breadth_first(&rand_range(0, SIMPLE_NODE_COUNT), |e| if *t == e.target() { Finish } else { Include});
+		let res = SIMPLE_GRAPH.breadth_first(&rand_range(0, SIMPLE_NODE_COUNT), |e| if *t == e.target() { Traverse::Finish } else { Traverse::Include});
 		match res {
-			Some(r) => { r.backtrack(); }
+			Some(r) => { backtrack_edges(&r); }
 			None => {}
 		}
 	}
@@ -142,9 +142,9 @@ fn digraph_par_find_shortest_path(c: &mut Criterion) {
 	// println!("constructing graph of size = {} Mb", ((SIMPLE_NODE_COUNT * std::mem::size_of::<Node<usize, usize, usize>>()) + (SIMPLE_NODE_COUNT * SIMPLE_NODE_DEGREE * std::mem::size_of::<Edge<usize, usize, usize>>())) / 1000_000);
 	fn digraph_sp() {
 		let t = SIMPLE_GRAPH.node(&rand_range(0, SIMPLE_NODE_COUNT)).unwrap();
-		let res = SIMPLE_GRAPH.par_breadth_first(&rand_range(0, SIMPLE_NODE_COUNT), |e| if *t == e.target() { Finish } else { Include});
+		let res = SIMPLE_GRAPH.par_breadth_first(&rand_range(0, SIMPLE_NODE_COUNT), |e| if *t == e.target() { Traverse::Finish } else { Traverse::Include});
 		match res {
-			Some(r) => { r.backtrack(); }
+			Some(r) => { backtrack_edges(&r); }
 			None => {}
 		}
 	}

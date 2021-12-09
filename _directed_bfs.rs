@@ -1,4 +1,5 @@
 use crate::global::*;
+use crate::traverse::Traverse;
 use crate::path::*;
 
 use std::{
@@ -116,7 +117,7 @@ where
 }
 
 #[inline(never)]
-pub fn directed_breadth_first_traversal<K, N, E, F>(
+pub fn _directed_breadth_first_traversal<K, N, E, F>(
     source: &RefNode<K, N, E>,
     user_closure: F,
 ) -> Option<Path<K, N, E>>

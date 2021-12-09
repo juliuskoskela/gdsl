@@ -9,14 +9,12 @@ use std::{
 use crate::path::*;
 use crate::edge::*;
 use crate::global::*;
-use crate::global::Traverse;
 use crate::node::*;
-use crate::directed_bfs::*;
-use crate::par_directed_bfs::*;
+use crate::traverse::*;
 
 /// Digraph
 
-pub struct Digraph<K, N = Null, E = Null>
+pub struct Digraph<K, N = Empty, E = Empty>
 where
     K: Hash + Eq + Clone + Debug + Display + Sync + Send,
     N: Clone + Debug + Display + Sync + Send,
@@ -156,7 +154,7 @@ where
 		&self,
 		source: &K,
 		f: F
-	) -> Option<Path<K, N, E>>
+	) -> Option<EdgeList<K, N, E>>
 	where
 		F: Fn (&RefEdge<K, N, E>) -> Traverse + std::marker::Sync + std::marker::Send + std::marker::Copy,
 	{
@@ -171,7 +169,7 @@ where
 		&self,
 		source: &K,
 		f: F
-	) -> Option<Path<K, N, E>>
+	) -> Option<EdgeList<K, N, E>>
 	where
 		F: Fn (&RefEdge<K, N, E>) -> Traverse + std::marker::Sync + std::marker::Send + std::marker::Copy,
 	{

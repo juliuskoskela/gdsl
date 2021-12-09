@@ -1,7 +1,6 @@
 use crate::{digraph::*, global::*};
 use std::sync::{Arc, Weak};
-use crate::global::Traverse::{Include, Skip, Finish};
-
+use crate::traverse::Traverse;
 // Flow Graph
 
 // A struct which records the maximum flow and current flow for an edge
@@ -12,7 +11,7 @@ use crate::global::Traverse::{Include, Skip, Finish};
 pub struct Flow {
 	pub max: usize,
 	pub cur: usize,
-	pub rev: WeakEdge<usize, Null, Flow>,
+	pub rev: WeakEdge<usize, Empty, Flow>,
 }
 
 impl std::fmt::Display for Flow {
@@ -22,7 +21,7 @@ impl std::fmt::Display for Flow {
 }
 
 // A type for the flow graph.
-pub type FlowGraph = Digraph<usize, Null, Flow>;
+pub type FlowGraph = Digraph<usize, Empty, Flow>;
 
 // Edge insertion in the flow-graph is a bit more involved. We need to save
 // a reverse edge for each forward edge with a maxed out capacity. When we
@@ -48,18 +47,18 @@ pub fn parallel_maximum_flow_edmonds_karp(g: &FlowGraph, s: usize, t: usize) -> 
 	// it. The Traverse enum will collect the edge in the results. Otherwise we
 	// skip the edge.
 	let target = g.node(&t).unwrap();
-	let explorer = |e: &RefEdge<usize, Null, Flow>| {
+	let explorer = |e: &RefEdge<usize, Empty, Flow>| {
 		let flow = e.load();
 		if flow.cur < flow.max {
 			if *target == e.target() {
-				Finish
+				Traverse::Finish
 			}
 			else {
-				Include
+				Traverse::Include
 			}
 		}
 		else {
-			Skip
+			Traverse::Skip
 		}
 	};
 	let mut max_flow: usize = 0;
@@ -67,7 +66,7 @@ pub fn parallel_maximum_flow_edmonds_karp(g: &FlowGraph, s: usize, t: usize) -> 
 	{
 		// We backtrack the results from the breadth first traversal which will
 		// produce the shortest path.
-		let path = b.backtrack().unwrap();
+		let path = backtrack_edges(&b);
 
 		// We find the bottleneck value of the path.
 		let mut aug_flow = std::usize::MAX;
@@ -110,24 +109,24 @@ pub fn parallel_maximum_flow_edmonds_karp(g: &FlowGraph, s: usize, t: usize) -> 
 
 pub fn maximum_flow_edmonds_karp(g: &FlowGraph, s: usize, t: usize) -> usize {
 	let target = g.node(&t).unwrap();
-	let explorer = |e: &RefEdge<usize, Null, Flow>| {
+	let explorer = |e: &RefEdge<usize, Empty, Flow>| {
 		let flow = e.load();
 		if flow.cur < flow.max {
 			if *target == e.target() {
-				Finish
+				Traverse::Finish
 			}
 			else {
-				Include
+				Traverse::Include
 			}
 		}
 		else {
-			Skip
+			Traverse::Skip
 		}
 	};
 	let mut max_flow: usize = 0;
 	while let Some(b) = g.breadth_first(&s, explorer)
 	{
-		let path = b.backtrack().unwrap();
+		let path = backtrack_edges(&b);
 		let mut aug_flow = std::usize::MAX;
 		for weak in path.iter() {
 			let e = weak.upgrade();
@@ -165,11 +164,11 @@ pub fn maximum_flow_ford_fulkerson(g: &FlowGraph, s: usize, t: usize) -> usize {
 			let flow = e.load();
 			if flow.cur < flow.max {
 				if *target == e.target() {
-					Finish
+					Traverse::Finish
 				} else {
-					Include
+					Traverse::Include
 				}
-			} else { Skip }})
+			} else { Traverse::Skip }})
 	{
 		let path = b.backtrack().unwrap();
 		for e in b.iter() {

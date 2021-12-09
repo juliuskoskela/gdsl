@@ -1,7 +1,3 @@
-///////////////////////////////////////////////////////////////////////////////
-///
-/// INCLUDES
-
 use std:: {
 	collections::HashMap,
 	fmt::{Debug, Display},
@@ -12,24 +8,9 @@ use std:: {
 use crate::node::*;
 use crate::edge::*;
 use crate::adjacent::*;
-// use fxhash::FxHashMap;
-
-///
-///////////////////////////////////////////////////////////////////////////////
-
-///////////////////////////////////////////////////////////////////////////////
-///
-/// CONSTANTS
 
 pub const OPEN: bool = false;
 pub const CLOSED: bool = true;
-
-///
-///////////////////////////////////////////////////////////////////////////////
-
-///////////////////////////////////////////////////////////////////////////////
-///
-/// TYPES
 
 pub type RefNode<K, N, E> = Arc<Node<K, N, E>>;
 pub type WeakNode<K, N, E> = Weak<Node<K, N, E>>;
@@ -39,7 +20,7 @@ pub type RefAdjacent<K, N, E> = RwLock<Adjacent<K, N, E>>;
 pub type RefNodePool<K, N, E> = HashMap<K, RefNode<K, N, E>>;
 pub type EdgeList<K, N, E> = Vec<WeakEdge<K, N, E>>;
 
-pub enum Return<T> {
+pub enum Continue<T> {
 	Yes(T),
 	No(T)
 }
@@ -47,32 +28,26 @@ pub enum Return<T> {
 // Helper void type which implements the necessary traits to be used as a
 // placeholder for Node parameters which are not used.
 #[derive(Clone, Debug)]
-pub struct Null;
+pub struct Empty;
 
-impl std::fmt::Display for Null {
+impl std::fmt::Display for Empty {
 	fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		write!(fmt, "_")
 	}
 }
 
-pub enum Traverse {
-	Skip,
-	Include,
-	Finish,
-}
-
 ///////////////////////////////////////////////////////////////////////////////
 
-pub fn backtrack_edges<K, N, E>(edges: &EdgeList<K, N, E>) -> Option<EdgeList<K, N, E>>
+pub fn backtrack_edges<K, N, E>(edges: &EdgeList<K, N, E>) -> EdgeList<K, N, E>
 where
     K: Hash + Eq + Clone + Debug + Display + Sync + Send,
     N: Clone + Debug + Display + Sync + Send,
     E: Clone + Debug + Display + Sync + Send,
 {
-	if edges.len() == 0 {
-		return None;
-	}
 	let mut res = EdgeList::new();
+	if edges.len() == 0 {
+		return res;
+	}
 	let w = edges.get(edges.len() - 1).unwrap();
 	res.push(w.clone());
 	let mut i = 0;
@@ -83,5 +58,21 @@ where
 			i += 1;
 		}
 	}
-	Some(res)
+	res
+}
+
+// A helper function to open all closed nodes and edges after the algorithm has
+// finished.
+pub fn open_locks<K, N, E>(result: &EdgeList<K, N, E>)
+where
+    K: Hash + Eq + Clone + Debug + Display + Sync + Send,
+    N: Clone + Debug + Display + Sync + Send,
+    E: Clone + Debug + Display + Sync + Send,
+{
+    for weak in result.iter() {
+        let edge = weak.upgrade().unwrap();
+        edge.open();
+        edge.target().open();
+        edge.source().open();
+    }
 }
