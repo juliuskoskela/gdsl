@@ -17,8 +17,13 @@ use std:: {
 		}
 	}
 };
-use crate::global::*;
+use crate::core::*;
 
+pub enum Traverse {
+	Include,
+	Skip,
+	Finish,
+}
 
 ///
 ///////////////////////////////////////////////////////////////////////////////
@@ -86,8 +91,8 @@ where
     E: Clone + Debug + Display + Sync + Send,
 {
 	pub fn new(
-		source: &RefNode<K, N, E>,
-		target: &RefNode<K, N, E>,
+		source: &ArcNode<K, N, E>,
+		target: &ArcNode<K, N, E>,
 		data: E) -> Edge<K, N, E> {
 		Edge {
 			source: Arc::downgrade(source),
@@ -113,11 +118,11 @@ where
 		self.lock.store(OPEN, Ordering::Relaxed)
 	}
 
-	pub fn source(&self) -> RefNode<K, N, E> {
+	pub fn source(&self) -> ArcNode<K, N, E> {
 		self.source.upgrade().unwrap()
 	}
 
-	pub fn target(&self) -> RefNode<K, N, E> {
+	pub fn target(&self) -> ArcNode<K, N, E> {
 		self.target.upgrade().unwrap()
 	}
 

@@ -1,6 +1,5 @@
-use crate::{digraph::*, global::*};
+use crate::{digraph::*, core::*};
 use std::sync::{Arc, Weak};
-use crate::global::Traverse::{Include, Skip, Finish};
 
 // Flow Graph
 
@@ -12,7 +11,7 @@ use crate::global::Traverse::{Include, Skip, Finish};
 pub struct Flow {
 	pub max: usize,
 	pub cur: usize,
-	pub rev: WeakEdge<usize, Null, Flow>,
+	pub rev: WeakEdge<usize, Empty, Flow>,
 }
 
 impl std::fmt::Display for Flow {
@@ -22,7 +21,7 @@ impl std::fmt::Display for Flow {
 }
 
 // A type for the flow graph.
-pub type FlowGraph = Digraph<usize, Null, Flow>;
+pub type FlowGraph = Digraph<usize, Empty, Flow>;
 
 // Edge insertion in the flow-graph is a bit more involved. We need to save
 // a reverse edge for each forward edge with a maxed out capacity. When we
@@ -41,33 +40,33 @@ pub fn connect_flow(g: &mut FlowGraph, u: &usize, v: &usize, flow: usize) {
 }
 
 // Maximum flow of a directed graph using the Edmond's-Karp algorithm.
-pub fn maximum_flow_edmonds_karp(g: &FlowGraph, s: usize, t: usize) -> usize {
+pub fn parallel_maximum_flow_edmonds_karp(g: &FlowGraph, s: usize, t: usize) -> usize {
 
 	// We loop over the graph doing a breadth first search. Inside the closure
 	// we check the flow of each edge. If the edge is not saturated, we traverse
 	// it. The Traverse enum will collect the edge in the results. Otherwise we
 	// skip the edge.
 	let target = g.node(&t).unwrap();
-	let explorer = |e: &RefEdge<usize, Null, Flow>| {
+	let explorer = |e: &ArcEdge<usize, Empty, Flow>| {
 		let flow = e.load();
 		if flow.cur < flow.max {
 			if *target == e.target() {
-				Finish
+				Traverse::Finish
 			}
 			else {
-				Include
+				Traverse::Include
 			}
 		}
 		else {
-			Skip
+			Traverse::Skip
 		}
 	};
 	let mut max_flow: usize = 0;
-	while let Some(b) = g.breadth_first(&s, explorer)
+	while let Some(b) = g.par_breadth_first(&s, explorer)
 	{
 		// We backtrack the results from the breadth first traversal which will
 		// produce the shortest path.
-		let path = b.backtrack().unwrap();
+		let path = backtrack_edges(&b);
 
 		// We find the bottleneck value of the path.
 		let mut aug_flow = std::usize::MAX;
@@ -108,48 +107,116 @@ pub fn maximum_flow_edmonds_karp(g: &FlowGraph, s: usize, t: usize) -> usize {
 	max_flow
 }
 
-// Maximum flow of a directed graph using the Ford-Fulkerson method.
-pub fn maximum_flow_ford_fulkerson(g: &FlowGraph, s: usize, t: usize) -> usize {
+pub fn maximum_flow_edmonds_karp(g: &FlowGraph, s: usize, t: usize) -> usize {
 	let target = g.node(&t).unwrap();
-	let mut max_flow: usize = 0;
-	while let Some(b) = g.depth_first(&s,
-		|e| {
-			let flow = e.load();
-			if flow.cur < flow.max {
-				if *target == e.target() {
-					Finish
-				} else {
-					Include
-				}
-			} else { Skip }})
-	{
-		let path = b.backtrack().unwrap();
-		for e in b.iter() {
-			println!("{}", e.upgrade().unwrap())
+	let explorer = |e: &ArcEdge<usize, Empty, Flow>| {
+		let flow = e.load();
+		if flow.cur < flow.max {
+			if *target == e.target() {
+				Traverse::Finish
+			}
+			else {
+				Traverse::Include
+			}
 		}
-		println!("\n\n");
+		else {
+			Traverse::Skip
+		}
+	};
+	let mut max_flow: usize = 0;
+	while let Some(b) = g.breadth_first(&s, explorer)
+	{
+		let path = backtrack_edges(&b);
 		let mut aug_flow = std::usize::MAX;
 		for weak in path.iter() {
-			if let Some(edge) = weak.upgrade() {
-				let flow = edge.load();
-				if flow.max - flow.cur < aug_flow {
-					aug_flow = flow.max - flow.cur;
+			let e = weak.upgrade();
+			match e {
+				Some(edge) => {
+					let flow = edge.load();
+						if flow.max - flow.cur < aug_flow {
+							aug_flow = flow.max - flow.cur;
+					}
 				}
+				None => { panic!("Weak pointer invalid!") }
 			}
 		}
 		for weak in path.iter() {
-			if let Some(edge) = weak.upgrade() {
-				let mut flow = edge.load();
-				flow.cur += aug_flow;
-				if let Some(rev_edge) = flow.rev.upgrade() {
-					let mut rev_flow = rev_edge.load();
-					rev_flow.cur -= aug_flow;
-					edge.store(flow);
-					rev_edge.store(rev_flow);
-				}
-			}
+			let e = weak.upgrade().unwrap();
+			let mut flow = e.load();
+			flow.cur += aug_flow;
+			let r = flow.rev.upgrade().unwrap();
+			let mut rev_flow = r.load();
+			rev_flow.cur -= aug_flow;
+			e.store(flow);
+			r.store(rev_flow);
 		}
 		max_flow += aug_flow;
 	}
 	max_flow
+}
+
+pub fn digraph_colouring() {
+	type ChromaticGraph = Digraph<usize, usize>;
+
+	let mut g = ChromaticGraph::new();
+
+	g.insert(1, 0);
+	g.insert(2, 0);
+	g.insert(3, 0);
+	g.insert(4, 0);
+	g.connect(&1, &2,  Empty);
+	g.connect(&1, &3,  Empty);
+	// g.connect(&1, &4,  Empty);
+
+	g.connect(&2, &1,  Empty);
+	g.connect(&2, &3,  Empty);
+	// g.connect(&2, &4,  Empty);
+
+	g.connect(&3, &1,  Empty);
+	g.connect(&3, &2,  Empty);
+	// g.connect(&3, &4,  Empty);
+
+	g.connect(&4, &1,  Empty);
+	g.connect(&4, &2,  Empty);
+	// g.connect(&4, &3,  Empty);
+
+	for (_, node) in g.nodes.iter() {
+		let mut unavailable = vec![];
+		for edge in node.outbound().iter() {
+			let colour = edge.target().load();
+			unavailable.push(colour);
+		}
+		let mut node_colour: usize = 0;
+		loop {
+			let check = unavailable.iter().find(|predicate| { node_colour == **predicate });
+			match check {
+				Some(_) => { },
+				None => {
+					node.store(node_colour);
+					break ;
+				}
+			}
+			node_colour += 1;
+		}
+	}
+	g.print_nodes();
+
+	pub fn djikstra() {
+		let mut g: Digraph<usize, Empty, usize> = Digraph::new();
+
+		g.insert(0, Empty);
+		g.insert(1, Empty);
+		g.insert(2, Empty);
+		g.insert(3, Empty);
+		g.insert(4, Empty);
+
+		g.connect(&0, &1,  4);
+		g.connect(&0, &2,  1);
+		g.connect(&1, &3,  1);
+		g.connect(&2, &1,  2);
+		g.connect(&2, &3,  5);
+		g.connect(&3, &4,  3);
+
+		let mut dist = [0, 0, 0, 0, 0];
+	}
 }

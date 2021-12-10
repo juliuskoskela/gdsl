@@ -1,26 +1,22 @@
 /// Icludes
 
 use std::{
+	collections::HashMap,
     fmt::{Debug, Display},
     hash::Hash,
 };
 
-use crate::path::*;
-use crate::edge::*;
-use crate::global::*;
-use crate::global::Traverse;
-use crate::node::*;
-use crate::par_bfs::*;
+use crate::core::*;
 
 /// Digraph
 
-pub struct Digraph<K, N = Null, E = Null>
+pub struct Digraph<K, N = Empty, E = Empty>
 where
     K: Hash + Eq + Clone + Debug + Display + Sync + Send,
     N: Clone + Debug + Display + Sync + Send,
     E: Clone + Debug + Display + Sync + Send,
 {
-    pub nodes: RefNodePool<K, N, E>,
+    pub nodes: HashMap<K, ArcNode<K, N, E>>,
 	edge_count: usize,
 }
 
@@ -45,7 +41,7 @@ where
 {
     pub fn new() -> Self {
         Self {
-            nodes: RefNodePool::new(),
+            nodes: HashMap::new(),
 			edge_count: 0,
         }
     }
@@ -56,7 +52,7 @@ where
             node.store(data);
             false
         } else {
-            let node = RefNode::new(Node::new(key.clone(), data));
+            let node = ArcNode::new(Node::new(key.clone(), data));
             self.nodes.insert(key, node);
             true
         }
@@ -98,26 +94,26 @@ where
 		}
 	}
 
-	pub fn node(&self, key: &K) -> Option<&RefNode<K, N, E>> {
+	pub fn node(&self, key: &K) -> Option<&ArcNode<K, N, E>> {
 		self.nodes.get(key)
 	}
 
-	pub fn edge(&self, source: &K, target: &K) -> Option<RefEdge<K, N, E>> {
+	pub fn edge(&self, source: &K, target: &K) -> Option<ArcEdge<K, N, E>> {
 		let s = self.nodes.get(source);
 		let t = self.nodes.get(target);
 		match s {
             Some(ss) => match t {
-                Some(tt) => ss.outbound().find(ss, tt),
+                Some(tt) => ss.find_outbound(tt),
                 None => None,
             },
             None => None,
         }
 	}
 
-    pub fn get_leaves(&self) -> Vec<RefNode<K, N, E>> {
-        let mut res: Vec<RefNode<K, N, E>> = vec![];
+    pub fn get_leaves(&self) -> Vec<ArcNode<K, N, E>> {
+        let mut res: Vec<ArcNode<K, N, E>> = vec![];
         for n in self.nodes.values() {
-            if n.outbound().is_empty() {
+            if n.is_leaf() {
                 res.push(n.clone());
             }
         }
@@ -128,13 +124,13 @@ where
 		&self,
 		source: &K,
 		f: F
-	) -> Option<Path<K, N, E>>
+	) -> Option<Vec<WeakEdge<K, N, E>>>
 	where
-		F: Fn (&RefEdge<K, N, E>) -> Traverse,
+		F: Fn (&ArcEdge<K, N, E>) -> Traverse,
 	{
 		let s = self.node(source);
 		match s {
-    	    Some(ss) => depth_traversal_directed(ss, f),
+    	    Some(ss) => directed_depth_traversal(ss, f),
     	    None => None,
     	}
 	}
@@ -143,13 +139,13 @@ where
 		&self,
 		source: &K,
 		f: F
-	) -> Option<Path<K, N, E>>
+	) -> Option<Vec<WeakEdge<K, N, E>>>
 	where
-		F: Fn (&RefEdge<K, N, E>) -> Traverse,
+		F: Fn (&ArcEdge<K, N, E>) -> Traverse + std::marker::Sync + std::marker::Send + std::marker::Copy,
 	{
 		let s = self.node(source);
 		match s {
-    	    Some(ss) => breadth_traversal_directed(ss, f),
+    	    Some(ss) => directed_breadth_traversal(ss, f),
     	    None => None,
     	}
 	}
@@ -158,15 +154,14 @@ where
 		&self,
 		source: &K,
 		f: F
-	) -> Option<Path<K, N, E>>
+	) -> Option<Vec<WeakEdge<K, N, E>>>
 	where
-		F: Fn (&RefEdge<K, N, E>) -> Traverse + std::marker::Sync + std::marker::Send + std::marker::Copy,
+		F: Fn (&ArcEdge<K, N, E>) -> Traverse + std::marker::Sync + std::marker::Send + std::marker::Copy,
 	{
 		let s = self.node(source);
 		match s {
 			Some(ss) => {
-				let ret = parallel_directed_breadth_first_traversal(ss, f);
-				// self.clear_locks();
+				let ret = parallel_directed_breadth_traversal(ss, f);
 				ret
 			},
     	    None => None,
@@ -183,15 +178,6 @@ where
 		for (_, node) in self.nodes.iter() {
 			for edge in node.outbound().iter() {
 				println!("{}", edge);
-			}
-		}
-	}
-
-	pub fn clear_locks(&self) {
-		for (_, node) in self.nodes.iter() {
-			node.open();
-			for edge in node.outbound().iter() {
-				edge.open();
 			}
 		}
 	}
