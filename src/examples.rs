@@ -200,4 +200,23 @@ pub fn digraph_colouring() {
 		}
 	}
 	g.print_nodes();
+
+	pub fn djikstra() {
+		let mut g: Digraph<usize, Empty, usize> = Digraph::new();
+
+		g.insert(0, Empty);
+		g.insert(1, Empty);
+		g.insert(2, Empty);
+		g.insert(3, Empty);
+		g.insert(4, Empty);
+
+		g.connect(&0, &1,  4);
+		g.connect(&0, &2,  1);
+		g.connect(&1, &3,  1);
+		g.connect(&2, &1,  2);
+		g.connect(&2, &3,  5);
+		g.connect(&3, &4,  3);
+
+		let mut dist = [0, 0, 0, 0, 0];
+	}
 }

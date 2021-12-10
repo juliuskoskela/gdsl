@@ -212,6 +212,10 @@ where
 
 //=============================================================================
 
+/// Backtrack edges in an edge list starting from the last edge in the list.
+/// Used for example to find the shortest path from the results of a breadth
+/// first straversal.
+///
 pub fn backtrack_edges<K, N, E>(edges: &Vec<WeakEdge<K, N, E>>) -> Vec<WeakEdge<K, N, E>>
 where
     K: Hash + Eq + Clone + Debug + Display + Sync + Send,
@@ -235,13 +239,13 @@ where
     res
 }
 
-fn open_locks<K, N, E>(result: &Vec<WeakEdge<K, N, E>>)
+fn open_locks<K, N, E>(edges: &Vec<WeakEdge<K, N, E>>)
 where
     K: Hash + Eq + Clone + Debug + Display + Sync + Send,
     N: Clone + Debug + Display + Sync + Send,
     E: Clone + Debug + Display + Sync + Send,
 {
-    for weak in result.iter() {
+    for weak in edges.iter() {
         let edge = weak.upgrade().unwrap();
         edge.open();
         edge.target().open();
@@ -819,7 +823,7 @@ where
     let mut bounds: (usize, usize) = (0, 0);
     let terminate: Arc<AtomicBool> = Arc::new(AtomicBool::new(false));
     source.close();
-    match source.par_filter_adjacent(&explorer) {
+    match source.filter_adjacent(&explorer) {
         Continue::No(segment) => {
             open_locks(&segment);
             return Some(segment);
@@ -842,7 +846,7 @@ where
 					true => { None }
 					false => {
 						let node = edge.upgrade().unwrap().target();
-                    	match node.par_filter_adjacent(&explorer) {
+                    	match node.filter_adjacent(&explorer) {
                     	    Continue::No(segment) => {
                     	        terminate.store(true, Ordering::Relaxed);
                     	        Some(segment)
