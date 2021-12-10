@@ -8,7 +8,7 @@
 //! edge abstraction as well as traveral algorithms. Used to build
 //! different graphs.
 //!
-use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator, IndexedParallelIterator};
+use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use std::{
     fmt::{Debug, Display, Formatter},
     hash::Hash,
@@ -87,7 +87,7 @@ where
     source: WeakNode<K, N, E>,
     target: WeakNode<K, N, E>,
     data: Mutex<E>,
-    lock: Arc<AtomicBool>,
+    lock: AtomicBool,
 }
 
 //=============================================================================
@@ -104,7 +104,7 @@ where
             source: Arc::downgrade(source),
             target: Arc::downgrade(target),
             data: Mutex::new(data),
-            lock: Arc::new(AtomicBool::new(OPEN)),
+            lock: AtomicBool::new(OPEN),
         }
     }
 
@@ -148,11 +148,6 @@ where
         self.lock.store(OPEN, Ordering::Relaxed)
     }
 
-    #[inline(always)]
-    fn get_lock(&self) -> Weak<AtomicBool> {
-        Arc::downgrade(&self.lock)
-    }
-
     fn display_string(&self) -> String {
         let lock_state = if self.try_lock() == false {
             "OPEN"
@@ -189,7 +184,7 @@ where
             source: self.source.clone(),
             target: self.target.clone(),
             data: Mutex::new(self.data.lock().unwrap().clone()),
-            lock: Arc::new(AtomicBool::new(self.lock.load(Ordering::Relaxed))),
+            lock: AtomicBool::new(self.lock.load(Ordering::Relaxed)),
         }
     }
 }
@@ -290,7 +285,7 @@ where
     data: Mutex<N>,
     outbound: Outbound<K, N, E>,
     inbound: Inbound<K, N, E>,
-    lock: Arc<AtomicBool>,
+    lock: AtomicBool,
 }
 
 //=============================================================================
@@ -314,7 +309,7 @@ where
             data: Mutex::new(data),
             outbound: Outbound::new(Vec::new()),
             inbound: Inbound::new(Vec::new()),
-            lock: Arc::new(AtomicBool::new(false)),
+            lock: AtomicBool::new(OPEN),
         }
     }
 
@@ -438,11 +433,6 @@ where
     }
 
     #[inline(always)]
-    fn get_lock(&self) -> Weak<AtomicBool> {
-        Arc::downgrade(&self.lock)
-    }
-
-    #[inline(always)]
     fn close(&self) {
         self.lock.store(CLOSED, Ordering::Relaxed)
     }
@@ -488,7 +478,7 @@ where
     }
 
 	#[inline(always)]
-    fn par_filter_adjacent<F>(
+    pub fn par_filter_adjacent<F>(
         &self,
         user_closure: &F,
     ) -> Continue<Vec<WeakEdge<K, N, E>>>
@@ -569,7 +559,7 @@ where
             data: Mutex::new(self.data.lock().unwrap().clone()),
             outbound: Outbound::new(Vec::new()),
             inbound: Inbound::new(Vec::new()),
-            lock: Arc::new(AtomicBool::new(OPEN)),
+            lock: AtomicBool::new(OPEN),
         }
     }
 }
@@ -928,7 +918,6 @@ where
 fn directed_depth_traversal_recursion<K, N, E, F>(
     source: &ArcNode<K, N, E>,
     results: &mut Vec<WeakEdge<K, N, E>>,
-    locks: &mut Vec<Weak<AtomicBool>>,
     explorer: F,
 ) -> bool
 where
@@ -938,28 +927,25 @@ where
     F: Fn(&ArcEdge<K, N, E>) -> Traverse,
 {
     source.close();
-    locks.push(source.get_lock());
     for edge in source.outbound().iter() {
         if edge.try_lock() == OPEN && edge.target().try_lock() == OPEN {
             edge.target().close();
             edge.close();
-            locks.push(edge.get_lock());
             let traverse = explorer(edge);
             match traverse {
                 Traverse::Include => {
                     results.push(Arc::downgrade(edge));
-                    locks.push(edge.target().get_lock());
                 }
                 Traverse::Finish => {
                     results.push(Arc::downgrade(edge));
-                    locks.push(edge.target().get_lock());
                     return true;
                 }
                 Traverse::Skip => {
+					edge.open();
                     edge.target().open();
                 }
             }
-            return directed_depth_traversal_recursion(&edge.target(), results, locks, explorer);
+            return directed_depth_traversal_recursion(&edge.target(), results, explorer);
         }
     }
     false
@@ -976,12 +962,8 @@ where
     F: Fn(&ArcEdge<K, N, E>) -> Traverse,
 {
     let mut result = Vec::new();
-    let mut locks = Vec::new();
-    let res = directed_depth_traversal_recursion(source, &mut result, &mut locks, explorer);
-    for weak in locks {
-        let arc = weak.upgrade().unwrap();
-        arc.store(OPEN, Ordering::Relaxed);
-    }
+    let res = directed_depth_traversal_recursion(source, &mut result, explorer);
+    open_locks(&result);
     match res {
         true => Some(result),
         false => None,
