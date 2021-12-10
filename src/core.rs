@@ -883,6 +883,7 @@ where
 /// The last edge will contain the result that triggered the Finish condition.
 /// To get the shortest path for example, we'd backtrack the WeakEdges starting
 /// from the last edge which would contain our sink node.
+///
 /// # Examples
 ///
 /// ```
