@@ -13,17 +13,17 @@ Graph
 
 ```rust
 
-pub fn parallel_directed_breadth_first_traversal<K, N, E, F>(
-    source: &RefNode<K, N, E>,
+pub fn parallel_directed_breadth_traversal<K, N, E, F>(
+    source: &ArcNode<K, N, E>,
     explorer: F,
-) -> Option<EdgeList<K, N, E>>
+) -> Option<WeakEdges<K, N, E>>
 where
     K: Hash + Eq + Clone + Debug + Display + Sync + Send,
     N: Clone + Debug + Display + Sync + Send,
     E: Clone + Debug + Display + Sync + Send,
-    F: Fn(&RefEdge<K, N, E>) -> Traverse + Sync + Send + Copy,
+    F: Fn(&ArcEdge<K, N, E>) -> Traverse + Sync + Send + Copy,
 {
-    let mut frontiers: EdgeList<K, N, E>;
+    let mut frontiers: WeakEdges<K, N, E>;
 	let mut bounds: (usize, usize) = (0, 0);
 	let terminate: Arc<AtomicBool> = Arc::new(AtomicBool::new(false));
 
