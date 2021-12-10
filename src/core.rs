@@ -239,6 +239,7 @@ where
     res
 }
 
+// Opens all locks in
 fn open_locks<K, N, E>(edges: &Vec<WeakEdge<K, N, E>>)
 where
     K: Hash + Eq + Clone + Debug + Display + Sync + Send,
