@@ -14,9 +14,11 @@ use std::{
     hash::Hash,
     sync::{
         atomic::{AtomicBool, Ordering},
-        Arc, Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard, Weak,
+        Arc, Weak,
     },
 };
+
+use parking_lot::{RwLock, Mutex, RwLockReadGuard, RwLockWriteGuard};
 
 //=============================================================================
 
@@ -123,13 +125,13 @@ where
     /// Load data from the edge.
     #[inline(always)]
     pub fn load(&self) -> E {
-        self.data.lock().unwrap().clone()
+        self.data.lock().clone()
     }
 
     /// Store data into the edge.
     #[inline(always)]
     pub fn store(&self, data: E) {
-        let mut x = self.data.lock().expect("Error locking mutex!");
+        let mut x = self.data.lock();
         *x = data;
     }
 
@@ -158,7 +160,7 @@ where
             "-> \"{}\" : \"{}\" : \"{}\"",
             self.target().key(),
             lock_state,
-            self.data.lock().unwrap()
+            self.data.lock()
         )
     }
 }
@@ -183,7 +185,7 @@ where
         Edge {
             source: self.source.clone(),
             target: self.target.clone(),
-            data: Mutex::new(self.data.lock().unwrap().clone()),
+            data: Mutex::new(self.data.lock().clone()),
             lock: AtomicBool::new(self.lock.load(Ordering::Relaxed)),
         }
     }
@@ -317,14 +319,14 @@ where
     ///
     #[inline(always)]
     pub fn load(&self) -> N {
-        self.data.lock().unwrap().clone()
+        self.data.lock().clone()
     }
 
     /// Store data to the node.
     ///
     #[inline(always)]
     pub fn store(&self, data: N) {
-        *self.data.lock().unwrap() = data;
+        *self.data.lock() = data;
     }
 
     /// Get node key.
@@ -376,52 +378,28 @@ where
     ///
     #[inline(always)]
     pub fn outbound(&self) -> RwLockReadGuard<Vec<Arc<Edge<K, N, E>>>> {
-        let lock = self.outbound.read();
-        match lock {
-            Ok(guard) => guard,
-            Err(error) => {
-                panic!("RwLock error {}", error)
-            }
-        }
+        self.outbound.read()
     }
 
     /// Get read and write access to the outbound edges of the node. Will block other threads.
     ///
     #[inline(always)]
     pub fn outbound_mut(&self) -> RwLockWriteGuard<Vec<Arc<Edge<K, N, E>>>> {
-        let lock = self.outbound.write();
-        match lock {
-            Ok(guard) => guard,
-            Err(error) => {
-                panic!("RwLock error {}", error)
-            }
-        }
+        self.outbound.write()
     }
 
     /// Get read access to inbound edges of the node.
     ///
     #[inline(always)]
     pub fn inbound(&self) -> RwLockReadGuard<Vec<Weak<Edge<K, N, E>>>> {
-        let lock = self.inbound.read();
-        match lock {
-            Ok(guard) => guard,
-            Err(error) => {
-                panic!("RwLock error {}", error)
-            }
-        }
+        self.inbound.read()
     }
 
     /// Get read and write access to the outbound edges of the node. Will block other threads.
     ///
     #[inline(always)]
     pub fn inbound_mut(&self) -> RwLockWriteGuard<Vec<Weak<Edge<K, N, E>>>> {
-        let lock = self.inbound.write();
-        match lock {
-            Ok(guard) => guard,
-            Err(error) => {
-                panic!("RwLock error {}", error)
-            }
-        }
+        self.inbound.write()
     }
 
 	//=============================================================================
@@ -530,7 +508,7 @@ where
             "\"{}\" : \"{}\" : \"{}\"",
             self.key,
             lock_state,
-            self.data.lock().unwrap()
+            self.data.lock()
         );
         header
     }
@@ -556,7 +534,7 @@ where
     fn clone(&self) -> Self {
         Node {
             key: self.key.clone(),
-            data: Mutex::new(self.data.lock().unwrap().clone()),
+            data: Mutex::new(self.data.lock().clone()),
             outbound: Outbound::new(Vec::new()),
             inbound: Inbound::new(Vec::new()),
             lock: AtomicBool::new(OPEN),
