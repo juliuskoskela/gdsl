@@ -72,10 +72,7 @@ fn digraph_test_depth_traversal() {
 fn digraph_test_maximum_flow_edmonds_karp() {
 	let g = flow_graph_example_1to6_23();
 	let max_flow = parallel_maximum_flow_edmonds_karp(&g, 1, 6);
-	g.print_nodes();
-	g.print_edges();
-	println!("MAX FLOW = {}", max_flow);
-	// assert!(max_flow == 23);
+	assert!(max_flow == 23);
 }
 
 // Test graph constructors

@@ -6,7 +6,7 @@ use rand::Rng;
 use lazy_static::lazy_static;
 use std::sync::Arc;
 
-const BIG_NODE_COUNT: usize = 1000000;
+const BIG_NODE_COUNT: usize = 100000;
 const MEDIUM_NODE_COUNT: usize = 10000;
 const SMALL_NODE_COUNT: usize = 100;
 const FLOW_NODE_COUNT: usize = 1000;
@@ -81,7 +81,9 @@ fn digraph_breadth_first_search_naked(c: &mut Criterion) {
 				Traverse::Include
 			}
 		};
-		BIG_GRAPH.breadth_first(&rand_range(0, BIG_NODE_COUNT), closure);
+		for _ in 0..10 {
+			BIG_GRAPH.breadth_first(&rand_range(0, BIG_NODE_COUNT), closure);
+		}
 	}
 	println!("graph node count = {}", BIG_GRAPH.node_count());
 	println!("graph edge count = {}", BIG_GRAPH.edge_count());
@@ -112,19 +114,22 @@ fn digraph_breadth_first_sleep_1ms(c: &mut Criterion) {
 
 fn digraph_breadth_first_count_prime(c: &mut Criterion) {
 	fn digraph_bfs() {
-		let t = MEDIUM_GRAPH.node(&rand_range(0, MEDIUM_NODE_COUNT)).unwrap();
+		// let t = MEDIUM_GRAPH.node(&rand_range(0, MEDIUM_NODE_COUNT)).unwrap();
 		let closure = | e: &Arc<Edge<usize, usize, Empty>> | {
 			let n = e.target().load();
 			if primes::is_prime(n as u64) == true {
 				e.target().store(n);
 			}
-			if *t == e.target() {
-				Traverse::Finish
-			} else {
-				Traverse::Include
-			}
+			Traverse::Include
+			// if *t == e.target() {
+			// 	Traverse::Finish
+			// } else {
+			// 	Traverse::Include
+			// }
 		};
-		MEDIUM_GRAPH.breadth_first(&rand_range(0, SMALL_NODE_COUNT), closure);
+		for _ in 0..10 {
+			MEDIUM_GRAPH.breadth_first(&rand_range(0, MEDIUM_NODE_COUNT), closure);
+		}
 	}
 	println!("graph node count = {}", MEDIUM_GRAPH.node_count());
 	println!("graph edge count = {}", MEDIUM_GRAPH.edge_count());
@@ -176,19 +181,22 @@ fn digraph_par_breadth_first_sleep_1ms(c: &mut Criterion) {
 
 fn digraph_par_breadth_first_count_prime(c: &mut Criterion) {
 	fn digraph_bfs() {
-		let t = MEDIUM_GRAPH.node(&rand_range(0, MEDIUM_NODE_COUNT)).unwrap();
+		// let t = MEDIUM_GRAPH.node(&rand_range(0, MEDIUM_NODE_COUNT)).unwrap();
 		let closure = | e: &Arc<Edge<usize, usize, Empty>> | {
 			let n = e.target().load();
 			if primes::is_prime(n as u64) == true {
 				e.target().store(n);
 			}
-			if *t == e.target() {
-				Traverse::Finish
-			} else {
-				Traverse::Include
-			}
+			Traverse::Include
+			// if *t == e.target() {
+			// 	Traverse::Finish
+			// } else {
+			// 	Traverse::Include
+			// }
 		};
-		MEDIUM_GRAPH.par_breadth_first(&rand_range(0, SMALL_NODE_COUNT), closure);
+		for _ in 0..10 {
+			MEDIUM_GRAPH.par_breadth_first(&rand_range(0, MEDIUM_NODE_COUNT), closure);
+		}
 	}
 	println!("graph node count = {}", MEDIUM_GRAPH.node_count());
 	println!("graph edge count = {}", MEDIUM_GRAPH.edge_count());

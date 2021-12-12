@@ -44,7 +44,7 @@ pub enum Traverse {
 /// The Continue enum signifies if a loop should be stopped inclusive
 /// of the last item or if the loop should be continued.
 ///
-pub enum Continue<T> {
+enum Continue<T> {
     Yes(T),
     No(T),
 }
@@ -59,6 +59,8 @@ impl std::fmt::Display for Empty {
         write!(fmt, "_")
     }
 }
+
+pub type Frontier<K, N, E> = Vec<WeakEdge<K, N, E>>;
 
 //=============================================================================
 // EDGE IMPLEMENTATION
@@ -89,7 +91,6 @@ where
     source: WeakNode<K, N, E>,
     target: WeakNode<K, N, E>,
     data: Mutex<E>,
-    lock: AtomicBool,
 }
 
 //=============================================================================
@@ -106,7 +107,6 @@ where
             source: Arc::downgrade(source),
             target: Arc::downgrade(target),
             data: Mutex::new(data),
-            lock: AtomicBool::new(OPEN),
         }
     }
 
@@ -135,31 +135,10 @@ where
         *x = data;
     }
 
-    #[inline(always)]
-    fn try_lock(&self) -> bool {
-        self.lock.load(Ordering::Relaxed)
-    }
-
-    #[inline(always)]
-    fn close(&self) {
-        self.lock.store(CLOSED, Ordering::Relaxed)
-    }
-
-    #[inline(always)]
-    fn open(&self) {
-        self.lock.store(OPEN, Ordering::Relaxed)
-    }
-
     fn display_string(&self) -> String {
-        let lock_state = if self.try_lock() == false {
-            "OPEN"
-        } else {
-            "CLOSED"
-        };
         format!(
-            "-> \"{}\" : \"{}\" : \"{}\"",
+            "-> \"{}\" : \"{}\"",
             self.target().key(),
-            lock_state,
             self.data.lock()
         )
     }
@@ -186,7 +165,6 @@ where
             source: self.source.clone(),
             target: self.target.clone(),
             data: Mutex::new(self.data.lock().clone()),
-            lock: AtomicBool::new(self.lock.load(Ordering::Relaxed)),
         }
     }
 }
@@ -245,7 +223,6 @@ where
 {
     for weak in edges.iter() {
         let edge = weak.upgrade().unwrap();
-        edge.open();
         edge.target().open();
         edge.source().open();
     }
@@ -421,21 +398,21 @@ where
     }
 
     #[inline(always)]
-    fn filter_adjacent(
+    fn filter_adjacent<F>(
         &self,
-        user_closure: &dyn Fn(&ArcEdge<K, N, E>) -> Traverse,
+        user_closure: &F,
     ) -> Continue<Vec<WeakEdge<K, N, E>>>
     where
         K: Hash + Eq + Clone + Debug + Display + Sync + Send,
         N: Clone + Debug + Display + Sync + Send,
         E: Clone + Debug + Display + Sync + Send,
+		F: Fn(&ArcEdge<K, N, E>) -> Traverse + Sync + Send + Copy,
     {
         let mut segment: Vec<WeakEdge<K, N, E>> = Vec::new();
         let adjacent_edges = self.outbound();
         for edge in adjacent_edges.iter() {
-            if edge.try_lock() == OPEN && edge.target().try_lock() == OPEN {
+            if edge.target().try_lock() == OPEN {
                 edge.target().close();
-                edge.close();
                 let traversal_state = user_closure(edge);
                 match traversal_state {
                     Traverse::Include => {
@@ -446,60 +423,12 @@ where
                         return Continue::No(segment);
                     }
                     Traverse::Skip => {
-                        edge.open();
                         edge.target().open();
                     }
                 }
             }
         }
         Continue::Yes(segment)
-    }
-
-	#[inline(always)]
-    pub fn par_filter_adjacent<F>(
-        &self,
-        user_closure: &F,
-    ) -> Continue<Vec<WeakEdge<K, N, E>>>
-    where
-        K: Hash + Eq + Clone + Debug + Display + Sync + Send,
-        N: Clone + Debug + Display + Sync + Send,
-        E: Clone + Debug + Display + Sync + Send,
-		F: Fn(&ArcEdge<K, N, E>) -> Traverse + Sync + Send + Copy,
-    {
-		let found = AtomicBool::new(false);
-        let adjacent_edges = self.outbound();
-		let segment: Vec<WeakEdge<K, N, E>> = adjacent_edges
-			.par_iter()
-			.filter_map(
-				|edge| {
-					if edge.try_lock() == OPEN
-					&& edge.target().try_lock() == OPEN
-					&& found.load(Ordering::Relaxed) == false {
-						edge.target().close();
-						edge.close();
-						let traversal_state = user_closure(edge);
-						match traversal_state {
-							Traverse::Include => {
-								return Some(Arc::downgrade(edge));
-							}
-							Traverse::Finish => {
-								found.store(true, Ordering::Relaxed);
-								return Some(Arc::downgrade(edge));
-							}
-							Traverse::Skip => {
-								edge.open();
-								edge.target().open();
-							}
-						}
-					}
-					None
-				}
-			)
-			.collect();
-		match found.load(Ordering::Relaxed) {
-			true => { return Continue::No(segment); }
-			false => { return Continue::Yes(segment); }
-		}
     }
 
     fn display_string(&self) -> String {
@@ -678,6 +607,8 @@ where
 /// assert!(shortest_path.len() == 1);
 /// ```
 ///
+///
+
 pub fn directed_breadth_traversal<K, N, E, F>(
     source: &ArcNode<K, N, E>,
     explorer: F,
@@ -907,9 +838,8 @@ where
 {
     source.close();
     for edge in source.outbound().iter() {
-        if edge.try_lock() == OPEN && edge.target().try_lock() == OPEN {
+        if edge.target().try_lock() == OPEN {
             edge.target().close();
-            edge.close();
             let traverse = explorer(edge);
             match traverse {
                 Traverse::Include => {
@@ -920,7 +850,6 @@ where
                     return true;
                 }
                 Traverse::Skip => {
-					edge.open();
                     edge.target().open();
                 }
             }
