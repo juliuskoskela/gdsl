@@ -46,6 +46,10 @@ where
         }
     }
 
+	pub fn directed(&self) -> bool {
+		false
+	}
+
 	pub fn insert(&mut self, key: K, data: N) -> bool {
         if self.nodes.contains_key(&key) {
             let node = self.nodes[&key].clone();
@@ -94,8 +98,11 @@ where
 		}
 	}
 
-	pub fn node(&self, key: &K) -> Option<&ArcNode<K, N, E>> {
-		self.nodes.get(key)
+	pub fn node(&self, key: &K) -> Option<ArcNode<K, N, E>> {
+		match self.nodes.get(key) {
+			Some(n) => { Some(n.clone()) }
+			None => None
+		}
 	}
 
 	pub fn edge(&self, source: &K, target: &K) -> Option<ArcEdge<K, N, E>> {
@@ -130,7 +137,7 @@ where
 	{
 		let s = self.node(source);
 		match s {
-    	    Some(ss) => directed_depth_traversal(ss, f),
+    	    Some(ss) => directed_depth_traversal(&ss, f),
     	    None => None,
     	}
 	}
@@ -145,7 +152,7 @@ where
 	{
 		let s = self.node(source);
 		match s {
-    	    Some(ss) => directed_breadth_traversal(ss, f),
+    	    Some(ss) => directed_breadth_traversal(&ss, f),
     	    None => None,
     	}
 	}
@@ -161,7 +168,7 @@ where
 		let s = self.node(source);
 		match s {
 			Some(ss) => {
-				let ret = parallel_directed_breadth_traversal(ss, f);
+				let ret = parallel_directed_breadth_traversal(&ss, f);
 				ret
 			},
     	    None => None,

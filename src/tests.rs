@@ -1,8 +1,32 @@
 use crate::core::*;
 use crate::digraph::*;
+use crate::graph::*;
 use crate::examples::*;
 
 type SimpleGraph = Digraph<usize, Empty, Empty>;
+type SimpleUngraph = Ungraph<usize, Empty, Empty>;
+
+#[test]
+fn ungraph_test_breadth_traversal() {
+	let g = test_ungraph_1();
+
+	let res = g.breadth_first(&1,
+	|edge|{
+		if edge.target().key() == &6 {
+			Traverse::Finish
+		} else {
+			Traverse::Include
+		}
+	}).unwrap();
+
+	let path = backtrack_edges(&res);
+	println!("Breadth First Search\n");
+	for edge in path.iter() {
+		println!("{}", edge.upgrade().unwrap());
+	}
+
+	g.print_graph();
+}
 
 #[test]
 fn digraph_test_breadth_traversal() {
@@ -100,6 +124,32 @@ fn test_digraph_1() -> SimpleGraph {
 	g.connect(&4, &3, Empty);
 	g.connect(&4, &2, Empty);
 	g.connect(&4, &6, Empty);
+	g
+}
+
+fn test_ungraph_1() -> SimpleUngraph {
+	let mut g = SimpleUngraph::new();
+
+	g.add_node(1, Empty);
+	g.add_node(2, Empty);
+	g.add_node(3, Empty);
+	g.add_node(4, Empty);
+	g.add_node(5, Empty);
+	g.add_node(6, Empty);
+
+	g.add_edge(&1, &2, Empty);
+	g.add_edge(&1, &3, Empty);
+	g.add_edge(&2, &1, Empty);
+	g.add_edge(&2, &3, Empty);
+	g.add_edge(&3, &1, Empty);
+	g.add_edge(&3, &5, Empty);
+	g.add_edge(&5, &2, Empty);
+	g.add_edge(&5, &4, Empty);
+	g.add_edge(&5, &1, Empty);
+	g.add_edge(&4, &5, Empty);
+	g.add_edge(&4, &3, Empty);
+	g.add_edge(&4, &2, Empty);
+	g.add_edge(&4, &6, Empty);
 	g
 }
 

@@ -75,7 +75,7 @@ fn digraph_breadth_first_search_naked(c: &mut Criterion) {
 	fn digraph_bfs() {
 		let t = BIG_GRAPH.node(&rand_range(0, BIG_NODE_COUNT)).unwrap();
 		let closure = | e: &Arc<Edge<usize, usize, Empty>> | {
-			if *t == e.target() {
+			if t == e.target() {
 				Traverse::Finish
 			} else {
 				Traverse::Include
@@ -97,7 +97,7 @@ fn digraph_breadth_first_sleep_1ms(c: &mut Criterion) {
 		let t = SMALL_GRAPH.node(&rand_range(0, SMALL_NODE_COUNT)).unwrap();
 		let closure = | e: &Arc<Edge<usize, usize, Empty>> | {
 			std::thread::sleep(std::time::Duration::from_millis(1));
-			if *t == e.target() {
+			if t == e.target() {
 				Traverse::Finish
 			} else {
 				Traverse::Include
@@ -144,7 +144,7 @@ fn digraph_par_breadth_first_search_naked(c: &mut Criterion) {
 	fn digraph_bfs() {
 		let t = BIG_GRAPH.node(&rand_range(0, BIG_NODE_COUNT)).unwrap();
 		let closure = | e: &Arc<Edge<usize, usize, Empty>> | {
-			if *t == e.target() {
+			if t == e.target() {
 				Traverse::Finish
 			} else {
 				Traverse::Include
@@ -164,7 +164,7 @@ fn digraph_par_breadth_first_sleep_1ms(c: &mut Criterion) {
 		let t = SMALL_GRAPH.node(&rand_range(0, SMALL_NODE_COUNT)).unwrap();
 		let closure = | e: &Arc<Edge<usize, usize, Empty>> | {
 			std::thread::sleep(std::time::Duration::from_millis(1));
-			if *t == e.target() {
+			if t == e.target() {
 				Traverse::Finish
 			} else {
 				Traverse::Include
@@ -212,7 +212,7 @@ fn digraph_find_shortest_path(c: &mut Criterion) {
 	// println!("constructing graph of size = {} Mb", ((BIG_NODE_COUNT * std::mem::size_of::<Node<usize, usize, usize>>()) + (BIG_NODE_COUNT * SIMPLE_NODE_DEGREE * std::mem::size_of::<Edge<usize, usize, usize>>())) / 1000_000);
 	fn digraph_sp() {
 		let t = BIG_GRAPH.node(&rand_range(0, BIG_NODE_COUNT)).unwrap();
-		let res = BIG_GRAPH.breadth_first(&rand_range(0, BIG_NODE_COUNT), |e| if *t == e.target() { Traverse::Finish } else { Traverse::Include});
+		let res = BIG_GRAPH.breadth_first(&rand_range(0, BIG_NODE_COUNT), |e| if t == e.target() { Traverse::Finish } else { Traverse::Include});
 		match res {
 			Some(r) => { backtrack_edges(&r); }
 			None => {}
@@ -229,7 +229,7 @@ fn digraph_par_find_shortest_path(c: &mut Criterion) {
 	// println!("constructing graph of size = {} Mb", ((BIG_NODE_COUNT * std::mem::size_of::<Node<usize, usize, usize>>()) + (BIG_NODE_COUNT * SIMPLE_NODE_DEGREE * std::mem::size_of::<Edge<usize, usize, usize>>())) / 1000_000);
 	fn digraph_sp() {
 		let t = BIG_GRAPH.node(&rand_range(0, BIG_NODE_COUNT)).unwrap();
-		let res = BIG_GRAPH.par_breadth_first(&rand_range(0, BIG_NODE_COUNT), |e| if *t == e.target() { Traverse::Finish } else { Traverse::Include});
+		let res = BIG_GRAPH.par_breadth_first(&rand_range(0, BIG_NODE_COUNT), |e| if t == e.target() { Traverse::Finish } else { Traverse::Include});
 		match res {
 			Some(r) => { backtrack_edges(&r); }
 			None => {}

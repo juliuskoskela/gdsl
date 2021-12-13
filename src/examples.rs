@@ -50,7 +50,7 @@ pub fn parallel_maximum_flow_edmonds_karp(g: &FlowGraph, s: usize, t: usize) -> 
 	let explorer = |e: &ArcEdge<usize, Empty, Flow>| {
 		let flow = e.load();
 		if flow.cur < flow.max {
-			if *target == e.target() {
+			if target == e.target() {
 				Traverse::Finish
 			}
 			else {
@@ -112,7 +112,7 @@ pub fn maximum_flow_edmonds_karp(g: &FlowGraph, s: usize, t: usize) -> usize {
 	let explorer = |e: &ArcEdge<usize, Empty, Flow>| {
 		let flow = e.load();
 		if flow.cur < flow.max {
-			if *target == e.target() {
+			if target == e.target() {
 				Traverse::Finish
 			}
 			else {

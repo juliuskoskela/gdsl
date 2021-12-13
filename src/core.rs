@@ -18,7 +18,7 @@ use std::{
     },
 };
 
-use parking_lot::{RwLock, Mutex, RwLockReadGuard, RwLockWriteGuard};
+use parking_lot::{RwLock, Mutex, RwLockReadGuard, RwLockWriteGuard, lock_api::RawRwLockUpgrade};
 
 //=============================================================================
 
@@ -61,6 +61,16 @@ impl std::fmt::Display for Empty {
 }
 
 pub type Frontier<K, N, E> = Vec<WeakEdge<K, N, E>>;
+
+pub trait Explorer<K, N, E>
+where
+    K: Hash + Eq + Clone + Debug + Display + Sync + Send,
+    N: Clone + Debug + Display + Sync + Send,
+    E: Clone + Debug + Display + Sync + Send,
+{
+	fn next_frontier(&self) -> Option<Frontier<K, N, E>>;
+	fn prev_frontier(&self) -> Option<Frontier<K, N, E>>;
+}
 
 //=============================================================================
 // EDGE IMPLEMENTATION
@@ -398,7 +408,7 @@ where
     }
 
     #[inline(always)]
-    fn filter_adjacent<F>(
+    fn map_adjacent_dir<F>(
         &self,
         user_closure: &F,
     ) -> Continue<Vec<WeakEdge<K, N, E>>>
@@ -409,8 +419,7 @@ where
 		F: Fn(&ArcEdge<K, N, E>) -> Traverse + Sync + Send + Copy,
     {
         let mut segment: Vec<WeakEdge<K, N, E>> = Vec::new();
-        let adjacent_edges = self.outbound();
-        for edge in adjacent_edges.iter() {
+        for edge in self.outbound().iter() {
             if edge.target().try_lock() == OPEN {
                 edge.target().close();
                 let traversal_state = user_closure(edge);
@@ -431,15 +440,56 @@ where
         Continue::Yes(segment)
     }
 
-    fn display_string(&self) -> String {
-        let lock_state = if self.try_lock() { "CLOSED" } else { "OPEN" };
-        let header = format!(
-            "\"{}\" : \"{}\" : \"{}\"",
-            self.key,
-            lock_state,
-            self.data.lock()
-        );
-        header
+	#[inline(always)]
+    fn map_adjacent_undir<F>(
+        &self,
+        user_closure: &F,
+    ) -> Continue<Vec<WeakEdge<K, N, E>>>
+    where
+        K: Hash + Eq + Clone + Debug + Display + Sync + Send,
+        N: Clone + Debug + Display + Sync + Send,
+        E: Clone + Debug + Display + Sync + Send,
+		F: Fn(&ArcEdge<K, N, E>) -> Traverse + Sync + Send + Copy,
+    {
+        let mut segment: Vec<WeakEdge<K, N, E>> = Vec::new();
+        for edge in self.outbound().iter() {
+            if edge.target().try_lock() == OPEN {
+                edge.target().close();
+                let traversal_state = user_closure(edge);
+                match traversal_state {
+                    Traverse::Include => {
+                        segment.push(Arc::downgrade(edge));
+                    }
+                    Traverse::Finish => {
+                        segment.push(Arc::downgrade(edge));
+                        return Continue::No(segment);
+                    }
+                    Traverse::Skip => {
+                        edge.target().open();
+                    }
+                }
+            }
+        }
+		for edge in self.inbound().iter() {
+			let upgrade = edge.upgrade().unwrap();
+            if upgrade.target().try_lock() == OPEN {
+                upgrade.target().close();
+                let traversal_state = user_closure(&upgrade);
+                match traversal_state {
+                    Traverse::Include => {
+                        segment.push(edge.clone());
+                    }
+                    Traverse::Finish => {
+                        segment.push(edge.clone());
+                        return Continue::No(segment);
+                    }
+                    Traverse::Skip => {
+                        upgrade.target().open();
+                    }
+                }
+            }
+        }
+        Continue::Yes(segment)
     }
 }
 
@@ -492,7 +542,13 @@ where
     E: Clone + Debug + Display + Sync + Send,
 {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(fmt, "Node {}", self.display_string())
+		let header = format!(
+            "{} [label = \"{} : {}\"]",
+            self.key,
+			self.key,
+            self.data.lock()
+        );
+        write!(fmt, "{}", header)
     }
 }
 
@@ -622,7 +678,7 @@ where
     let mut frontiers: Vec<WeakEdge<K, N, E>>;
     let mut bounds: (usize, usize) = (0, 0);
     source.close();
-    let initial = source.filter_adjacent(&explorer);
+    let initial = source.map_adjacent_dir(&explorer);
     match initial {
         Continue::No(segment) => {
             open_locks(&segment);
@@ -642,7 +698,7 @@ where
         let mut new_segments = Vec::new();
         for edge in current_frontier.into_iter() {
             let node = edge.upgrade().unwrap().target();
-            let haystack = node.filter_adjacent(&explorer);
+            let haystack = node.map_adjacent_dir(&explorer);
             match haystack {
                 Continue::No(mut segment) => {
                     new_segments.append(&mut segment);
@@ -723,7 +779,7 @@ where
     let mut bounds: (usize, usize) = (0, 0);
     let terminate: Arc<AtomicBool> = Arc::new(AtomicBool::new(false));
     source.close();
-    match source.filter_adjacent(&explorer) {
+    match source.map_adjacent_dir(&explorer) {
         Continue::No(segment) => {
             open_locks(&segment);
             return Some(segment);
@@ -746,7 +802,71 @@ where
 					true => { None }
 					false => {
 						let node = edge.upgrade().unwrap().target();
-                    	match node.filter_adjacent(&explorer) {
+                    	match node.map_adjacent_dir(&explorer) {
+                    	    Continue::No(segment) => {
+                    	        terminate.store(true, Ordering::Relaxed);
+                    	        Some(segment)
+                    	    }
+                    	    Continue::Yes(segment) => Some(segment),
+                    	}
+					}
+				}
+            })
+            .while_some()
+            .collect();
+        for mut segment in frontier_segments {
+            frontiers.append(&mut segment);
+        }
+        if terminate.load(Ordering::Relaxed) == true {
+            break;
+        }
+    }
+    open_locks(&frontiers);
+    if terminate.load(Ordering::Relaxed) == true {
+        Some(frontiers)
+    } else {
+        None
+    }
+}
+
+pub fn parallel_undirected_breadth_traversal<K, N, E, F>(
+    source: &ArcNode<K, N, E>,
+    explorer: F,
+) -> Option<Vec<WeakEdge<K, N, E>>>
+where
+    K: Hash + Eq + Clone + Debug + Display + Sync + Send,
+    N: Clone + Debug + Display + Sync + Send,
+    E: Clone + Debug + Display + Sync + Send,
+    F: Fn(&ArcEdge<K, N, E>) -> Traverse + Sync + Send + Copy,
+{
+    let mut frontiers: Vec<WeakEdge<K, N, E>>;
+    let mut bounds: (usize, usize) = (0, 0);
+    let terminate: Arc<AtomicBool> = Arc::new(AtomicBool::new(false));
+    source.close();
+    match source.map_adjacent_undir(&explorer) {
+        Continue::No(segment) => {
+            open_locks(&segment);
+            return Some(segment);
+        }
+        Continue::Yes(segment) => {
+            frontiers = segment;
+        }
+    }
+    loop {
+        bounds.1 = frontiers.len();
+        if bounds.0 == bounds.1 {
+            break;
+        }
+        let current_frontier = &frontiers[bounds.0..bounds.1];
+        bounds.0 = bounds.1;
+        let frontier_segments: Vec<_> = current_frontier
+            .into_par_iter()
+            .map(|edge| {
+				match terminate.load(Ordering::Relaxed) {
+					true => { None }
+					false => {
+						let node = edge.upgrade().unwrap().target();
+                    	match node.map_adjacent_undir(&explorer) {
                     	    Continue::No(segment) => {
                     	        terminate.store(true, Ordering::Relaxed);
                     	        Some(segment)
@@ -871,6 +991,78 @@ where
 {
     let mut result = Vec::new();
     let res = directed_depth_traversal_recursion(source, &mut result, explorer);
+    open_locks(&result);
+    match res {
+        true => Some(result),
+        false => None,
+    }
+}
+
+fn undirected_depth_traversal_recursion<K, N, E, F>(
+    source: &ArcNode<K, N, E>,
+    results: &mut Vec<WeakEdge<K, N, E>>,
+    explorer: F,
+) -> bool
+where
+    K: Hash + Eq + Clone + Debug + Display + Sync + Send,
+    N: Clone + Debug + Display + Sync + Send,
+    E: Clone + Debug + Display + Sync + Send,
+    F: Fn(&ArcEdge<K, N, E>) -> Traverse,
+{
+    source.close();
+    for edge in source.outbound().iter() {
+        if edge.target().try_lock() == OPEN {
+            edge.target().close();
+            let traverse = explorer(edge);
+            match traverse {
+                Traverse::Include => {
+                    results.push(Arc::downgrade(edge));
+                }
+                Traverse::Finish => {
+                    results.push(Arc::downgrade(edge));
+                    return true;
+                }
+                Traverse::Skip => {
+                    edge.target().open();
+                }
+            }
+            return undirected_depth_traversal_recursion(&edge.target(), results, explorer);
+        }
+    }
+	for edge in source.inbound().iter() {
+		let upgrade = edge.upgrade().unwrap();
+		if upgrade.target().try_lock() == OPEN {
+			upgrade.target().close();
+			let traversal_state = explorer(&upgrade);
+			match traversal_state {
+				Traverse::Include => {
+					results.push(edge.clone());
+				}
+				Traverse::Finish => {
+					results.push(edge.clone());
+					return true;
+				}
+				Traverse::Skip => {
+					upgrade.target().open();
+				}
+			}
+		}
+	}
+    false
+}
+
+pub fn undirected_depth_traversal<K, N, E, F>(
+    source: &ArcNode<K, N, E>,
+    explorer: F,
+) -> Option<Vec<WeakEdge<K, N, E>>>
+where
+    K: Hash + Eq + Clone + Debug + Display + Sync + Send,
+    N: Clone + Debug + Display + Sync + Send,
+    E: Clone + Debug + Display + Sync + Send,
+    F: Fn(&ArcEdge<K, N, E>) -> Traverse,
+{
+    let mut result = Vec::new();
+    let res = undirected_depth_traversal_recursion(source, &mut result, explorer);
     open_locks(&result);
     match res {
         true => Some(result),
