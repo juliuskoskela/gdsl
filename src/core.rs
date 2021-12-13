@@ -221,7 +221,8 @@ where
             i += 1;
         }
     }
-    res
+    res.reverse();
+	res
 }
 
 // Opens all locks in
@@ -699,6 +700,58 @@ where
         for edge in current_frontier.into_iter() {
             let node = edge.upgrade().unwrap().target();
             let haystack = node.map_adjacent_dir(&explorer);
+            match haystack {
+                Continue::No(mut segment) => {
+                    new_segments.append(&mut segment);
+                    frontiers.append(&mut new_segments);
+                    open_locks(&frontiers);
+                    return Some(frontiers);
+                }
+                Continue::Yes(mut segment) => {
+                    new_segments.append(&mut segment);
+                }
+            }
+        }
+        frontiers.append(&mut new_segments);
+    }
+    open_locks(&frontiers);
+    None
+}
+
+pub fn undirected_breadth_traversal<K, N, E, F>(
+    source: &ArcNode<K, N, E>,
+    explorer: F,
+) -> Option<Vec<WeakEdge<K, N, E>>>
+where
+    K: Hash + Eq + Clone + Debug + Display + Sync + Send,
+    N: Clone + Debug + Display + Sync + Send,
+    E: Clone + Debug + Display + Sync + Send,
+    F: Fn(&ArcEdge<K, N, E>) -> Traverse + Sync + Send + Copy,
+{
+    let mut frontiers: Vec<WeakEdge<K, N, E>>;
+    let mut bounds: (usize, usize) = (0, 0);
+    source.close();
+    let initial = source.map_adjacent_undir(&explorer);
+    match initial {
+        Continue::No(segment) => {
+            open_locks(&segment);
+            return Some(segment);
+        }
+        Continue::Yes(segment) => {
+            frontiers = segment;
+        }
+    }
+    loop {
+        bounds.1 = frontiers.len();
+        if bounds.0 == bounds.1 {
+            break;
+        }
+        let current_frontier = &frontiers[bounds.0..bounds.1];
+        bounds.0 = bounds.1;
+        let mut new_segments = Vec::new();
+        for edge in current_frontier.into_iter() {
+            let node = edge.upgrade().unwrap().target();
+            let haystack = node.map_adjacent_undir(&explorer);
             match haystack {
                 Continue::No(mut segment) => {
                     new_segments.append(&mut segment);
