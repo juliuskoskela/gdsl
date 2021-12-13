@@ -1,7 +1,17 @@
 [package]
-name = "graph"
+name = "fastgraph"
 version = "0.1.0"
 edition = "2018"
+readme = "README.md"
+license = "MIT/Apache-2.0"
+authors = [ "juliuskoskela" ]
+
+description = "Graph abstraction providing a generic interface and powerful parallelized traversals."
+documentation = "https://docs.rs/fastgraph/"
+repository = "https://github.com/juliuskoskela/fastgraph"
+
+keywords = ["data-structure", "graph", "graph-algorithms"]
+categories = ["data-structures"]
 
 [dependencies]
 rand = "0.8.4"

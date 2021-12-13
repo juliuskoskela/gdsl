@@ -1,4 +1,4 @@
-use crate::{digraph::*, core::*};
+use crate::{graph::*, core::*};
 use std::sync::{Arc, Weak};
 
 // Flow Graph
@@ -26,11 +26,11 @@ pub type FlowGraph = Digraph<usize, Empty, Flow>;
 // Edge insertion in the flow-graph is a bit more involved. We need to save
 // a reverse edge for each forward edge with a maxed out capacity. When we
 // add flow to the edge, we decrease it from it's reverse edge.
-pub fn connect_flow(g: &mut FlowGraph, u: &usize, v: &usize, flow: usize) {
-	g.connect(u, v, Flow { max: flow, cur: 0, rev: Weak::new() });
-	g.connect(v, u, Flow { max: flow, cur: flow, rev: Weak::new() });
-	let uv = g.edge(u, v).unwrap();
-	let vu = g.edge(v, u).unwrap();
+pub fn add_edge_flow(g: &mut FlowGraph, u: &usize, v: &usize, flow: usize) {
+	g.add_edge(u, v, Flow { max: flow, cur: 0, rev: Weak::new() });
+	g.add_edge(v, u, Flow { max: flow, cur: flow, rev: Weak::new() });
+	let uv = g.get_edge(u, v).unwrap();
+	let vu = g.get_edge(v, u).unwrap();
 	let mut uv_data = uv.load();
 	let mut vu_data = vu.load();
 	uv_data.rev = Arc::downgrade(&vu);
@@ -46,11 +46,11 @@ pub fn parallel_maximum_flow_edmonds_karp(g: &FlowGraph, s: usize, t: usize) -> 
 	// we check the flow of each edge. If the edge is not saturated, we traverse
 	// it. The Traverse enum will collect the edge in the results. Otherwise we
 	// skip the edge.
-	let target = g.node(&t).unwrap();
+	let target = g.get_node(&t).unwrap();
 	let explorer = |e: &ArcEdge<usize, Empty, Flow>| {
 		let flow = e.load();
 		if flow.cur < flow.max {
-			if *target == e.target() {
+			if target == e.target() {
 				Traverse::Finish
 			}
 			else {
@@ -108,11 +108,11 @@ pub fn parallel_maximum_flow_edmonds_karp(g: &FlowGraph, s: usize, t: usize) -> 
 }
 
 pub fn maximum_flow_edmonds_karp(g: &FlowGraph, s: usize, t: usize) -> usize {
-	let target = g.node(&t).unwrap();
+	let target = g.get_node(&t).unwrap();
 	let explorer = |e: &ArcEdge<usize, Empty, Flow>| {
 		let flow = e.load();
 		if flow.cur < flow.max {
-			if *target == e.target() {
+			if target == e.target() {
 				Traverse::Finish
 			}
 			else {
@@ -155,68 +155,68 @@ pub fn maximum_flow_edmonds_karp(g: &FlowGraph, s: usize, t: usize) -> usize {
 	max_flow
 }
 
-pub fn digraph_colouring() {
-	type ChromaticGraph = Digraph<usize, usize>;
+// pub fn digraph_colouring() {
+// 	type ChromaticGraph = Digraph<usize, usize, Empty>;
 
-	let mut g = ChromaticGraph::new();
+// 	let mut g = ChromaticGraph::new();
 
-	g.insert(1, 0);
-	g.insert(2, 0);
-	g.insert(3, 0);
-	g.insert(4, 0);
-	g.connect(&1, &2,  Empty);
-	g.connect(&1, &3,  Empty);
-	// g.connect(&1, &4,  Empty);
+// 	g.add_node(1, 0);
+// 	g.add_node(2, 0);
+// 	g.add_node(3, 0);
+// 	g.add_node(4, 0);
+// 	g.add_edge(&1, &2,  Empty);
+// 	g.add_edge(&1, &3,  Empty);
+// 	// g.add_edge(&1, &4,  Empty);
 
-	g.connect(&2, &1,  Empty);
-	g.connect(&2, &3,  Empty);
-	// g.connect(&2, &4,  Empty);
+// 	g.add_edge(&2, &1,  Empty);
+// 	g.add_edge(&2, &3,  Empty);
+// 	// g.add_edge(&2, &4,  Empty);
 
-	g.connect(&3, &1,  Empty);
-	g.connect(&3, &2,  Empty);
-	// g.connect(&3, &4,  Empty);
+// 	g.add_edge(&3, &1,  Empty);
+// 	g.add_edge(&3, &2,  Empty);
+// 	// g.add_edge(&3, &4,  Empty);
 
-	g.connect(&4, &1,  Empty);
-	g.connect(&4, &2,  Empty);
-	// g.connect(&4, &3,  Empty);
+// 	g.add_edge(&4, &1,  Empty);
+// 	g.add_edge(&4, &2,  Empty);
+// 	// g.add_edge(&4, &3,  Empty);
 
-	for (_, node) in g.nodes.iter() {
-		let mut unavailable = vec![];
-		for edge in node.outbound().iter() {
-			let colour = edge.target().load();
-			unavailable.push(colour);
-		}
-		let mut node_colour: usize = 0;
-		loop {
-			let check = unavailable.iter().find(|predicate| { node_colour == **predicate });
-			match check {
-				Some(_) => { },
-				None => {
-					node.store(node_colour);
-					break ;
-				}
-			}
-			node_colour += 1;
-		}
-	}
-	g.print_nodes();
+// 	for (_, node) in g.get_nodes.iter() {
+// 		let mut unavailable = vec![];
+// 		for edge in node.outbound().iter() {
+// 			let colour = edge.target().load();
+// 			unavailable.push(colour);
+// 		}
+// 		let mut node_colour: usize = 0;
+// 		loop {
+// 			let check = unavailable.iter().find(|predicate| { node_colour == **predicate });
+// 			match check {
+// 				Some(_) => { },
+// 				None => {
+// 					node.store(node_colour);
+// 					break ;
+// 				}
+// 			}
+// 			node_colour += 1;
+// 		}
+// 	}
+// 	g.print_nodes();
 
-	pub fn djikstra() {
-		let mut g: Digraph<usize, Empty, usize> = Digraph::new();
+// 	pub fn djikstra() {
+// 		let mut g: Digraph<usize, Empty, usize> = Digraph::new();
 
-		g.insert(0, Empty);
-		g.insert(1, Empty);
-		g.insert(2, Empty);
-		g.insert(3, Empty);
-		g.insert(4, Empty);
+// 		g.add_node(0, Empty);
+// 		g.add_node(1, Empty);
+// 		g.add_node(2, Empty);
+// 		g.add_node(3, Empty);
+// 		g.add_node(4, Empty);
 
-		g.connect(&0, &1,  4);
-		g.connect(&0, &2,  1);
-		g.connect(&1, &3,  1);
-		g.connect(&2, &1,  2);
-		g.connect(&2, &3,  5);
-		g.connect(&3, &4,  3);
+// 		g.add_edge(&0, &1,  4);
+// 		g.add_edge(&0, &2,  1);
+// 		g.add_edge(&1, &3,  1);
+// 		g.add_edge(&2, &1,  2);
+// 		g.add_edge(&2, &3,  5);
+// 		g.add_edge(&3, &4,  3);
 
-		let mut dist = [0, 0, 0, 0, 0];
-	}
-}
+// 		let mut dist = [0, 0, 0, 0, 0];
+// 	}
+// }
