@@ -6,11 +6,11 @@ use rand::Rng;
 use lazy_static::lazy_static;
 use std::sync::Arc;
 
-const BIG_NODE_COUNT: usize = 100000;
+const BIG_NODE_COUNT: usize = 1000;
 const MEDIUM_NODE_COUNT: usize = 500;
 const SMALL_NODE_COUNT: usize = 100;
-const FLOW_NODE_COUNT: usize = 500;
-const FLOW_NODE_DEGREE: usize = 10;
+const FLOW_NODE_COUNT: usize = 5000;
+const FLOW_NODE_DEGREE: usize = 20;
 
 type IntKeysGraph = Digraph<usize, usize, Empty>;
 
@@ -87,16 +87,18 @@ fn digraph_construction(c: &mut Criterion) {
 
 fn digraph_breadth_first_search_naked(c: &mut Criterion) {
 	fn digraph_bfs() {
-		let t = BIG_GRAPH.get_node(&rand_range(0, BIG_NODE_COUNT)).unwrap();
-		let closure = | e: &Arc<Edge<usize, usize, Empty>> | {
-			if t == e.target() {
-				Traverse::Finish
-			} else {
-				Traverse::Include
+		for _ in 0..500 {
+			let t = BIG_GRAPH.get_node(&rand_range(0, BIG_NODE_COUNT)).unwrap();
+			let closure = | e: &Arc<Edge<usize, usize, Empty>> | {
+				if t == e.target() {
+					Traverse::Finish
+				} else {
+					Traverse::Include
+				}
+			};
+			for _ in 0..10 {
+				BIG_GRAPH.breadth_first(&rand_range(0, BIG_NODE_COUNT), closure);
 			}
-		};
-		for _ in 0..10 {
-			BIG_GRAPH.breadth_first(&rand_range(0, BIG_NODE_COUNT), closure);
 		}
 	}
 	println!("graph node count = {}", BIG_GRAPH.node_count());
@@ -156,15 +158,17 @@ fn digraph_breadth_first_count_prime(c: &mut Criterion) {
 
 fn digraph_par_breadth_first_search_naked(c: &mut Criterion) {
 	fn digraph_bfs() {
-		let t = BIG_GRAPH.get_node(&rand_range(0, BIG_NODE_COUNT)).unwrap();
-		let closure = | e: &Arc<Edge<usize, usize, Empty>> | {
-			if t == e.target() {
-				Traverse::Finish
-			} else {
-				Traverse::Include
-			}
-		};
-		BIG_GRAPH.par_breadth_first(&rand_range(0, BIG_NODE_COUNT), closure);
+		for _ in 0..500 {
+			let t = BIG_GRAPH.get_node(&rand_range(0, BIG_NODE_COUNT)).unwrap();
+			let closure = | e: &Arc<Edge<usize, usize, Empty>> | {
+				if t == e.target() {
+					Traverse::Finish
+				} else {
+					Traverse::Include
+				}
+			};
+			BIG_GRAPH.par_breadth_first(&rand_range(0, BIG_NODE_COUNT), closure);
+		}
 	}
 	println!("graph node count = {}", BIG_GRAPH.node_count());
 	println!("graph edge count = {}", BIG_GRAPH.edge_count());
@@ -258,8 +262,8 @@ fn digraph_par_find_shortest_path(c: &mut Criterion) {
 
 fn digraph_max_flow(c: &mut Criterion) {
 	fn digraph_mf() {
-		let g = create_graph_flow();
-		maximum_flow_edmonds_karp(&g, rand_range(0, FLOW_NODE_COUNT), rand_range(0, FLOW_NODE_COUNT));
+		maximum_flow_edmonds_karp(&FLOW_GRAPH, rand_range(0, FLOW_NODE_COUNT), rand_range(0, FLOW_NODE_COUNT));
+		reset_flow(&FLOW_GRAPH);
 	}
     c.bench_function("maximum flow edmonds karp", |b| b.iter(|| black_box(digraph_mf())));
 }
