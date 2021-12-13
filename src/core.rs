@@ -8,7 +8,7 @@
 //! edge abstraction as well as traveral algorithms. Used to build
 //! different graphs.
 //!
-use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use std::{
     fmt::{Debug, Display, Formatter},
     hash::Hash,
@@ -18,7 +18,7 @@ use std::{
     },
 };
 
-use parking_lot::{RwLock, Mutex, RwLockReadGuard, RwLockWriteGuard, lock_api::RawRwLockUpgrade};
+use parking_lot::{RwLock, Mutex, RwLockReadGuard, RwLockWriteGuard};
 
 //=============================================================================
 

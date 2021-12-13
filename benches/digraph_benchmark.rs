@@ -7,10 +7,10 @@ use lazy_static::lazy_static;
 use std::sync::Arc;
 
 const BIG_NODE_COUNT: usize = 100000;
-const MEDIUM_NODE_COUNT: usize = 10000;
+const MEDIUM_NODE_COUNT: usize = 500;
 const SMALL_NODE_COUNT: usize = 100;
-const FLOW_NODE_COUNT: usize = 1000;
-const FLOW_NODE_DEGREE: usize = 20;
+const FLOW_NODE_COUNT: usize = 500;
+const FLOW_NODE_DEGREE: usize = 10;
 
 type IntKeysGraph = Digraph<usize, usize, Empty>;
 
@@ -273,19 +273,51 @@ fn digraph_par_max_flow(c: &mut Criterion) {
 }
 
 criterion_group!(
-	benchmarks,
+	naked_bfs,
 
 	digraph_breadth_first_search_naked,
-	digraph_par_breadth_first_search_naked,
+	digraph_par_breadth_first_search_naked
+);
+
+criterion_group!(
+	bfs_even_workload,
+
 	digraph_breadth_first_sleep_1ms,
-	digraph_par_breadth_first_sleep_1ms,
+	digraph_par_breadth_first_sleep_1ms
+);
+
+criterion_group!(
+	bfs_uneven_workload,
+
 	digraph_breadth_first_count_prime,
-	digraph_par_breadth_first_count_prime,
-	digraph_max_flow,
-	digraph_par_max_flow,
+	digraph_par_breadth_first_count_prime
+);
+
+criterion_group!(
+	shortest_path,
+
 	digraph_find_shortest_path,
 	digraph_par_find_shortest_path,
+);
+
+criterion_group!(
+	max_flow,
+
+	digraph_max_flow,
+	digraph_par_max_flow
+);
+
+criterion_group!(
+	construction,
+
 	digraph_construction
 );
 
-criterion_main!(benchmarks);
+criterion_main!(
+	naked_bfs,
+	bfs_even_workload,
+	bfs_uneven_workload,
+	shortest_path,
+	max_flow,
+	construction
+);
