@@ -1,7 +1,7 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use graph::graph::*;
-use graph::core::*;
-use graph::examples::*;
+use fastgraph::graph::*;
+use fastgraph::core::*;
+use fastgraph::examples::*;
 use rand::Rng;
 use lazy_static::lazy_static;
 use std::sync::Arc;
