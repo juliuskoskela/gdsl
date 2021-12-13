@@ -8,27 +8,18 @@
 //! edge abstraction as well as traveral algorithms. Used to build
 //! different graphs.
 //!
-use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use std::{
-    fmt::{Debug, Display, Formatter},
+	fmt::{Debug, Display, Formatter},
     hash::Hash,
     sync::{
-        atomic::{AtomicBool, Ordering},
+		atomic::{AtomicBool, Ordering},
         Arc, Weak,
     },
 };
-
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use parking_lot::{RwLock, Mutex, RwLockReadGuard, RwLockWriteGuard};
 
 //=============================================================================
-
-/// Constant that represent if a node or an edge is open.
-///
-pub const OPEN: bool = false;
-
-/// Constant that represent if a node or an edge is closed.
-///
-pub const CLOSED: bool = true;
 
 /// The Traverse enum is used when exploring edges in a graph. It's
 /// states signify if an edge should be included in the search, skipped
@@ -39,14 +30,6 @@ pub enum Traverse {
     Include,
     Skip,
     Finish,
-}
-
-/// The Continue enum signifies if a loop should be stopped inclusive
-/// of the last item or if the loop should be continued.
-///
-enum Continue<T> {
-    Yes(T),
-    No(T),
 }
 
 /// Represents an empty parameter for either a node or an edge.
@@ -70,6 +53,14 @@ where
 {
 	fn next_frontier(&self) -> Option<Frontier<K, N, E>>;
 	fn prev_frontier(&self) -> Option<Frontier<K, N, E>>;
+}
+
+const OPEN: bool = false;
+const CLOSED: bool = true;
+
+enum Continue<T> {
+    Yes(T),
+    No(T),
 }
 
 //=============================================================================
