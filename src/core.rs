@@ -144,14 +144,6 @@ where
         let mut x = self.data.lock();
         *x = data;
     }
-
-    fn display_string(&self) -> String {
-        format!(
-            "-> \"{}\" : \"{}\"",
-            self.target().key(),
-            self.data.lock()
-        )
-    }
 }
 
 //=============================================================================
@@ -188,9 +180,9 @@ where
     fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
         write!(
             fmt,
-            "Edge \"{}\" {}",
+            "{} -> {}",
             self.source().key(),
-            self.display_string()
+            self.target().key()
         )
     }
 }
