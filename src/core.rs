@@ -462,6 +462,19 @@ where
 //=============================================================================
 // TRAIT IMPLEMENTATIONS
 
+impl<K, N, E> Iterator for Node<K, N, E>
+where
+    K: Hash + Eq + Clone + Debug + Display + Sync + Send,
+    N: Clone + Debug + Display + Sync + Send,
+    E: Clone + Debug + Display + Sync + Send,
+{
+	type Item = Arc<Edge<K, N, E>>;
+
+	fn next(&mut self) -> Option<Self::Item> {
+		None
+	}
+}
+
 unsafe impl<K, N, E> Sync for Node<K, N, E>
 where
     K: Hash + Eq + Clone + Debug + Display + Sync + Send,
