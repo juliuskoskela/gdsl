@@ -43,7 +43,7 @@ impl std::fmt::Display for Empty {
     }
 }
 
-pub type Frontier<K, N, E> = Vec<WeakEdge<K, N, E>>;
+pub type Frontier<K, N, E> = Vec<Weak<Edge<K, N, E>>>;
 
 pub trait Explorer<K, N, E>
 where
@@ -67,15 +67,6 @@ enum Continue<T> {
 // EDGE IMPLEMENTATION
 //=============================================================================
 
-/// Edges are handled through a atomically reference counted
-/// smart pointer.
-///
-pub type ArcEdge<K, N, E> = Arc<Edge<K, N, E>>;
-
-/// Sometimes we need to handle edges through a weak reference.
-///
-pub type WeakEdge<K, N, E> = Weak<Edge<K, N, E>>;
-
 //=============================================================================
 
 /// Edge representing a connection between two nodes. Relevant data can be
@@ -89,8 +80,8 @@ where
     N: Clone + Debug + Display + Sync + Send,
     E: Clone + Debug + Display + Sync + Send,
 {
-    source: WeakNode<K, N, E>,
-    target: WeakNode<K, N, E>,
+    source: Weak<Node<K, N, E>>,
+    target: Weak<Node<K, N, E>>,
     data: Mutex<E>,
 }
 
@@ -103,7 +94,7 @@ where
     E: Clone + Debug + Display + Sync + Send,
 {
     /// Creates a new edge.
-    pub fn new(source: &ArcNode<K, N, E>, target: &ArcNode<K, N, E>, data: E) -> Edge<K, N, E> {
+    pub fn new(source: &Arc<Node<K, N, E>>, target: &Arc<Node<K, N, E>>, data: E) -> Edge<K, N, E> {
         Edge {
             source: Arc::downgrade(source),
             target: Arc::downgrade(target),
@@ -113,13 +104,13 @@ where
 
     /// Edge's source node.
     #[inline(always)]
-    pub fn source(&self) -> ArcNode<K, N, E> {
+    pub fn source(&self) -> Arc<Node<K, N, E>> {
         self.source.upgrade().unwrap()
     }
 
     /// Edge's target node.
     #[inline(always)]
-    pub fn target(&self) -> ArcNode<K, N, E> {
+    pub fn target(&self) -> Arc<Node<K, N, E>> {
         self.target.upgrade().unwrap()
     }
 
@@ -184,7 +175,7 @@ where
 /// Used for example to find the shortest path from the results of a breadth
 /// first straversal.
 ///
-pub fn backtrack_edges<K, N, E>(edges: &Vec<WeakEdge<K, N, E>>) -> Vec<WeakEdge<K, N, E>>
+pub fn backtrack_edges<K, N, E>(edges: &Vec<Weak<Edge<K, N, E>>>) -> Vec<Weak<Edge<K, N, E>>>
 where
     K: Hash + Eq + Clone + Debug + Display + Sync + Send,
     N: Clone + Debug + Display + Sync + Send,
@@ -209,7 +200,7 @@ where
 }
 
 // Opens all locks in
-fn open_locks<K, N, E>(edges: &Vec<WeakEdge<K, N, E>>)
+fn open_locks<K, N, E>(edges: &Vec<Weak<Edge<K, N, E>>>)
 where
     K: Hash + Eq + Clone + Debug + Display + Sync + Send,
     N: Clone + Debug + Display + Sync + Send,
@@ -229,17 +220,8 @@ where
 //=============================================================================
 // TYPES
 
-/// Nodes are handled through a atomically reference counted
-/// smart pointer.
-///
-pub type ArcNode<K, N, E> = Arc<Node<K, N, E>>;
-
-/// Sometimes we need to handle nodes through a weak reference.
-///
-pub type WeakNode<K, N, E> = Weak<Node<K, N, E>>;
-
-type Outbound<K, N, E> = RwLock<Vec<ArcEdge<K, N, E>>>;
-type Inbound<K, N, E> = RwLock<Vec<WeakEdge<K, N, E>>>;
+type Outbound<K, N, E> = RwLock<Vec<Arc<Edge<K, N, E>>>>;
+type Inbound<K, N, E> = RwLock<Vec<Weak<Edge<K, N, E>>>>;
 
 //=============================================================================
 // STRUCT
@@ -324,7 +306,7 @@ where
     /// Find an outbound node and return the corresponding edge if found.
     ///
     #[inline(always)]
-    pub fn find_outbound(&self, target: &ArcNode<K, N, E>) -> Option<ArcEdge<K, N, E>> {
+    pub fn find_outbound(&self, target: &Arc<Node<K, N, E>>) -> Option<Arc<Edge<K, N, E>>> {
         for edge in self.outbound().iter() {
             if edge.target() == *target {
                 return Some(edge.clone());
@@ -336,7 +318,7 @@ where
     /// Find an inbound node and return the corresponding edge if found.
     ///
     #[inline(always)]
-    pub fn find_inbound(&self, source: &ArcNode<K, N, E>) -> Option<WeakEdge<K, N, E>> {
+    pub fn find_inbound(&self, source: &Arc<Node<K, N, E>>) -> Option<Weak<Edge<K, N, E>>> {
         for edge in self.inbound().iter() {
             if edge.upgrade().unwrap().source() == *source {
                 return Some(edge.clone());
@@ -395,14 +377,14 @@ where
     fn map_adjacent_dir<F>(
         &self,
         user_closure: &F,
-    ) -> Continue<Vec<WeakEdge<K, N, E>>>
+    ) -> Continue<Vec<Weak<Edge<K, N, E>>>>
     where
         K: Hash + Eq + Clone + Debug + Display + Sync + Send,
         N: Clone + Debug + Display + Sync + Send,
         E: Clone + Debug + Display + Sync + Send,
-		F: Fn(&ArcEdge<K, N, E>) -> Traverse + Sync + Send + Copy,
+		F: Fn(&Arc<Edge<K, N, E>>) -> Traverse + Sync + Send + Copy,
     {
-        let mut segment: Vec<WeakEdge<K, N, E>> = Vec::new();
+        let mut segment: Vec<Weak<Edge<K, N, E>>> = Vec::new();
         for edge in self.outbound().iter() {
             if edge.target().try_lock() == OPEN {
                 edge.target().close();
@@ -428,14 +410,14 @@ where
     fn map_adjacent_undir<F>(
         &self,
         user_closure: &F,
-    ) -> Continue<Vec<WeakEdge<K, N, E>>>
+    ) -> Continue<Vec<Weak<Edge<K, N, E>>>>
     where
         K: Hash + Eq + Clone + Debug + Display + Sync + Send,
         N: Clone + Debug + Display + Sync + Send,
         E: Clone + Debug + Display + Sync + Send,
-		F: Fn(&ArcEdge<K, N, E>) -> Traverse + Sync + Send + Copy,
+		F: Fn(&Arc<Edge<K, N, E>>) -> Traverse + Sync + Send + Copy,
     {
-        let mut segment: Vec<WeakEdge<K, N, E>> = Vec::new();
+        let mut segment: Vec<Weak<Edge<K, N, E>>> = Vec::new();
         for edge in self.outbound().iter() {
             if edge.target().try_lock() == OPEN {
                 edge.target().close();
@@ -540,7 +522,7 @@ where
 // FUNCTION IMPLEMENTATIONS
 
 #[inline]
-fn overlaps<K, N, E>(source: &ArcNode<K, N, E>, target: &ArcNode<K, N, E>) -> bool
+fn overlaps<K, N, E>(source: &Arc<Node<K, N, E>>, target: &Arc<Node<K, N, E>>) -> bool
 where
     K: Hash + Eq + Clone + Debug + Display + Sync + Send,
     N: Clone + Debug + Display + Sync + Send,
@@ -555,14 +537,14 @@ where
 }
 
 /// Connect two nodes if no previous connection exists.
-pub fn connect<K, N, E>(source: &ArcNode<K, N, E>, target: &ArcNode<K, N, E>, data: E) -> bool
+pub fn connect<K, N, E>(source: &Arc<Node<K, N, E>>, target: &Arc<Node<K, N, E>>, data: E) -> bool
 where
     K: Hash + Eq + Clone + Debug + Display + Sync + Send,
     N: Clone + Debug + Display + Sync + Send,
     E: Clone + Debug + Display + Sync + Send,
 {
     if !overlaps(source, target) {
-        let new_edge = ArcEdge::new(Edge::new(source, target, data));
+        let new_edge = Arc::new(Edge::new(source, target, data));
         source.outbound_mut().push(new_edge.clone());
         target.inbound_mut().push(Arc::downgrade(&new_edge));
         return true;
@@ -571,7 +553,7 @@ where
 }
 
 /// Disconnect two nodes from each other if they share an edge.
-pub fn disconnect<K, N, E>(source: &ArcNode<K, N, E>, target: &ArcNode<K, N, E>) -> bool
+pub fn disconnect<K, N, E>(source: &Arc<Node<K, N, E>>, target: &Arc<Node<K, N, E>>) -> bool
 where
     K: Hash + Eq + Clone + Debug + Display + Sync + Send,
     N: Clone + Debug + Display + Sync + Send,
@@ -612,7 +594,7 @@ where
 /// is not to be traversed and Finish will include the edge and finish the
 /// algorithm.
 ///
-/// Function will return an `Option<Vec<WeakEdge<K, N, E>>>` where a Some value
+/// Function will return an `Option<Vec<Weak<Edge<K, N, E>>>>` where a Some value
 /// indicates that the traversal was successful ie. a Finish condition was
 /// reached. And WeakEdges is a collection of all the traversed edges.
 /// The last edge will contain the result that triggered the Finish condition.
@@ -624,9 +606,9 @@ where
 /// ```
 /// use graph::core::*;
 ///
-/// let n1 = ArcNode::new(Node::<u32, Empty, Empty>::new(1, Empty));
-/// let n2 = ArcNode::new(Node::<u32, Empty, Empty>::new(2, Empty));
-/// let n3 = ArcNode::new(Node::<u32, Empty, Empty>::new(3, Empty));
+/// let n1 = Arc::new(Node::<u32, Empty, Empty>::new(1, Empty));
+/// let n2 = Arc::new(Node::<u32, Empty, Empty>::new(2, Empty));
+/// let n3 = Arc::new(Node::<u32, Empty, Empty>::new(3, Empty));
 ///
 /// connect(&n1, &n2, Empty);
 /// connect(&n2, &n3, Empty);
@@ -650,16 +632,16 @@ where
 ///
 
 pub fn directed_breadth_traversal<K, N, E, F>(
-    source: &ArcNode<K, N, E>,
+    source: &Arc<Node<K, N, E>>,
     explorer: F,
-) -> Option<Vec<WeakEdge<K, N, E>>>
+) -> Option<Vec<Weak<Edge<K, N, E>>>>
 where
     K: Hash + Eq + Clone + Debug + Display + Sync + Send,
     N: Clone + Debug + Display + Sync + Send,
     E: Clone + Debug + Display + Sync + Send,
-    F: Fn(&ArcEdge<K, N, E>) -> Traverse + Sync + Send + Copy,
+    F: Fn(&Arc<Edge<K, N, E>>) -> Traverse + Sync + Send + Copy,
 {
-    let mut frontiers: Vec<WeakEdge<K, N, E>>;
+    let mut frontiers: Vec<Weak<Edge<K, N, E>>>;
     let mut bounds: (usize, usize) = (0, 0);
     source.close();
     let initial = source.map_adjacent_dir(&explorer);
@@ -702,16 +684,16 @@ where
 }
 
 pub fn undirected_breadth_traversal<K, N, E, F>(
-    source: &ArcNode<K, N, E>,
+    source: &Arc<Node<K, N, E>>,
     explorer: F,
-) -> Option<Vec<WeakEdge<K, N, E>>>
+) -> Option<Vec<Weak<Edge<K, N, E>>>>
 where
     K: Hash + Eq + Clone + Debug + Display + Sync + Send,
     N: Clone + Debug + Display + Sync + Send,
     E: Clone + Debug + Display + Sync + Send,
-    F: Fn(&ArcEdge<K, N, E>) -> Traverse + Sync + Send + Copy,
+    F: Fn(&Arc<Edge<K, N, E>>) -> Traverse + Sync + Send + Copy,
 {
-    let mut frontiers: Vec<WeakEdge<K, N, E>>;
+    let mut frontiers: Vec<Weak<Edge<K, N, E>>>;
     let mut bounds: (usize, usize) = (0, 0);
     source.close();
     let initial = source.map_adjacent_undir(&explorer);
@@ -766,7 +748,7 @@ where
 /// is not to be traversed and Finish will include the edge and finish the
 /// algorithm.
 ///
-/// Function will return an `Option<Vec<WeakEdge<K, N, E>>>` where a Some value
+/// Function will return an `Option<Vec<Weak<Edge<K, N, E>>>>` where a Some value
 /// indicates that the traversal was successful ie. a Finish condition was
 /// reached. And WeakEdges is a collection of all the traversed edges.
 /// The last edge will contain the result that triggered the Finish condition.
@@ -778,9 +760,9 @@ where
 /// ```
 /// use graph::core::*;
 ///
-/// let n1 = ArcNode::new(Node::<u32, Empty, Empty>::new(1, Empty));
-/// let n2 = ArcNode::new(Node::<u32, Empty, Empty>::new(2, Empty));
-/// let n3 = ArcNode::new(Node::<u32, Empty, Empty>::new(3, Empty));
+/// let n1 = Arc::new(Node::<u32, Empty, Empty>::new(1, Empty));
+/// let n2 = Arc::new(Node::<u32, Empty, Empty>::new(2, Empty));
+/// let n3 = Arc::new(Node::<u32, Empty, Empty>::new(3, Empty));
 ///
 /// connect(&n1, &n2, Empty);
 /// connect(&n2, &n3, Empty);
@@ -802,16 +784,16 @@ where
 /// ```
 ///
 pub fn parallel_directed_breadth_traversal<K, N, E, F>(
-    source: &ArcNode<K, N, E>,
+    source: &Arc<Node<K, N, E>>,
     explorer: F,
-) -> Option<Vec<WeakEdge<K, N, E>>>
+) -> Option<Vec<Weak<Edge<K, N, E>>>>
 where
     K: Hash + Eq + Clone + Debug + Display + Sync + Send,
     N: Clone + Debug + Display + Sync + Send,
     E: Clone + Debug + Display + Sync + Send,
-    F: Fn(&ArcEdge<K, N, E>) -> Traverse + Sync + Send + Copy,
+    F: Fn(&Arc<Edge<K, N, E>>) -> Traverse + Sync + Send + Copy,
 {
-    let mut frontiers: Vec<WeakEdge<K, N, E>>;
+    let mut frontiers: Vec<Weak<Edge<K, N, E>>>;
     let mut bounds: (usize, usize) = (0, 0);
     let terminate: Arc<AtomicBool> = Arc::new(AtomicBool::new(false));
     source.close();
@@ -866,16 +848,16 @@ where
 }
 
 pub fn parallel_undirected_breadth_traversal<K, N, E, F>(
-    source: &ArcNode<K, N, E>,
+    source: &Arc<Node<K, N, E>>,
     explorer: F,
-) -> Option<Vec<WeakEdge<K, N, E>>>
+) -> Option<Vec<Weak<Edge<K, N, E>>>>
 where
     K: Hash + Eq + Clone + Debug + Display + Sync + Send,
     N: Clone + Debug + Display + Sync + Send,
     E: Clone + Debug + Display + Sync + Send,
-    F: Fn(&ArcEdge<K, N, E>) -> Traverse + Sync + Send + Copy,
+    F: Fn(&Arc<Edge<K, N, E>>) -> Traverse + Sync + Send + Copy,
 {
-    let mut frontiers: Vec<WeakEdge<K, N, E>>;
+    let mut frontiers: Vec<Weak<Edge<K, N, E>>>;
     let mut bounds: (usize, usize) = (0, 0);
     let terminate: Arc<AtomicBool> = Arc::new(AtomicBool::new(false));
     source.close();
@@ -942,7 +924,7 @@ where
 /// is not to be traversed and Finish will include the edge and finish the
 /// algorithm.
 ///
-/// Function will return an `Option<Vec<WeakEdge<K, N, E>>>` where a Some value
+/// Function will return an `Option<Vec<Weak<Edge<K, N, E>>>>` where a Some value
 /// indicates that the traversal was successful ie. a Finish condition was
 /// reached. And WeakEdges is a collection of all the traversed edges.
 /// The last edge will contain the result that triggered the Finish condition.
@@ -958,9 +940,9 @@ where
 /// use graph::traverse::Continue;
 /// use graph::traverse::*;
 ///
-/// let n1 = ArcNode::new(Node::<u32, Empty, Empty>::new(1, Empty));
-/// let n2 = ArcNode::new(Node::<u32, Empty, Empty>::new(2, Empty));
-/// let n3 = ArcNode::new(Node::<u32, Empty, Empty>::new(3, Empty));
+/// let n1 = Arc::new(Node::<u32, Empty, Empty>::new(1, Empty));
+/// let n2 = Arc::new(Node::<u32, Empty, Empty>::new(2, Empty));
+/// let n3 = Arc::new(Node::<u32, Empty, Empty>::new(3, Empty));
 ///
 /// connect(&n1, &n2, Empty);
 /// connect(&n2, &n3, Empty);
@@ -982,15 +964,15 @@ where
 /// ```
 ///
 fn directed_depth_traversal_recursion<K, N, E, F>(
-    source: &ArcNode<K, N, E>,
-    results: &mut Vec<WeakEdge<K, N, E>>,
+    source: &Arc<Node<K, N, E>>,
+    results: &mut Vec<Weak<Edge<K, N, E>>>,
     explorer: F,
 ) -> bool
 where
     K: Hash + Eq + Clone + Debug + Display + Sync + Send,
     N: Clone + Debug + Display + Sync + Send,
     E: Clone + Debug + Display + Sync + Send,
-    F: Fn(&ArcEdge<K, N, E>) -> Traverse,
+    F: Fn(&Arc<Edge<K, N, E>>) -> Traverse,
 {
     source.close();
     for edge in source.outbound().iter() {
@@ -1016,14 +998,14 @@ where
 }
 
 pub fn directed_depth_traversal<K, N, E, F>(
-    source: &ArcNode<K, N, E>,
+    source: &Arc<Node<K, N, E>>,
     explorer: F,
-) -> Option<Vec<WeakEdge<K, N, E>>>
+) -> Option<Vec<Weak<Edge<K, N, E>>>>
 where
     K: Hash + Eq + Clone + Debug + Display + Sync + Send,
     N: Clone + Debug + Display + Sync + Send,
     E: Clone + Debug + Display + Sync + Send,
-    F: Fn(&ArcEdge<K, N, E>) -> Traverse,
+    F: Fn(&Arc<Edge<K, N, E>>) -> Traverse,
 {
     let mut result = Vec::new();
     let res = directed_depth_traversal_recursion(source, &mut result, explorer);
@@ -1035,15 +1017,15 @@ where
 }
 
 fn undirected_depth_traversal_recursion<K, N, E, F>(
-    source: &ArcNode<K, N, E>,
-    results: &mut Vec<WeakEdge<K, N, E>>,
+    source: &Arc<Node<K, N, E>>,
+    results: &mut Vec<Weak<Edge<K, N, E>>>,
     explorer: F,
 ) -> bool
 where
     K: Hash + Eq + Clone + Debug + Display + Sync + Send,
     N: Clone + Debug + Display + Sync + Send,
     E: Clone + Debug + Display + Sync + Send,
-    F: Fn(&ArcEdge<K, N, E>) -> Traverse,
+    F: Fn(&Arc<Edge<K, N, E>>) -> Traverse,
 {
     source.close();
     for edge in source.outbound().iter() {
@@ -1088,14 +1070,14 @@ where
 }
 
 pub fn undirected_depth_traversal<K, N, E, F>(
-    source: &ArcNode<K, N, E>,
+    source: &Arc<Node<K, N, E>>,
     explorer: F,
-) -> Option<Vec<WeakEdge<K, N, E>>>
+) -> Option<Vec<Weak<Edge<K, N, E>>>>
 where
     K: Hash + Eq + Clone + Debug + Display + Sync + Send,
     N: Clone + Debug + Display + Sync + Send,
     E: Clone + Debug + Display + Sync + Send,
-    F: Fn(&ArcEdge<K, N, E>) -> Traverse,
+    F: Fn(&Arc<Edge<K, N, E>>) -> Traverse,
 {
     let mut result = Vec::new();
     let res = undirected_depth_traversal_recursion(source, &mut result, explorer);

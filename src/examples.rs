@@ -11,7 +11,7 @@ use std::sync::{Arc, Weak};
 pub struct Flow {
 	pub max: usize,
 	pub cur: usize,
-	pub rev: WeakEdge<usize, Empty, Flow>,
+	pub rev: Weak<Edge<usize, Empty, Flow>>,
 }
 
 impl std::fmt::Display for Flow {
@@ -47,7 +47,7 @@ pub fn parallel_maximum_flow_edmonds_karp(g: &FlowGraph, s: usize, t: usize) -> 
 	// it. The Traverse enum will collect the edge in the results. Otherwise we
 	// skip the edge.
 	let target = g.get_node(&t).unwrap();
-	let explorer = |e: &ArcEdge<usize, Empty, Flow>| {
+	let explorer = |e: &Arc<Edge<usize, Empty, Flow>> | {
 		let flow = e.load();
 		if flow.cur < flow.max {
 			if target == e.target() {
@@ -109,7 +109,7 @@ pub fn parallel_maximum_flow_edmonds_karp(g: &FlowGraph, s: usize, t: usize) -> 
 
 pub fn maximum_flow_edmonds_karp(g: &FlowGraph, s: usize, t: usize) -> usize {
 	let target = g.get_node(&t).unwrap();
-	let explorer = |e: &ArcEdge<usize, Empty, Flow>| {
+	let explorer = |e: &Arc<Edge<usize, Empty, Flow>>| {
 		let flow = e.load();
 		if flow.cur < flow.max {
 			if target == e.target() {
