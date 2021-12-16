@@ -33,7 +33,7 @@ where
 
 	/// Get an atomic reference to a node. If node can't
 	/// be found, returns None.
-	fn get_node(&self, node: &K) -> Option<Arc<Node<K, N, E>>>;
+	fn get_node(&self, node: K) -> Option<Arc<Node<K, N, E>>>;
 
 	/// Iterate nodes witha  closure.
 	fn iter_nodes(&self, f: &dyn Fn (Arc<Node<K, N, E>>));
@@ -44,7 +44,7 @@ where
 	// ========================================================================
 
 	/// Add a new edge to the graph.
-	fn add_edge(&mut self, source: &K, target: &K, data: E) -> bool {
+	fn add_edge(&mut self, source: K, target: K, data: E) -> bool {
 		let s = self.get_node(source);
 		let t = self.get_node(target);
 		match s {
@@ -62,7 +62,7 @@ where
 	}
 
 	/// Delete an edge from the graph.
-	fn del_edge(&mut self, source: &K, target: &K) -> bool {
+	fn del_edge(&mut self, source: K, target: K) -> bool {
 		let s = self.get_node(source);
 		let t = self.get_node(target);
 		match s {
@@ -80,7 +80,7 @@ where
 	}
 
 	/// Get an edge if it exists.
-	fn get_edge(&self, source: &K, target: &K) -> Option<Arc<Edge<K, N, E>>> {
+	fn get_edge(&self, source: K, target: K) -> Option<Arc<Edge<K, N, E>>> {
 		let s = self.get_node(source);
 		let t = self.get_node(target);
 		match s {
@@ -109,7 +109,7 @@ where
 	}
 
 	/// Depth first traversal of the graph.
-	fn depth_first<F>(&self, source: &K, explorer: F) -> Option<Vec<Weak<Edge<K, N, E>>>>
+	fn depth_first<F>(&self, source: K, explorer: F) -> Option<Vec<Weak<Edge<K, N, E>>>>
 	where
 		F: Fn (&Arc<Edge<K, N, E>>) -> Traverse,
 	{
@@ -125,7 +125,7 @@ where
 	}
 
 	/// Breadth first traversal of the graph.
-	fn breadth_first<F>(&self, source: &K, explorer: F) -> Option<Vec<Weak<Edge<K, N, E>>>>
+	fn breadth_first<F>(&self, source: K, explorer: F) -> Option<Vec<Weak<Edge<K, N, E>>>>
 	where
 		F: Fn (&Arc<Edge<K, N, E>>) -> Traverse + Sync + Send + Copy,
 	{
@@ -141,7 +141,7 @@ where
 	}
 
 	/// Parallel breadth first traversal of the graph.
-	fn par_breadth_first<F>(&self, source: &K, explorer: F) -> Option<Vec<Weak<Edge<K, N, E>>>>
+	fn par_breadth_first<F>(&self, source: K, explorer: F) -> Option<Vec<Weak<Edge<K, N, E>>>>
 	where
 		F: Fn (&Arc<Edge<K, N, E>>) -> Traverse + Sync + Send + Copy,
 	{
@@ -232,8 +232,8 @@ where
         }
     }
 
-	fn get_node(&self, node: &K) -> Option<Arc<Node<K, N, E>>> {
-		match self.nodes.get(node) {
+	fn get_node(&self, node: K) -> Option<Arc<Node<K, N, E>>> {
+		match self.nodes.get(&node) {
 			Some(n) => { Some(n.clone()) }
 			None => None
 		}
@@ -287,8 +287,8 @@ where
         }
     }
 
-	fn get_node(&self, node: &K) -> Option<Arc<Node<K, N, E>>>  {
-		match self.nodes.get(node) {
+	fn get_node(&self, node: K) -> Option<Arc<Node<K, N, E>>>  {
+		match self.nodes.get(&node) {
 			Some(n) => { Some(n.clone()) }
 			None => None
 		}

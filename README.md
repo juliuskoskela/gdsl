@@ -7,6 +7,8 @@ algorithms offering speedups when traversing the graph.
 # Example Usage
 
 ```rust
+use fastgraph::core::Empty;
+use fastgraph::collections::Digraph;
 
 fn test() {
 	let mut g = Digraph::<usize, Empty, Empty>::new();
@@ -18,22 +20,22 @@ fn test() {
 	g.add_node(5, Empty);
 	g.add_node(6, Empty);
 
-	g.add_edge(&1, &2, Empty);
-	g.add_edge(&1, &3, Empty);
-	g.add_edge(&2, &1, Empty);
-	g.add_edge(&2, &3, Empty);
-	g.add_edge(&3, &1, Empty);
-	g.add_edge(&3, &5, Empty);
-	g.add_edge(&5, &2, Empty);
-	g.add_edge(&5, &4, Empty);
-	g.add_edge(&5, &1, Empty);
-	g.add_edge(&4, &5, Empty);
-	g.add_edge(&4, &3, Empty);
-	g.add_edge(&4, &2, Empty);
-	g.add_edge(&4, &6, Empty);
+	g.add_edge(1, 2, Empty);
+	g.add_edge(1, 3, Empty);
+	g.add_edge(2, 1, Empty);
+	g.add_edge(2, 3, Empty);
+	g.add_edge(3, 1, Empty);
+	g.add_edge(3, 5, Empty);
+	g.add_edge(5, 2, Empty);
+	g.add_edge(5, 4, Empty);
+	g.add_edge(5, 1, Empty);
+	g.add_edge(4, 5, Empty);
+	g.add_edge(4, 3, Empty);
+	g.add_edge(4, 2, Empty);
+	g.add_edge(4, 6, Empty);
 
-	let sink = g.get_node(&6).unwrap();
-	let shortest_tree = g.par_breadth_first(&1,
+	let sink = g.get_node(6).unwrap();
+	let shortest_tree = g.par_breadth_first(1,
 		|edge|{
 			if edge.target() == sink {
 				Traverse::Finish
