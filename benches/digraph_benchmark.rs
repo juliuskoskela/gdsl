@@ -1,327 +1,116 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use fastgraph::graph::*;
-use fastgraph::core::*;
-use fastgraph::examples::*;
 use rand::Rng;
-use lazy_static::lazy_static;
 use std::sync::Arc;
+use fastgraph::{graph::*, core::*};
+use fastgraph::core::Empty;
+use criterion::{criterion_group, criterion_main, Criterion, BenchmarkId};
+use criterion::Throughput;
 
-const BIG_NODE_COUNT: usize = 1000;
-const MEDIUM_NODE_COUNT: usize = 500;
-const SMALL_NODE_COUNT: usize = 100;
-const FLOW_NODE_COUNT: usize = 5000;
-const FLOW_NODE_DEGREE: usize = 20;
-
-type IntKeysGraph = Digraph<usize, usize, Empty>;
-
-fn create_graph_flow() -> FlowGraph {
-	let mut g = FlowGraph::new();
-	for i in 0..FLOW_NODE_COUNT {
-		g.add_node(i, Empty);
-	}
-	for i in 0..FLOW_NODE_COUNT {
-		for _ in 0..FLOW_NODE_DEGREE {
-			add_edge_flow(&mut g, &i, &rand_range(0, FLOW_NODE_COUNT), rand_range(0, 10));
-		}
-	}
-	g
-}
-
-fn reset_flow(g: &FlowGraph) {
-	g.iter_nodes(&|node| {
-		for edge in node.outbound().iter() {
-			let mut flow = edge.load();
-			let rev_edge = flow.rev.upgrade().unwrap();
-			let mut rev_flow = rev_edge.load();
-			flow.cur = 0;
-			rev_flow.cur = rev_flow.max;
-			edge.store(flow);
-			rev_edge.store(rev_flow);
-
-		}
-	})
-}
-fn create_graph(count: usize, average_degree: usize) -> IntKeysGraph {
-	let mut g = IntKeysGraph::new();
-	for i in 0..count {
-		g.add_node(i, rand_range(0, 10000000000));
-	}
-	for i in 0..count {
-		let new_degree = rand_range(0, average_degree * 2);
-		for _ in 0..new_degree {
-			g.add_edge(&i, &rand_range(0, count), Empty);
-		}
-	}
-	g
-}
-
-lazy_static! {
-	static ref SMALL_GRAPH: IntKeysGraph = create_graph(SMALL_NODE_COUNT, 3);
-	static ref MEDIUM_GRAPH: IntKeysGraph = create_graph(MEDIUM_NODE_COUNT, 5);
-	static ref BIG_GRAPH: IntKeysGraph = create_graph(BIG_NODE_COUNT, 10);
-	static ref FLOW_GRAPH: FlowGraph = create_graph_flow();
-}
+type TestDigraph = Digraph<usize, Empty, Empty>;
 
 fn rand_range(start: usize, end: usize) -> usize {
 	let mut rng = rand::thread_rng();
 	rng.gen_range(start..end)
 }
 
-fn create_graph_speed() {
-	let mut g = IntKeysGraph::new();
-	for i in 0..1000 {
-		g.add_node(i, rand_range(0, 10000000000));
+fn create_digraph(size: usize, degree: usize) -> TestDigraph {
+	let mut g = TestDigraph::new();
+	for i in 0..size {
+		g.add_node(i, Empty);
 	}
-	for i in 0..1000 {
-		for _ in 0..100 {
-			g.add_edge(&i, &rand_range(0, 100), Empty);
+	for i in 0..size {
+		let new_degree = rand_range(0, degree * 2);
+		for _ in 0..new_degree {
+			g.add_edge(&i, &rand_range(0, size), Empty);
 		}
 	}
-}
-
-fn digraph_construction(c: &mut Criterion) {
-    c.bench_function("graph construction", |b| b.iter(|| create_graph_speed()));
+	g
 }
 
 // ============================================================================
 
-fn digraph_breadth_first_search_naked(c: &mut Criterion) {
-	fn digraph_bfs() {
-		for _ in 0..500 {
-			let t = BIG_GRAPH.get_node(&rand_range(0, BIG_NODE_COUNT)).unwrap();
-			let closure = | e: &Arc<Edge<usize, usize, Empty>> | {
-				if t == e.target() {
-					Traverse::Finish
-				} else {
+fn bench_bfs_no_worload(c: &mut Criterion) {
+	static B: usize = 1000;
+
+    let mut group = c.benchmark_group("Breadth First Traversal No Workload");
+    for (i, size) in [B, 2 * B, 4 * B, 8 * B, 16 * B, 32 * B, 64 * B, 128 * B].iter().enumerate() {
+		let g = create_digraph(*size, 16);
+        group.throughput(Throughput::Bytes((g.size_of() * 10) as u64));
+		group.bench_with_input(BenchmarkId::new("Sequential", size), &i,
+			|b, _| b.iter(|| for i in 0..10 {
+				g.breadth_first(&i, | _ | {
 					Traverse::Include
-				}
-			};
-			for _ in 0..10 {
-				BIG_GRAPH.breadth_first(&rand_range(0, BIG_NODE_COUNT), closure);
-			}
-		}
-	}
-	println!("graph node count = {}", BIG_GRAPH.node_count());
-	println!("graph edge count = {}", BIG_GRAPH.edge_count());
-	println!("graph average degree = {}", BIG_GRAPH.edge_count() as f64 / BIG_GRAPH.node_count() as f64);
-	println!("sizeof graph = {} Mb", BIG_GRAPH.size_of() as f64 / 1000_000.0);
-    c.bench_function("breadth first search naked", |b| b.iter(|| black_box(digraph_bfs())));
-}
-
-fn digraph_breadth_first_sleep_1ms(c: &mut Criterion) {
-	fn digraph_bfs() {
-		let t = SMALL_GRAPH.get_node(&rand_range(0, SMALL_NODE_COUNT)).unwrap();
-		let closure = | e: &Arc<Edge<usize, usize, Empty>> | {
-			std::thread::sleep(std::time::Duration::from_millis(1));
-			if t == e.target() {
-				Traverse::Finish
-			} else {
-				Traverse::Include
-			}
-		};
-		SMALL_GRAPH.breadth_first(&rand_range(0, SMALL_NODE_COUNT), closure);
-	}
-	println!("graph node count = {}", SMALL_GRAPH.node_count());
-	println!("graph edge count = {}", SMALL_GRAPH.edge_count());
-	println!("graph average degree = {}", SMALL_GRAPH.edge_count() as f64 / SMALL_GRAPH.node_count() as f64);
-	println!("sizeof graph = {} Mb", SMALL_GRAPH.size_of() as f64 / 1000_000.0);
-    c.bench_function("breadth first sleep 1ms", |b| b.iter(|| black_box(digraph_bfs())));
-}
-
-fn digraph_breadth_first_count_prime(c: &mut Criterion) {
-	fn digraph_bfs() {
-		// let t = MEDIUM_GRAPH.get_node(&rand_range(0, MEDIUM_NODE_COUNT)).unwrap();
-		let closure = | e: &Arc<Edge<usize, usize, Empty>> | {
-			let n = e.target().load();
-			if primes::is_prime(n as u64) == true {
-				e.target().store(n);
-			}
-			Traverse::Include
-			// if *t == e.target() {
-			// 	Traverse::Finish
-			// } else {
-			// 	Traverse::Include
-			// }
-		};
-		for _ in 0..10 {
-			MEDIUM_GRAPH.breadth_first(&rand_range(0, MEDIUM_NODE_COUNT), closure);
-		}
-	}
-	println!("graph node count = {}", MEDIUM_GRAPH.node_count());
-	println!("graph edge count = {}", MEDIUM_GRAPH.edge_count());
-	println!("graph average degree = {}", MEDIUM_GRAPH.edge_count() as f64 / MEDIUM_GRAPH.node_count() as f64);
-	println!("sizeof graph = {} Mb", MEDIUM_GRAPH.size_of() as f64 / 1000_000.0);
-    c.bench_function("breadth first count prime", |b| b.iter(|| black_box(digraph_bfs())));
-}
-
-// ============================================================================
-
-fn digraph_par_breadth_first_search_naked(c: &mut Criterion) {
-	fn digraph_bfs() {
-		for _ in 0..500 {
-			let t = BIG_GRAPH.get_node(&rand_range(0, BIG_NODE_COUNT)).unwrap();
-			let closure = | e: &Arc<Edge<usize, usize, Empty>> | {
-				if t == e.target() {
-					Traverse::Finish
-				} else {
+				});
+			}));
+		group.bench_with_input(BenchmarkId::new("Parallel", size), &i,
+			|b, _| b.iter(|| for i in 0..10 {
+				g.par_breadth_first(&i, | _ | {
 					Traverse::Include
-				}
-			};
-			BIG_GRAPH.par_breadth_first(&rand_range(0, BIG_NODE_COUNT), closure);
-		}
-	}
-	println!("graph node count = {}", BIG_GRAPH.node_count());
-	println!("graph edge count = {}", BIG_GRAPH.edge_count());
-	println!("graph average degree = {}", BIG_GRAPH.edge_count() as f64 / BIG_GRAPH.node_count() as f64);
-	println!("sizeof graph = {} Mb", BIG_GRAPH.size_of() as f64 / 1000_000.0);
-    c.bench_function("parallel breadth first search naked", |b| b.iter(|| black_box(digraph_bfs())));
-}
-
-fn digraph_par_breadth_first_sleep_1ms(c: &mut Criterion) {
-	fn digraph_bfs() {
-		let t = SMALL_GRAPH.get_node(&rand_range(0, SMALL_NODE_COUNT)).unwrap();
-		let closure = | e: &Arc<Edge<usize, usize, Empty>> | {
-			std::thread::sleep(std::time::Duration::from_millis(1));
-			if t == e.target() {
-				Traverse::Finish
-			} else {
-				Traverse::Include
-			}
-		};
-		SMALL_GRAPH.par_breadth_first(&rand_range(0, SMALL_NODE_COUNT), closure);
-	}
-	println!("graph node count = {}", SMALL_GRAPH.node_count());
-	println!("graph edge count = {}", SMALL_GRAPH.edge_count());
-	println!("graph average degree = {}", SMALL_GRAPH.edge_count() as f64 / SMALL_GRAPH.node_count() as f64);
-	println!("sizeof graph = {} Mb", SMALL_GRAPH.size_of() as f64 / 1000_000.0);
-    c.bench_function("parallel breadth first sleep 1ms", |b| b.iter(|| black_box(digraph_bfs())));
-}
-
-fn digraph_par_breadth_first_count_prime(c: &mut Criterion) {
-	fn digraph_bfs() {
-		// let t = MEDIUM_GRAPH.get_node(&rand_range(0, MEDIUM_NODE_COUNT)).unwrap();
-		let closure = | e: &Arc<Edge<usize, usize, Empty>> | {
-			let n = e.target().load();
-			if primes::is_prime(n as u64) == true {
-				e.target().store(n);
-			}
-			Traverse::Include
-			// if *t == e.target() {
-			// 	Traverse::Finish
-			// } else {
-			// 	Traverse::Include
-			// }
-		};
-		for _ in 0..10 {
-			MEDIUM_GRAPH.par_breadth_first(&rand_range(0, MEDIUM_NODE_COUNT), closure);
-		}
-	}
-	println!("graph node count = {}", MEDIUM_GRAPH.node_count());
-	println!("graph edge count = {}", MEDIUM_GRAPH.edge_count());
-	println!("graph average degree = {}", MEDIUM_GRAPH.edge_count() as f64 / MEDIUM_GRAPH.node_count() as f64);
-	println!("sizeof graph = {} Mb", MEDIUM_GRAPH.size_of() as f64 / 1000_000.0);
-    c.bench_function("parallel breadth first count prime", |b| b.iter(|| black_box(digraph_bfs())));
+				});
+			}));
+    }
+    group.finish();
 }
 
 // ============================================================================
 
+fn bench_bfs_even_workload(c: &mut Criterion) {
+	static B: usize = 10;
 
-fn digraph_find_shortest_path(c: &mut Criterion) {
-	// println!("constructing graph of size = {} Mb", ((BIG_NODE_COUNT * std::mem::size_of::<Node<usize, usize, usize>>()) + (BIG_NODE_COUNT * SIMPLE_NODE_DEGREE * std::mem::size_of::<Edge<usize, usize, usize>>())) / 1000_000);
-	fn digraph_sp() {
-		let t = BIG_GRAPH.get_node(&rand_range(0, BIG_NODE_COUNT)).unwrap();
-		let res = BIG_GRAPH.breadth_first(&rand_range(0, BIG_NODE_COUNT), |e| if t == e.target() { Traverse::Finish } else { Traverse::Include});
-		match res {
-			Some(r) => { backtrack_edges(&r); }
-			None => {}
-		}
-	}
-	println!("graph node count = {}", BIG_GRAPH.node_count());
-	println!("graph edge count = {}", BIG_GRAPH.edge_count());
-	println!("graph average degree = {}", BIG_GRAPH.edge_count() / BIG_GRAPH.node_count());
-	println!("sizeof graph = {} Mb", BIG_GRAPH.size_of() as f64 / 1000_000.0);
-    c.bench_function("find shortest path", |b| b.iter(|| black_box(digraph_sp())));
+    let mut group = c.benchmark_group("Breadth First Traversal Even Workload");
+    for (i, size) in [B, 2 * B, 4 * B, 8 * B, 16 * B, 32 * B, 64 * B, 128 * B].iter().enumerate() {
+		let g = create_digraph(*size, 16);
+        group.throughput(Throughput::Bytes((g.size_of() * 10) as u64));
+		group.bench_with_input(BenchmarkId::new("Sequential", size), &i,
+			|b, _| b.iter(|| for i in 0..10 {
+				g.breadth_first(&i, | _ | {
+					std::thread::sleep(std::time::Duration::from_nanos(10));
+					Traverse::Include
+				});
+			}));
+		group.bench_with_input(BenchmarkId::new("Parallel", size), &i,
+			|b, _| b.iter(|| for i in 0..10 {
+				g.par_breadth_first(&i, | _ | {
+					std::thread::sleep(std::time::Duration::from_nanos(10));
+					Traverse::Include
+				});
+			}));
+    }
+    group.finish();
 }
 
-fn digraph_par_find_shortest_path(c: &mut Criterion) {
-	// println!("constructing graph of size = {} Mb", ((BIG_NODE_COUNT * std::mem::size_of::<Node<usize, usize, usize>>()) + (BIG_NODE_COUNT * SIMPLE_NODE_DEGREE * std::mem::size_of::<Edge<usize, usize, usize>>())) / 1000_000);
-	fn digraph_sp() {
-		let t = BIG_GRAPH.get_node(&rand_range(0, BIG_NODE_COUNT)).unwrap();
-		let res = BIG_GRAPH.par_breadth_first(&rand_range(0, BIG_NODE_COUNT), |e| if t == e.target() { Traverse::Finish } else { Traverse::Include});
-		match res {
-			Some(r) => { backtrack_edges(&r); }
-			None => {}
-		}
-	}
-	println!("graph node count = {}", BIG_GRAPH.node_count());
-	println!("graph edge count = {}", BIG_GRAPH.edge_count());
-	println!("graph average degree = {}", BIG_GRAPH.edge_count() / BIG_GRAPH.node_count());
-	println!("sizeof graph = {} Mb", BIG_GRAPH.size_of() as f64 / 1000_000.0);
-    c.bench_function("parallel find shortest path", |b| b.iter(|| black_box(digraph_sp())));
+// ============================================================================
+
+fn bench_bfs_uneven_workload(c: &mut Criterion) {
+	static B: usize = 10;
+
+    let mut group = c.benchmark_group("Breadth First Traversal Uneven Workload");
+    for (i, size) in [B, 2 * B, 4 * B, 8 * B, 16 * B, 32 * B, 64 * B, 128 * B].iter().enumerate() {
+		let g = create_digraph(*size, 16);
+        group.throughput(Throughput::Bytes((g.size_of() * 10) as u64));
+		group.bench_with_input(BenchmarkId::new("Sequential", size), &i,
+			|b, _| b.iter(|| for i in 0..10 {
+				g.breadth_first(&i, | _ | {
+					std::thread::sleep(std::time::Duration::from_nanos(rand_range(0, 10) as u64));
+					Traverse::Include
+				});
+			}));
+		group.bench_with_input(BenchmarkId::new("Parallel", size), &i,
+			|b, _| b.iter(|| for i in 0..10 {
+				g.par_breadth_first(&i, | _ | {
+					std::thread::sleep(std::time::Duration::from_nanos(rand_range(0, 10) as u64));
+					Traverse::Include
+				});
+			}));
+    }
+    group.finish();
 }
 
-fn digraph_max_flow(c: &mut Criterion) {
-	fn digraph_mf() {
-		maximum_flow_edmonds_karp(&FLOW_GRAPH, rand_range(0, FLOW_NODE_COUNT), rand_range(0, FLOW_NODE_COUNT));
-		reset_flow(&FLOW_GRAPH);
-	}
-    c.bench_function("maximum flow edmonds karp", |b| b.iter(|| black_box(digraph_mf())));
-}
+// ============================================================================
 
-fn digraph_par_max_flow(c: &mut Criterion) {
-	fn digraph_mf() {
-		parallel_maximum_flow_edmonds_karp(&FLOW_GRAPH, rand_range(0, FLOW_NODE_COUNT), rand_range(0, FLOW_NODE_COUNT));
-		reset_flow(&FLOW_GRAPH);
-	}
-    c.bench_function("parallel maximum flow edmonds karp", |b| b.iter(|| black_box(digraph_mf())));
-}
+criterion_group!(benches,
 
-criterion_group!(
-	naked_bfs,
-
-	digraph_breadth_first_search_naked,
-	digraph_par_breadth_first_search_naked
+	bench_bfs_no_worload,
+	bench_bfs_even_workload,
+	bench_bfs_uneven_workload
 );
-
-criterion_group!(
-	bfs_even_workload,
-
-	digraph_breadth_first_sleep_1ms,
-	digraph_par_breadth_first_sleep_1ms
-);
-
-criterion_group!(
-	bfs_uneven_workload,
-
-	digraph_breadth_first_count_prime,
-	digraph_par_breadth_first_count_prime
-);
-
-criterion_group!(
-	shortest_path,
-
-	digraph_find_shortest_path,
-	digraph_par_find_shortest_path,
-);
-
-criterion_group!(
-	max_flow,
-
-	digraph_max_flow,
-	digraph_par_max_flow
-);
-
-criterion_group!(
-	construction,
-
-	digraph_construction
-);
-
-criterion_main!(
-	naked_bfs,
-	bfs_even_workload,
-	bfs_uneven_workload,
-	shortest_path,
-	max_flow,
-	construction
-);
+criterion_main!(benches);
