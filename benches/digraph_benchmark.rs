@@ -27,6 +27,40 @@ fn create_digraph(size: usize, degree: usize) -> TestDigraph {
 
 // ============================================================================
 
+fn bench_bfs_target(c: &mut Criterion) {
+	static B: usize = 1000;
+
+    let mut group = c.benchmark_group("Breadth First Traversal Target");
+    for (i, size) in [B, 2 * B, 4 * B, 8 * B, 16 * B, 32 * B, 64 * B, 128 * B].iter().enumerate() {
+		let g = create_digraph(*size, 16);
+		let t = g.get_node(&666).unwrap();
+        group.throughput(Throughput::Bytes((g.size_of() * 10) as u64));
+		group.bench_with_input(BenchmarkId::new("Sequential", size), &i,
+			|b, _| b.iter(|| for i in 0..10 {
+				g.breadth_first(&i, | e | {
+					if t == e.target() {
+						Traverse::Finish
+					} else {
+						Traverse::Include
+					}
+				});
+			}));
+		group.bench_with_input(BenchmarkId::new("Parallel", size), &i,
+			|b, _| b.iter(|| for i in 0..10 {
+				g.par_breadth_first(&i, | e | {
+					if t == e.target() {
+						Traverse::Finish
+					} else {
+						Traverse::Include
+					}
+				});
+			}));
+    }
+    group.finish();
+}
+
+// ============================================================================
+
 fn bench_bfs_no_worload(c: &mut Criterion) {
 	static B: usize = 1000;
 
@@ -108,6 +142,7 @@ fn bench_bfs_uneven_workload(c: &mut Criterion) {
 
 criterion_group!(benches,
 
+	bench_bfs_target,
 	bench_bfs_no_worload,
 	bench_bfs_even_workload,
 	bench_bfs_uneven_workload
