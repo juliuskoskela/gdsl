@@ -2,8 +2,6 @@
 // TEMPLATE COLLECTIONS
 //=============================================================================
 
-//! # Fastgraph Collections
-//!
 //! This module offers the `Graph` trait, which allows user to create a graph
 //! easily out of thier own desired container type or use one of the templates.
 //!
@@ -15,8 +13,6 @@ use std::{
 	sync::{Arc, Weak}
 };
 
-/// # Graph Trait
-///
 /// This trait can be used to easily create a graph from a desired container type.
 /// User must specify graph direction, construction and nopde retrieval. Rest is
 /// implemented by the trait.
