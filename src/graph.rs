@@ -3,6 +3,7 @@ use std::{
 	collections::HashMap,
     fmt::{Debug, Display},
     hash::Hash,
+	sync::{Arc, Weak}
 };
 
 pub trait Graph<K, N, E>
@@ -14,11 +15,11 @@ where
     fn new() -> Self;
 	fn directed() -> bool;
     fn add_node(&mut self, key: K, data: N) -> bool;
-	fn get_node(&self, node: &K) -> Option<ArcNode<K, N, E>>;
-	fn iter_nodes(&self, f: &dyn Fn (ArcNode<K, N, E>));
+	fn get_node(&self, node: &K) -> Option<Arc<Node<K, N, E>>>;
+	fn iter_nodes(&self, f: &dyn Fn (Arc<Node<K, N, E>>));
     fn add_edge(&mut self, source: &K, target: &K, data: E) -> bool;
 	fn del_edge(&mut self, source: &K, target: &K) -> bool;
-	fn get_edge(&self, source: &K, target: &K) -> Option<ArcEdge<K, N, E>>;
+	fn get_edge(&self, source: &K, target: &K) -> Option<Arc<Edge<K, N, E>>>;
 	fn node_count(&self) -> usize;
 	fn edge_count(&self) -> usize;
 
@@ -29,9 +30,9 @@ where
 		+ (self.edge_count() * std::mem::size_of::<Edge<K, N, E>>())
 	}
 
-	fn depth_first<F>(&self, source: &K, explorer: F) -> Option<Vec<WeakEdge<K, N, E>>>
+	fn depth_first<F>(&self, source: &K, explorer: F) -> Option<Vec<Weak<Edge<K, N, E>>>>
 	where
-		F: Fn (&ArcEdge<K, N, E>) -> Traverse,
+		F: Fn (&Arc<Edge<K, N, E>>) -> Traverse,
 	{
 		match self.get_node(source) {
 			Some(s) => {
@@ -44,9 +45,9 @@ where
 		}
 	}
 
-	fn breadth_first<F>(&self, source: &K, explorer: F) -> Option<Vec<WeakEdge<K, N, E>>>
+	fn breadth_first<F>(&self, source: &K, explorer: F) -> Option<Vec<Weak<Edge<K, N, E>>>>
 	where
-		F: Fn (&ArcEdge<K, N, E>) -> Traverse + Sync + Send + Copy,
+		F: Fn (&Arc<Edge<K, N, E>>) -> Traverse + Sync + Send + Copy,
 	{
 		match self.get_node(source) {
 			Some(s) => {
@@ -59,9 +60,9 @@ where
 		}
 	}
 
-	fn par_breadth_first<F>(&self, source: &K, explorer: F) -> Option<Vec<WeakEdge<K, N, E>>>
+	fn par_breadth_first<F>(&self, source: &K, explorer: F) -> Option<Vec<Weak<Edge<K, N, E>>>>
 	where
-		F: Fn (&ArcEdge<K, N, E>) -> Traverse + Sync + Send + Copy,
+		F: Fn (&Arc<Edge<K, N, E>>) -> Traverse + Sync + Send + Copy,
 	{
 		match self.get_node(source) {
 			Some(s) => {
@@ -116,7 +117,7 @@ where
     N: Clone + Debug + Display + Sync + Send,
     E: Clone + Debug + Display + Sync + Send,
 {
-    nodes: HashMap<K, ArcNode<K, N, E>>,
+    nodes: HashMap<K, Arc<Node<K, N, E>>>,
 	edge_count: usize,
 }
 
@@ -141,20 +142,20 @@ where
         if self.nodes.contains_key(&key) {
             false
         } else {
-            let node = ArcNode::new(Node::new(key.clone(), data));
+            let node = Arc::new(Node::new(key.clone(), data));
             self.nodes.insert(key, node);
             true
         }
     }
 
-	fn get_node(&self, node: &K) -> Option<ArcNode<K, N, E>> {
+	fn get_node(&self, node: &K) -> Option<Arc<Node<K, N, E>>> {
 		match self.nodes.get(node) {
 			Some(n) => { Some(n.clone()) }
 			None => None
 		}
 	}
 
-	fn iter_nodes(&self, f: &dyn Fn (ArcNode<K, N, E>)) {
+	fn iter_nodes(&self, f: &dyn Fn (Arc<Node<K, N, E>>)) {
 		for (_, node) in self.nodes.iter() {
 			f(node.clone());
 		}
@@ -180,7 +181,7 @@ where
 		false
     }
 
-	fn get_edge(&self, source: &K, target: &K) -> Option<ArcEdge<K, N, E>> {
+	fn get_edge(&self, source: &K, target: &K) -> Option<Arc<Edge<K, N, E>>> {
 		let s = self.nodes.get(source);
 		let t = self.nodes.get(target);
 		match s {
@@ -206,7 +207,7 @@ where
     N: Clone + Debug + Display + Sync + Send,
     E: Clone + Debug + Display + Sync + Send,
 {
-    nodes: HashMap<K, ArcNode<K, N, E>>,
+    nodes: HashMap<K, Arc<Node<K, N, E>>>,
 	edge_count: usize,
 }
 
@@ -231,20 +232,20 @@ where
         if self.nodes.contains_key(&key) {
             false
         } else {
-            let node = ArcNode::new(Node::new(key.clone(), data));
+            let node = Arc::new(Node::new(key.clone(), data));
             self.nodes.insert(key, node);
             true
         }
     }
 
-	fn get_node(&self, node: &K) -> Option<ArcNode<K, N, E>>  {
+	fn get_node(&self, node: &K) -> Option<Arc<Node<K, N, E>>>  {
 		match self.nodes.get(node) {
 			Some(n) => { Some(n.clone()) }
 			None => None
 		}
 	}
 
-	fn iter_nodes(&self, f: &dyn Fn (ArcNode<K, N, E>)) {
+	fn iter_nodes(&self, f: &dyn Fn (Arc<Node<K, N, E>>)) {
 		for (_, node) in self.nodes.iter() {
 			f(node.clone());
 		}
@@ -270,7 +271,7 @@ where
 		false
     }
 
-	fn get_edge(&self, source: &K, target: &K) -> Option<ArcEdge<K, N, E>> {
+	fn get_edge(&self, source: &K, target: &K) -> Option<Arc<Edge<K, N, E>>> {
 		let s = self.nodes.get(source);
 		let t = self.nodes.get(target);
 		match s {
