@@ -1,5 +1,5 @@
 use fastgraph::core::*;
-use fastgraph::graph::*;
+use fastgraph::collections::*;
 use fastgraph::core::Empty;
 use std::sync::{Arc, Weak};
 

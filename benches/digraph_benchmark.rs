@@ -1,5 +1,5 @@
 use rand::Rng;
-use fastgraph::{graph::*, core::*};
+use fastgraph::{collections::*, core::*};
 use fastgraph::core::Empty;
 use criterion::{criterion_group, criterion_main, Criterion, BenchmarkId};
 use criterion::Throughput;

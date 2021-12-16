@@ -1,5 +1,5 @@
 use fastgraph::core::*;
-use fastgraph::graph::*;
+use fastgraph::collections::*;
 use fastgraph::core::Empty;
 type SimpleDigraph = Digraph<usize, Empty, Empty>;
 type SimpleUngraph = Ungraph<usize, Empty, Empty>;
