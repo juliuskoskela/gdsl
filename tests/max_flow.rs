@@ -28,7 +28,7 @@ pub type FlowGraph = Digraph<usize, Empty, Flow>;
 // Edge insertion in the flow-graph is a bit more involved. We need to save
 // a reverse edge for each forward edge with a maxed out capacity. When we
 // add flow to the edge, we decrease it from it's reverse edge.
-pub fn add_edge_flow(g: &mut FlowGraph, u: &usize, v: &usize, flow: usize) {
+pub fn add_edge_flow(g: &mut FlowGraph, u: usize, v: usize, flow: usize) {
 	g.add_edge(u, v, Flow { max: flow, cur: 0, rev: Weak::new() });
 	g.add_edge(v, u, Flow { max: flow, cur: flow, rev: Weak::new() });
 	let uv = g.get_edge(u, v).unwrap();
@@ -48,7 +48,7 @@ pub fn parallel_maximum_flow_edmonds_karp(g: &FlowGraph, s: usize, t: usize) -> 
 	// we check the flow of each edge. If the edge is not saturated, we traverse
 	// it. The Traverse enum will collect the edge in the results. Otherwise we
 	// skip the edge.
-	let target = g.get_node(&t).unwrap();
+	let target = g.get_node(t).unwrap();
 	let explorer = |e: &Arc<Edge<usize, Empty, Flow>> | {
 		let flow = e.load();
 		if flow.cur < flow.max {
@@ -64,7 +64,7 @@ pub fn parallel_maximum_flow_edmonds_karp(g: &FlowGraph, s: usize, t: usize) -> 
 		}
 	};
 	let mut max_flow: usize = 0;
-	while let Some(b) = g.par_breadth_first(&s, explorer)
+	while let Some(b) = g.par_breadth_first(s, explorer)
 	{
 		// We backtrack the results from the breadth first traversal which will
 		// produce the shortest path.
@@ -110,7 +110,7 @@ pub fn parallel_maximum_flow_edmonds_karp(g: &FlowGraph, s: usize, t: usize) -> 
 }
 
 pub fn maximum_flow_edmonds_karp(g: &FlowGraph, s: usize, t: usize) -> usize {
-	let target = g.get_node(&t).unwrap();
+	let target = g.get_node(t).unwrap();
 	let explorer = |e: &Arc<Edge<usize, Empty, Flow>>| {
 		let flow = e.load();
 		if flow.cur < flow.max {
@@ -126,7 +126,7 @@ pub fn maximum_flow_edmonds_karp(g: &FlowGraph, s: usize, t: usize) -> usize {
 		}
 	};
 	let mut max_flow: usize = 0;
-	while let Some(b) = g.breadth_first(&s, explorer)
+	while let Some(b) = g.breadth_first(s, explorer)
 	{
 		let path = backtrack_edges(&b);
 		let mut aug_flow = std::usize::MAX;
@@ -166,16 +166,16 @@ fn flow_graph_example_1to6_23() -> FlowGraph {
 	g.add_node(4, Empty);
 	g.add_node(5, Empty);
 	g.add_node(6, Empty);
-	add_edge_flow(&mut g, &1, &2, 16);
-	add_edge_flow(&mut g, &1, &3, 13);
-	add_edge_flow(&mut g, &2, &3, 10);
-	add_edge_flow(&mut g, &2, &4, 12);
-	add_edge_flow(&mut g, &3, &2, 4);
-	add_edge_flow(&mut g, &3, &5, 14);
-	add_edge_flow(&mut g, &4, &3, 9);
-	add_edge_flow(&mut g, &4, &6, 20);
-	add_edge_flow(&mut g, &5, &4, 7);
-	add_edge_flow(&mut g, &5, &6, 4);
+	add_edge_flow(&mut g, 1, 2, 16);
+	add_edge_flow(&mut g, 1, 3, 13);
+	add_edge_flow(&mut g, 2, 3, 10);
+	add_edge_flow(&mut g, 2, 4, 12);
+	add_edge_flow(&mut g, 3, 2, 4);
+	add_edge_flow(&mut g, 3, 5, 14);
+	add_edge_flow(&mut g, 4, 3, 9);
+	add_edge_flow(&mut g, 4, 6, 20);
+	add_edge_flow(&mut g, 5, 4, 7);
+	add_edge_flow(&mut g, 5, 6, 4);
 	g
 }
 

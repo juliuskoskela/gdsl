@@ -14,19 +14,19 @@ fn test_ungraph_1() -> SimpleDigraph {
 	g.add_node(5, Empty);
 	g.add_node(6, Empty);
 
-	g.add_edge(&1, &2, Empty);
-	g.add_edge(&1, &3, Empty);
-	g.add_edge(&2, &1, Empty);
-	g.add_edge(&2, &3, Empty);
-	g.add_edge(&3, &1, Empty);
-	g.add_edge(&3, &5, Empty);
-	g.add_edge(&5, &2, Empty);
-	g.add_edge(&5, &4, Empty);
-	g.add_edge(&5, &1, Empty);
-	g.add_edge(&4, &5, Empty);
-	g.add_edge(&4, &3, Empty);
-	g.add_edge(&4, &2, Empty);
-	g.add_edge(&4, &6, Empty);
+	g.add_edge(1, 2, Empty);
+	g.add_edge(1, 3, Empty);
+	g.add_edge(2, 1, Empty);
+	g.add_edge(2, 3, Empty);
+	g.add_edge(3, 1, Empty);
+	g.add_edge(3, 5, Empty);
+	g.add_edge(5, 2, Empty);
+	g.add_edge(5, 4, Empty);
+	g.add_edge(5, 1, Empty);
+	g.add_edge(4, 5, Empty);
+	g.add_edge(4, 3, Empty);
+	g.add_edge(4, 2, Empty);
+	g.add_edge(4, 6, Empty);
 	g
 }
 
@@ -40,19 +40,19 @@ fn test_digraph_1() -> SimpleUngraph {
 	g.add_node(5, Empty);
 	g.add_node(6, Empty);
 
-	g.add_edge(&1, &2, Empty);
-	g.add_edge(&1, &3, Empty);
-	g.add_edge(&2, &1, Empty);
-	g.add_edge(&2, &3, Empty);
-	g.add_edge(&3, &1, Empty);
-	g.add_edge(&3, &5, Empty);
-	g.add_edge(&5, &2, Empty);
-	g.add_edge(&5, &4, Empty);
-	g.add_edge(&5, &1, Empty);
-	g.add_edge(&4, &5, Empty);
-	g.add_edge(&4, &3, Empty);
-	g.add_edge(&4, &2, Empty);
-	g.add_edge(&4, &6, Empty);
+	g.add_edge(1, 2, Empty);
+	g.add_edge(1, 3, Empty);
+	g.add_edge(2, 1, Empty);
+	g.add_edge(2, 3, Empty);
+	g.add_edge(3, 1, Empty);
+	g.add_edge(3, 5, Empty);
+	g.add_edge(5, 2, Empty);
+	g.add_edge(5, 4, Empty);
+	g.add_edge(5, 1, Empty);
+	g.add_edge(4, 5, Empty);
+	g.add_edge(4, 3, Empty);
+	g.add_edge(4, 2, Empty);
+	g.add_edge(4, 6, Empty);
 	g
 }
 
@@ -60,7 +60,7 @@ fn test_digraph_1() -> SimpleUngraph {
 fn ungraph_test_breadth_traversal() {
 	let g = test_ungraph_1();
 
-	let res1 = g.breadth_first(&1,
+	let res1 = g.breadth_first(1,
 	|edge|{
 		if edge.target().key() == &6 {
 			Traverse::Finish
@@ -68,7 +68,7 @@ fn ungraph_test_breadth_traversal() {
 			Traverse::Include
 		}
 	}).unwrap();
-	let res2 = g.breadth_first(&1,
+	let res2 = g.breadth_first(1,
 		|edge|{
 			if edge.target().key() == &6 {
 				Traverse::Finish
@@ -94,7 +94,7 @@ fn ungraph_test_breadth_traversal() {
 fn ungraph_test_par_breadth_traversal() {
 	let g = test_ungraph_1();
 
-	let res1 = g.par_breadth_first(&1,
+	let res1 = g.par_breadth_first(1,
 	|edge|{
 		if edge.target().key() == &6 {
 			Traverse::Finish
@@ -102,7 +102,7 @@ fn ungraph_test_par_breadth_traversal() {
 			Traverse::Include
 		}
 	}).unwrap();
-	let res2 = g.par_breadth_first(&1,
+	let res2 = g.par_breadth_first(1,
 		|edge|{
 			if edge.target().key() == &6 {
 				Traverse::Finish
@@ -128,7 +128,7 @@ fn ungraph_test_par_breadth_traversal() {
 fn digraph_test_breadth_traversal() {
 	let g = test_digraph_1();
 
-	let res1 = g.breadth_first(&1,
+	let res1 = g.breadth_first(1,
 	|edge|{
 		if edge.target().key() == &6 {
 			Traverse::Finish
@@ -136,7 +136,7 @@ fn digraph_test_breadth_traversal() {
 			Traverse::Include
 		}
 	}).unwrap();
-	let res2 = g.breadth_first(&1,
+	let res2 = g.breadth_first(1,
 		|edge|{
 			if edge.target().key() == &6 {
 				Traverse::Finish
@@ -162,7 +162,7 @@ fn digraph_test_breadth_traversal() {
 fn digraph_test_par_breadth_traversal() {
 	let g = test_digraph_1();
 
-	let res1 = g.par_breadth_first(&1,
+	let res1 = g.par_breadth_first(1,
 	|edge|{
 		if edge.target().key() == &6 {
 			Traverse::Finish
@@ -170,7 +170,7 @@ fn digraph_test_par_breadth_traversal() {
 			Traverse::Include
 		}
 	}).unwrap();
-	let res2 = g.par_breadth_first(&1,
+	let res2 = g.par_breadth_first(1,
 		|edge|{
 			if edge.target().key() == &6 {
 				Traverse::Finish

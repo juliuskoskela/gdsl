@@ -83,6 +83,7 @@ where
     source: Weak<Node<K, N, E>>,
     target: Weak<Node<K, N, E>>,
     data: Mutex<E>,
+	lock: AtomicBool,
 }
 
 //=============================================================================
@@ -99,6 +100,7 @@ where
             source: Arc::downgrade(source),
             target: Arc::downgrade(target),
             data: Mutex::new(data),
+			lock: AtomicBool::new(OPEN)
         }
     }
 
@@ -126,6 +128,21 @@ where
         let mut x = self.data.lock();
         *x = data;
     }
+
+	#[inline(always)]
+    fn try_lock(&self) -> bool {
+        self.lock.load(Ordering::Relaxed)
+    }
+
+    #[inline(always)]
+    fn close(&self) {
+        self.lock.store(CLOSED, Ordering::Relaxed)
+    }
+
+    #[inline(always)]
+    fn open(&self) {
+        self.lock.store(OPEN, Ordering::Relaxed)
+    }
 }
 
 //=============================================================================
@@ -149,6 +166,7 @@ where
             source: self.source.clone(),
             target: self.target.clone(),
             data: Mutex::new(self.data.lock().clone()),
+			lock: AtomicBool::new(OPEN),
         }
     }
 }
@@ -206,10 +224,14 @@ where
     N: Clone + Debug + Display + Sync + Send,
     E: Clone + Debug + Display + Sync + Send,
 {
+	if edges.len() < 1 {
+		return ;
+	}
+	edges[0].upgrade().unwrap().source().open();
     for weak in edges.iter() {
         let edge = weak.upgrade().unwrap();
+		edge.open();
         edge.target().open();
-        edge.source().open();
     }
 }
 
@@ -419,7 +441,9 @@ where
     {
         let mut segment: Vec<Weak<Edge<K, N, E>>> = Vec::new();
         for edge in self.outbound().iter() {
-            if edge.target().try_lock() == OPEN {
+            if edge.try_lock() == OPEN
+			&& edge.target().try_lock() == OPEN {
+				edge.close();
                 edge.target().close();
                 let traversal_state = user_closure(edge);
                 match traversal_state {
@@ -438,7 +462,9 @@ where
         }
 		for edge in self.inbound().iter() {
 			let upgrade = edge.upgrade().unwrap();
-            if upgrade.target().try_lock() == OPEN {
+            if upgrade.try_lock() == OPEN
+			&& upgrade.target().try_lock() == OPEN {
+				upgrade.close();
                 upgrade.target().close();
                 let traversal_state = user_closure(&upgrade);
                 match traversal_state {
@@ -450,7 +476,8 @@ where
                         return Continue::No(segment);
                     }
                     Traverse::Skip => {
-                        upgrade.target().open();
+						upgrade.target().open();
+						upgrade.open();
                     }
                 }
             }
@@ -462,26 +489,12 @@ where
 //=============================================================================
 // TRAIT IMPLEMENTATIONS
 
-impl<K, N, E> Iterator for Node<K, N, E>
-where
-    K: Hash + Eq + Clone + Debug + Display + Sync + Send,
-    N: Clone + Debug + Display + Sync + Send,
-    E: Clone + Debug + Display + Sync + Send,
-{
-	type Item = Arc<Edge<K, N, E>>;
-
-	fn next(&mut self) -> Option<Self::Item> {
-		None
-	}
-}
-
 unsafe impl<K, N, E> Sync for Node<K, N, E>
 where
     K: Hash + Eq + Clone + Debug + Display + Sync + Send,
     N: Clone + Debug + Display + Sync + Send,
     E: Clone + Debug + Display + Sync + Send,
-{
-}
+{}
 
 impl<K, N, E> Clone for Node<K, N, E>
 where
@@ -587,7 +600,7 @@ where
     }
     if flag == true {
         source.outbound_mut().remove(idx.0);
-        source.inbound_mut().remove(idx.0);
+        source.inbound_mut().remove(idx.1);
     }
     flag
 }
