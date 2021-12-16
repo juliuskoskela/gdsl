@@ -7,10 +7,10 @@ algorithms offering speedups when traversing the graph.
 # Example Usage
 
 ```rust
-use fastgraph::core::Empty;
-use fastgraph::collections::Digraph;
+use fastgraph::core::{Empty, Traverse};
+use fastgraph::collections::*;
 
-fn test() {
+fn main() {
 	let mut g = Digraph::<usize, Empty, Empty>::new();
 
 	g.add_node(1, Empty);
@@ -44,7 +44,7 @@ fn test() {
 			}
 		}).unwrap();
 
-	let shortest_path = backtrack_edges(&shortest_tree);
+	let shortest_path = fastgraph::core::backtrack_edges(&shortest_tree);
 
 	for edge in shortest_path {
 		println!("{}", edge.upgrade().unwrap())
