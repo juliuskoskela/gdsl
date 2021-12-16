@@ -5,10 +5,10 @@
 //! # Example Usage
 //!
 //! ```
-//! use fastgraph::core::*;
+//! use fastgraph::core::{Empty, Traverse};
 //! use fastgraph::collections::*;
 //!
-//! fn test() {
+//! fn main() {
 //! 	let mut g = Digraph::<usize, Empty, Empty>::new();
 //!
 //! 	g.add_node(1, Empty);
@@ -33,7 +33,7 @@
 //! 	g.add_edge(4, 6, Empty);
 //!
 //! 	let sink = g.get_node(6).unwrap();
-//! 	let res1 = g.par_breadth_first(1,
+//! 	let shortest_tree = g.par_breadth_first(1,
 //! 		|edge|{
 //! 			if edge.target() == sink {
 //! 				Traverse::Finish
@@ -42,7 +42,7 @@
 //! 			}
 //! 		}).unwrap();
 //!
-//! 	let shortest_path = backtrack_edges(&res1);
+//! 	let shortest_path = fastgraph::core::backtrack_edges(&shortest_tree);
 //!
 //! 	for edge in shortest_path {
 //! 		println!("{}", edge.upgrade().unwrap())
