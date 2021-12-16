@@ -1,5 +1,4 @@
 use rand::Rng;
-use std::sync::Arc;
 use fastgraph::{graph::*, core::*};
 use fastgraph::core::Empty;
 use criterion::{criterion_group, criterion_main, Criterion, BenchmarkId};
