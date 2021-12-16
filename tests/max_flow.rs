@@ -1,4 +1,6 @@
-use crate::{graph::*, core::*};
+use fastgraph::core::*;
+use fastgraph::graph::*;
+use fastgraph::core::Empty;
 use std::sync::{Arc, Weak};
 
 // Flow Graph
@@ -153,4 +155,33 @@ pub fn maximum_flow_edmonds_karp(g: &FlowGraph, s: usize, t: usize) -> usize {
 		max_flow += aug_flow;
 	}
 	max_flow
+}
+
+
+fn flow_graph_example_1to6_23() -> FlowGraph {
+	let mut g = FlowGraph::new();
+	g.add_node(1, Empty);
+	g.add_node(2, Empty);
+	g.add_node(3, Empty);
+	g.add_node(4, Empty);
+	g.add_node(5, Empty);
+	g.add_node(6, Empty);
+	add_edge_flow(&mut g, &1, &2, 16);
+	add_edge_flow(&mut g, &1, &3, 13);
+	add_edge_flow(&mut g, &2, &3, 10);
+	add_edge_flow(&mut g, &2, &4, 12);
+	add_edge_flow(&mut g, &3, &2, 4);
+	add_edge_flow(&mut g, &3, &5, 14);
+	add_edge_flow(&mut g, &4, &3, 9);
+	add_edge_flow(&mut g, &4, &6, 20);
+	add_edge_flow(&mut g, &5, &4, 7);
+	add_edge_flow(&mut g, &5, &6, 4);
+	g
+}
+
+#[test]
+fn digraph_test_maximum_flow_edmonds_karp() {
+	let g = flow_graph_example_1to6_23();
+	let max_flow = parallel_maximum_flow_edmonds_karp(&g, 1, 6);
+	assert!(max_flow == 23);
 }
