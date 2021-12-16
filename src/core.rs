@@ -254,8 +254,8 @@ where
     N: Clone + Debug + Display + Sync + Send,
     E: Clone + Debug + Display + Sync + Send,
 {
-    pub key: K,
-    pub  data: Mutex<N>,
+    key: K,
+    data: Mutex<N>,
     outbound: Outbound<K, N, E>,
     inbound: Inbound<K, N, E>,
     lock: AtomicBool,
