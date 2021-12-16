@@ -617,7 +617,8 @@ where
 /// # Examples
 ///
 /// ```
-/// use graph::core::*;
+/// use fastgraph::core::*;
+/// use std::sync::Arc;
 ///
 /// let n1 = Arc::new(Node::<u32, Empty, Empty>::new(1, Empty));
 /// let n2 = Arc::new(Node::<u32, Empty, Empty>::new(2, Empty));
@@ -641,7 +642,6 @@ where
 ///
 /// assert!(shortest_path.len() == 1);
 /// ```
-///
 ///
 
 pub fn directed_breadth_traversal<K, N, E, F>(
@@ -771,7 +771,8 @@ where
 /// # Examples
 ///
 /// ```
-/// use graph::core::*;
+/// use fastgraph::core::*;
+/// use std::sync::Arc;
 ///
 /// let n1 = Arc::new(Node::<u32, Empty, Empty>::new(1, Empty));
 /// let n2 = Arc::new(Node::<u32, Empty, Empty>::new(2, Empty));
@@ -796,6 +797,7 @@ where
 /// assert!(shortest_path.len() == 1);
 /// ```
 ///
+
 pub fn parallel_directed_breadth_traversal<K, N, E, F>(
     source: &Arc<Node<K, N, E>>,
     explorer: F,
@@ -947,11 +949,8 @@ where
 /// # Examples
 ///
 /// ```
-/// use graph::node::*;
-/// use graph::global::*;
-/// use graph::node::Traverse::*;
-/// use graph::traverse::Continue;
-/// use graph::traverse::*;
+/// use fastgraph::core::*;
+/// use std::sync::Arc;
 ///
 /// let n1 = Arc::new(Node::<u32, Empty, Empty>::new(1, Empty));
 /// let n2 = Arc::new(Node::<u32, Empty, Empty>::new(2, Empty));
@@ -964,9 +963,9 @@ where
 /// let edges = directed_depth_traversal(&n1,
 /// 	| edge | {
 /// 		if n3 == edge.target() {
-///				Finish
+///				Traverse::Finish
 ///			} else {
-///				Include
+///				Traverse::Include
 ///			}
 /// 	})
 /// 	.unwrap();
@@ -976,6 +975,7 @@ where
 /// assert!(shortest_path.len() == 2);
 /// ```
 ///
+
 fn directed_depth_traversal_recursion<K, N, E, F>(
     source: &Arc<Node<K, N, E>>,
     results: &mut Vec<Weak<Edge<K, N, E>>>,
