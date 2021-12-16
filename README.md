@@ -103,4 +103,4 @@ over sequantial iteration as long as the graph's size is big enough to justify
 the overhead. Under the hood fastgraph uses the `rayon` library to parallelize
 traversal loops.
 
-[benchmarks][benches/example_benchmark/report/index.html]
+[benchmarks][https://github.com/juliuskoskela/fastgraph/blob/32f7ebaa0f38bd1c3e276687e9234faca493a6ff/benches/example_benchmark/report/index.html]
