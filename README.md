@@ -1,5 +1,7 @@
 # Fastgraph
 
+!!!Expect breaking changes
+
 A graph API offering a powerful graph trait that allows for the construction of
 many types of graphs for different use-cases. Implements powerful parallel traversal
 algorithms offering speedups when traversing the graph.
