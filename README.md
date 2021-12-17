@@ -64,7 +64,7 @@ fn main() {
 
 # Implementation
 
-Fastgraph is implemented ion a way as to allow for fast and concurrent
+Fastgraph is implemented in a way as to allow for fast and concurrent
 processing of a graph. The underlying representation is basically an adjacency
 list, but both edges and nodes are implemented as their own structures and may
 contain arbitary data available atomically to each thread during traversal.
