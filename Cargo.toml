@@ -14,13 +14,11 @@ keywords = ["data-structure", "graph", "graph-algorithms"]
 categories = ["data-structures"]
 
 [dependencies]
-rand = "0.8.4"
 rayon = "1.5.1"
-lazy_static = "1.4.0"
-primes = "0.3.0"
 parking_lot = "0.11.2"
 
 [dev-dependencies]
+rand = "0.8.4"
 criterion = "0.3"
 
 [[bench]]
