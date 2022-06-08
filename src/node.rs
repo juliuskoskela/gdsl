@@ -3,9 +3,12 @@ use std::sync::{Arc, Mutex, RwLock};
 use crate::core::Empty;
 use std::hash::Hash;
 use std::fmt::Display;
+use std::collections::BTreeMap;
 use log::debug;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 // use parking_lot::{RwLock, Mutex, RwLockReadGuard, RwLockWriteGuard};
+
+pub type GraphMap<K, N, E> = BTreeMap<K, GraphNode<K, N, E>>;
 
 const OPEN: bool = false;
 const CLOSED: bool = true;
@@ -546,7 +549,7 @@ struct Adjacent<GraphEdge>
 	inbound: RwLock<Vec<GraphEdge>>,
 }
 
-struct GraphNodeInner<N, E, K>
+struct GraphNodeInner<K, N, E>
 where
 	E: Clone + Sync + Send,
 	N: Clone + Sync + Send,
@@ -554,20 +557,20 @@ where
 {
 	id : K,
 	params: Mutex<Option<N>>,
-	adjacent: Adjacent<GraphEdge<E, GraphNode<N, E, K>>>,
+	adjacent: Adjacent<GraphEdge<E, GraphNode<K, N, E>>>,
 	lock: AtomicBool,
 }
 
-pub struct GraphNode<N, E, K>
+pub struct GraphNode<K, N, E>
 where
 	E: Clone + Sync + Send,
 	N: Clone + Sync + Send,
 	K: Clone + Sync + Send + Hash + PartialEq + Display
 {
-	handle: Arc<GraphNodeInner<N, E, K>>,
+	handle: Arc<GraphNodeInner<K, N, E>>,
 }
 
-impl<N, E, K> std::fmt::Display for GraphNode<N, E, K>
+impl<K, N, E> std::fmt::Display for GraphNode<K, N, E>
 where
 	E: Clone + Sync + Send + std::fmt::Display,
 	N: Clone + Sync + Send + std::fmt::Display,
@@ -583,7 +586,7 @@ where
 	}
 }
 
-impl<N, E, K> Clone for GraphNode<N, E, K>
+impl<K, N, E> Clone for GraphNode<K, N, E>
 where
 	E: Clone + Sync + Send,
 	N: Clone + Sync + Send,
@@ -596,7 +599,7 @@ where
 	}
 }
 
-impl<N, E, K> PartialEq for GraphNode<N, E, K>
+impl<K, N, E> PartialEq for GraphNode<K, N, E>
 where
 	E: Clone + Sync + Send,
 	N: Clone + Sync + Send,
@@ -607,7 +610,7 @@ where
 	}
 }
 
-impl<N, E, K> Node for GraphNode<N, E, K>
+impl<K, N, E> Node for GraphNode<K, N, E>
 where
 	E: Clone + Sync + Send,
 	N: Clone + Sync + Send,

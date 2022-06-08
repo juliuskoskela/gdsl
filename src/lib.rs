@@ -55,6 +55,7 @@
 pub mod core;
 pub mod collections;
 pub mod node;
+pub mod dot;
 
 #[macro_export]
 macro_rules! node {
@@ -79,7 +80,7 @@ macro_rules! graph {
         {
 			use std::collections::BTreeMap;
 			let mut edges = Vec::<($K, $K)>::new();
-            let mut map = BTreeMap::<$K, GraphNode<$N, $E, $K>>::new();
+            let mut map = BTreeMap::<$K, GraphNode<$K, $N, $E>>::new();
             $(
 				$(
 					$(
@@ -99,87 +100,6 @@ macro_rules! graph {
             map
         }
     };
-
-	// (s, T) => [e1, e2]
-	( ($K:ty, $N:ty, $E:ty), $(($NODE:expr, $NPARAM:expr) => [ $( $EDGE:expr),*] )* )
-	=> {
-        {
-			use std::collections::BTreeMap;
-			let mut edges = Vec::<($K, $K)>::new();
-            let mut map = BTreeMap::<$K, GraphNode<$N, $E, $K>>::new();
-            $(
-				$(
-					$(
-						edges.push(($NODE, $EDGE));
-					)*
-				)?
-				let n = node!($NODE, $NPARAM);
-                map.insert(n.id().clone(), n);
-            )*
-			for (s, t) in edges {
-				if map.contains_key(&s) && map.contains_key(&t) {
-					let s = map.get(&s).unwrap();
-					let t = map.get(&t).unwrap();
-					connect!(s => t);
-				}
-			}
-            map
-        }
-    };
-
-	// s => [(e1, T), (e2, T)]
-	( ($K:ty, $N:ty, $E:ty) $(($NODE:expr) $( =>  $( [$EDGE:expr, $EPARAM:expr] ),* )? )* )
-	=> {
-		{
-			use std::collections::BTreeMap;
-			let mut edges = Vec::<($K, $K, $E)>::new();
-			let mut map = BTreeMap::<$K, GraphNode<$N, $E, $K>>::new();
-			$(
-				$(
-					$(
-						edges.push(($NODE, $EDGE, $EPARAM));
-					)*
-				)?
-				let n = node!($NODE);
-				map.insert(n.id().clone(), n);
-			)*
-			for (s, t, param) in edges {
-				if map.contains_key(&s) && map.contains_key(&t) {
-					let s = map.get(&s).unwrap();
-					let t = map.get(&t).unwrap();
-					connect!(s => t, Some(param));
-				}
-			}
-			map
-		}
-	};
-
-	// (s, T) => [(e1, T), (e2, T)]
-	( ($K:ty, $N:ty, $E:ty) $(($NODE:expr, $NPARAM:expr) $( =>  $( [$EDGE:expr, $EPARAM:expr] ),* )? )* )
-	=> {
-		{
-			use std::collections::BTreeMap;
-			let mut edges = Vec::<($K, $K, $E)>::new();
-			let mut map = BTreeMap::<$K, GraphNode<$N, $E, $K>>::new();
-			$(
-				$(
-					$(
-						edges.push(($NODE, $EDGE, $EPARAM));
-					)*
-				)?
-				let n = node!($NODE, $NPARAM);
-				map.insert(n.id().clone(), n);
-			)*
-			for (s, t, param) in edges {
-				if map.contains_key(&s) && map.contains_key(&t) {
-					let s = map.get(&s).unwrap();
-					let t = map.get(&t).unwrap();
-					connect!(s => t, Some(param));
-				}
-			}
-			map
-		}
-	};
 }
 
 #[macro_export]
@@ -190,7 +110,7 @@ macro_rules! graph_with_params {
 		{
 			use std::collections::BTreeMap;
 			let mut edges = Vec::<($K, $K, $E)>::new();
-			let mut map = BTreeMap::<$K, GraphNode<$N, $E, $K>>::new();
+			let mut map = BTreeMap::<$K, GraphNode<$K, $N, $E>>::new();
 			$(
 				$(
 					$(
@@ -226,10 +146,14 @@ macro_rules! connect {
     };
 }
 
+#[derive(Debug, PartialEq, Eq, Clone, std::hash::Hash)]
+enum Space { Galaxy, Star, Planet, BlackHole, Nebula}
+
 #[cfg(test)]
 mod tests {
 	use super::*;
 	use crate::node::*;
+	use Space::*;
 
 	#[test]
 	fn it_works() {
@@ -243,9 +167,6 @@ mod tests {
 			5
 		];
 
-		#[derive(Debug, PartialEq, Eq, Clone)]
-		enum Space { Galaxy, Star, Planet, BlackHole, Nebula}
-
 		impl std::fmt::Display for Space {
 			fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
 				match self {
@@ -257,8 +178,6 @@ mod tests {
 				}
 			}
 		}
-
-		use Space::*;
 
 		let space = graph_with_params![
 
@@ -317,5 +236,44 @@ mod tests {
 		for edge in result.unwrap() {
 			println!("{} -> {}", edge.source().id(), edge.target().id());
 		}
+	}
+
+	#[test]
+	fn dot_tests() {
+		let g1 = graph![
+			(usize, &str, usize),
+			0 => [1, 2]
+			1 => [0, 2]
+			2 => [0, 4]
+			3 => [0, 1, 3]
+			4 => [1, 2, 4, 5]
+			5
+		];
+
+		let space = graph_with_params![
+
+			(&str, Space) => [f32]
+
+			("Proxima Centauri", Star) =>
+				[
+					("Milky Way", 2873.124),
+					("Andromeda", 3425.24)
+				]
+
+			("Milky Way", Galaxy) =>
+				[
+					("Proxima Centauri", 547.135),
+					("Andromeda", 78873.145)
+				]
+
+			("Andromeda", Galaxy) =>
+				[
+					("Proxima Centauri", 23.442),
+					("TON-512", 25663.156)
+				]
+
+		];
+
+		dot::to_dot_directed(space);
 	}
 }
