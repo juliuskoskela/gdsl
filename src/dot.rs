@@ -1,7 +1,7 @@
 use std::collections::{HashMap};
 use std::fmt::Display;
 use std::hash::Hash;
-use crate::node::*;
+use crate::graph::*;
 
 // pub enum Attr {
 // 	Color(u32),
@@ -29,7 +29,7 @@ where
 	for (_, node) in graph {
 		let attr = "labels";
 		println!("\t{} [{}];", node.id(), attr);
-		for edge in node.outbound().read().unwrap().iter() {
+		for edge in node.outbound().read().iter() {
 			println!("\t{} -> {} [label=\"{}\"];", edge.source().id(), edge.target().id(), "edge attr");
 		}
 	}
@@ -46,10 +46,10 @@ where
 	for (_, node) in graph {
 		let attr = "labels";
 		println!("\t{} [label=\"{}\"];", node.id(), attr);
-		for edge in node.inbound().read().unwrap().iter() {
+		for edge in node.inbound().read().iter() {
 			println!("\t{} -- {} [label=\"{}\"];", edge.target().id(), edge.source().id(), "edge attr");
 		}
-		for edge in node.outbound().read().unwrap().iter() {
+		for edge in node.outbound().read().iter() {
 			println!("\t{} -- {} [label=\"{}\"];", edge.source().id(), edge.target().id(), "edge attr");
 		}
 	}

@@ -14,7 +14,7 @@ keywords = ["data-structure", "graph", "graph-algorithms"]
 categories = ["data-structures"]
 
 [dependencies]
-rayon = "1.5.1"
+rayon = "1.5.3"
 parking_lot = "0.11.2"
 log = "0.4.17"
 
