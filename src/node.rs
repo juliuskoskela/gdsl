@@ -5,7 +5,7 @@ use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use rayon::iter::IntoParallelRefIterator;
 use parking_lot::{RwLock, Mutex};
 use crate::enums::*;
-use crate::edge_trait::*;
+use crate::edge::*;
 use crate::path::*;
 
 pub trait GraphNode: PartialEq + Clone + Sync + Send {
@@ -51,7 +51,6 @@ pub trait GraphNode: PartialEq + Clone + Sync + Send {
 		let mut found = false;
 		for (i, edge) in self_outbound.iter().enumerate() {
 			if edge.target() == target {
-				edge.close();
 				found = true;
 				self_outbound.remove(i);
 				break;
@@ -60,7 +59,6 @@ pub trait GraphNode: PartialEq + Clone + Sync + Send {
 		if found {
 			for (i, edge) in target_inbound.iter().enumerate() {
 				if edge.source() == self {
-					edge.close();
 					target_inbound.remove(i);
 					break;
 				}
@@ -78,14 +76,14 @@ pub trait GraphNode: PartialEq + Clone + Sync + Send {
 
 	// Edge list operations
 
-	fn next(&self) -> Option<(<<Self as GraphNode>::Edge as GraphEdge<Self>>::Params, Self)> {
+	fn next(&self) -> Option<(Self::Edge, Self)> {
 		match self.outbound().read().iter().find(|edge| {
 			match edge.target().try_close() {
 				Ok(true) => true,
 				_ => false
 			}
 		}) {
-			Some(edge) => Some((edge.load(), edge.target().clone())),
+			Some(edge) => Some((edge.clone(), edge.target().clone())),
 			None => None
 		}
 	}

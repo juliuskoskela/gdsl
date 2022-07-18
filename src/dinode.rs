@@ -1,5 +1,5 @@
-use crate::node_trait::*;
-use crate::edge_trait::*;
+use crate::node::*;
+use crate::edge::*;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use std::fmt::Display;
@@ -9,7 +9,6 @@ pub struct EdgeInner<E, NT> {
 	source: NT,
 	target: NT,
 	params: Mutex<E>,
-	lock: AtomicBool,
 }
 
 #[derive(Clone)]
@@ -39,7 +38,6 @@ where
 			source: source.clone(),
 			target: target.clone(),
 			params: Mutex::new(params),
-			lock: AtomicBool::new(false),
 		});
 		Self { handle }
 	}
@@ -54,10 +52,6 @@ where
 
 	fn params(&self) -> &Mutex<Self::Params> {
 		&self.handle.params
-	}
-
-	fn lock(&self) -> &AtomicBool {
-		&self.handle.lock
 	}
 }
 

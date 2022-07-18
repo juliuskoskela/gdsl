@@ -1,7 +1,7 @@
 use criterion::Throughput;
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use fastgraph::dinode::Node;
-use fastgraph::node_trait::*;
+use fastgraph::node::*;
 use std::cmp::Reverse;
 use std::collections::BinaryHeap;
 use fastgraph::*;
@@ -68,8 +68,7 @@ fn bench_dijkstra(c: &mut Criterion) {
 
 // ============================================================================
 
-use std::cell::Cell;
-use fastgraph::edge_trait::GraphEdge;
+use fastgraph::edge::GraphEdge;
 fn bench_bfs(c: &mut Criterion) {
     static B: usize = 1000;
 

@@ -1,5 +1,5 @@
-use crate::node_trait::*;
-use crate::edge_trait::*;
+use crate::node::*;
+use crate::edge::*;
 
 pub struct Path<N: GraphNode> {
 	pub edges: Vec<N::Edge>,

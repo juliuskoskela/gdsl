@@ -1,5 +1,5 @@
 //! # Macros
-use crate::node_trait::GraphNode;
+use crate::node::GraphNode;
 use std::collections::BTreeMap;
 
 #[macro_export]
@@ -31,7 +31,7 @@ macro_rules! connect {
     ( $s:expr => $t:expr, $params:expr ) => {
         {
 			use crate::dinode::*;
-			use crate::node_trait::GraphNode;
+			use crate::node::GraphNode;
             Node::connect($s, $t, $params)
         }
     };

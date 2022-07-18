@@ -32,8 +32,9 @@
 //!	}
 //! ```
 
-pub mod node_trait;
-pub mod edge_trait;
+pub mod heap;
+pub mod node;
+pub mod edge;
 pub mod path;
 pub mod enums;
 pub mod dinode;
@@ -52,7 +53,7 @@ mod tests {
 		use crate::*;
 		use crate::enums::{Coll, Sig};
 		// use crate::enums::*;
-		use crate::node_trait::*;
+		use crate::node::*;
 		// use crate::dinode::Node;
 
 		let g = graph![
@@ -72,46 +73,11 @@ mod tests {
 
 		assert!(shortest_path.node_count() == 4);
 
-		// let source = &g[&0];
-		// let target = &g[&5];
-
-		// let mut edge_tree = Vec::new();
-		// let first_edge = source.outbound().read();
-		// let first_edge = first_edge.first().unwrap();
-		// edge_tree.push(first_edge.clone());
-		// let mut bounds: (usize, usize) = (0, 0);
-		// loop {
-		// 	let cur = edge_tree[bounds.1].target();
-		// 	bounds.1 = edge_tree.len();
-		// 	if bounds.0 == bounds.1 {
-		// 		break;
-		// 	}
-		// 	let adjacent = source.outbound().read();
-		// 	for edge in adjacent.iter() {
-		// 		match edge.target().try_close() {
-		// 			Ok(_) => {
-		// 				edge_tree.push(edge.clone());
-		// 				if edge.target() == target {
-		// 					break;
-		// 				}
-		// 			}
-		// 			Err(_) => {
-		// 				continue;
-		// 			}
-		// 		}
-		// 	}
-		// 	bounds.0 = bounds.1;
-		// 	let next = edge_tree[bounds.0].target();
-		// }
-
-		// let shortest_path: Path<Node<usize, Empty, Empty>> = Path::from_edge_tree(edge_tree);
-
-		// assert!(shortest_path.node_count() == 4);
 	}
 
 	#[test]
 	fn any_path() {
-		use crate::node_trait::*;
+		use crate::node::*;
 		let g = graph![
 			(usize)
 			(0) => [1, 2]
@@ -135,10 +101,9 @@ mod tests {
 
 	#[test]
 	fn djikstra() {
-		use crate::node_trait::*;
-		use crate::dinode::Node;
-		use std::cmp::Reverse;
-		use std::collections::BinaryHeap;
+		use crate::node::*;
+		use crate::edge::*;
+		use crate::heap::*;
 
 		// CREATE GRAPH:
 
@@ -148,7 +113,7 @@ mod tests {
 		let g = graph![
 
 			// The graph's type signature is (NodeKey, NodeParam) => [EdgeParam]
-			// in the macro invocation.
+			// in the macro-invocation.
 			(&str, u64) => [u64]
 
 			// We can add nodes and edges simultaneously. Trying to add an edge
@@ -162,31 +127,24 @@ mod tests {
 			("G", u64::MAX) => [ ("H", 1), ("I", 6), ("F", 2) ]
 			("H", u64::MAX) => [ ("A", 8), ("B", 11), ("I", 7), ("G", 1) ]
 			("I", u64::MAX) => [ ("H", 7), ("C", 2), ("G", 6) ]
-
 		];
 
-		// Since the standard library's BinaryHeap is a max-heap, we need to
-		// reverse the order of the nodes to make it a min-heap so we wrap
-		// our node (which implements Ord) into the std::cmp::Reverse enum.
-		let mut min_heap = BinaryHeap::<Reverse<Node<&str, u64, u64>>>::new();
-
 		// DIJKSTRA'S ALGORITHM:
+
+		// We use a min-heap to store the nodes that we haven't visited yet.
+		let mut min_heap = MinHeap::new();
 
 		// START:
 		// We start by adding the source node to the min-heap with a distance
 		// of 0.
 		g["A"].store(0);
-		min_heap.push(Reverse(g["A"].clone()));
+		min_heap.push(g["A"].clone());
 
 		// OUTER LOOP:
 		// We then from the the min-heap until it is empty or the target is
 		// found.
 		while let Some(u) = min_heap.pop() {
-
-			// Because `u` is wrapped in the Reverse enum so we access it from
-			// u.0`. We load the parameters (distance in this case) from the
-			// node using the `load` method.
-			let (u_dist, u) = (u.0.load(), u.0);
+			let u_dist = u.load();
 
 			// TERMINATE:
 			// Our loop over nodes in the heap terminates if the target node
@@ -204,10 +162,10 @@ mod tests {
 			// the distance already in `v`, we update the distance in `v`
 			// and add it to the min-heap.
 			while let Some((e, v)) = u.next() {
-				let (v_dist, e_len) = (v.load(), e);
+				let (e_len, v_dist) = (e.load(), v.load());
 				if v_dist > u_dist + e_len {
 					v.store(u_dist + e_len);
-					min_heap.push(Reverse(v.clone()));
+					min_heap.push(v.clone());
 				}
 			}
 		}
@@ -215,7 +173,7 @@ mod tests {
 
 	#[test]
 	fn basic1() {
-		use crate::node_trait::*;
+		use crate::node::*;
 
 		#[derive(Debug, PartialEq, Eq, Clone, std::hash::Hash)]
 		enum Space { Galaxy, Star, BlackHole, Nebula}
@@ -288,7 +246,7 @@ mod tests {
 	fn flow_graph() {
 		use crate::enums::{Coll::*, Sig::*};
 		use crate::templates::*;
-		use crate::node_trait::*;
+		use crate::node::*;
 
 		// Prepare flow graph
 		let graph: Vec<FlowNode> = vec![
@@ -348,6 +306,16 @@ mod tests {
 
 		// For this graph we expect the maximum flow from 0 -> 5 to be 23
 		assert!(max_flow == 23);
+	}
+
+	#[test]
+	fn test_fgraph() {
+		use crate::node::*;
+		type Foo = Box<dyn Fn () -> u32>;
+		type Bar = Box<dyn Fn (u32) -> String>;
+		graph![
+			(&str, Bar) => [Foo]
+		];
 	}
 }
 

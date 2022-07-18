@@ -1,4 +1,4 @@
-use crate::node_trait::*;
+use crate::node::*;
 
 pub const OPEN: bool = false;
 pub const CLOSED: bool = true;
