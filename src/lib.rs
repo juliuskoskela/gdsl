@@ -5,31 +5,6 @@
 //! # Example Usage
 //!
 //! ```
-//! fn main() {
-//!		use fastgraph::*;
-//!		use fastgraph::enums::{Coll, Sig};
-//!		use fastgraph::node_trait::*;
-//!
-//!		let g = graph![
-//!			(usize)
-//!			(0) => [1, 2]
-//!			(1) => [0, 2]
-//!			(2) => [0, 4]
-//!			(3) => [0, 1, 3]
-//!			(4) => [1, 2, 4, 5]
-//!			(5) => []
-//!		];
-//!
-//!		let shortest_path = g[&0].bfs(|_, v, _| {
-//!			if *v == g[&5] {
-//! 			(Coll::Include, Sig::Terminate)
-//! 		} else {
-//!				(Coll::Include, Sig::Continue)
-//! 		}
-//!		}).unwrap();
-//!
-//!		assert!(shortest_path.node_count() == 4);
-//!	}
 //! ```
 
 pub mod heap;
@@ -52,9 +27,7 @@ mod tests {
 	fn shortest_path() {
 		use crate::*;
 		use crate::enums::{Coll, Sig};
-		// use crate::enums::*;
 		use crate::node::*;
-		// use crate::dinode::Node;
 
 		let g = graph![
 			(usize)
@@ -308,14 +281,14 @@ mod tests {
 		assert!(max_flow == 23);
 	}
 
-	#[test]
-	fn test_fgraph() {
-		use crate::node::*;
-		type Foo = Box<dyn Fn () -> u32>;
-		type Bar = Box<dyn Fn (u32) -> String>;
-		graph![
-			(&str, Bar) => [Foo]
-		];
-	}
+	// #[test]
+	// fn test_fgraph() {
+	// 	use crate::node::*;
+	// 	type Foo = Box<dyn Fn () -> u32>;
+	// 	type Bar = Box<dyn Fn (u32) -> String>;
+	// 	graph![
+	// 		(&str, Bar) => [Foo]
+	// 	];
+	// }
 }
 
