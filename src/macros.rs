@@ -1,11 +1,11 @@
-use crate::new_node::Graph;
+use crate::graph::Graph;
 use std::hash::Hash;
 
 pub fn nodes_exist<K, N, E>(graph: &Graph<K, N, E>, s: K, t: K) -> bool
 where
 	K: std::fmt::Debug + std::fmt::Display + Hash + Eq + Clone + PartialEq,
 	N: std::fmt::Debug + Clone,
-	E: std::fmt::Debug + Clone,
+	E: Clone,
 {
 	if !graph.contains(&s) && !graph.contains(&t) {
 		panic!("Check your macro invocation: {} and {} are not in the graph", s, t);
@@ -22,14 +22,14 @@ where
 macro_rules! node {
 	( $key:expr ) => {
         {
-			use crate::enums::*;
-			use crate::new_node::Node;
+			use crate::*;
+			use crate::node::*;
             Node::new($key, Empty)
         }
     };
     ( $key:expr, $param:expr ) => {
         {
-			use crate::new_node::Node;
+			use crate::node::*;
             Node::new($key, $param)
         }
     };
@@ -39,14 +39,14 @@ macro_rules! node {
 macro_rules! connect {
 	( $s:expr => $t:expr ) => {
         {
-			use crate::new_node::Node;
-			use crate::enums::*;
+			use crate::node::*;
+			use crate::*;
             Node::connect($s, $t, Empty)
         }
     };
     ( $s:expr => $t:expr, $params:expr ) => {
         {
-			use crate::new_node::Node;
+			use crate::node::*;
             Node::connect($s, $t, $params)
         }
     };
@@ -59,13 +59,13 @@ macro_rules! graph {
 	( ($K:ty) $(($NODE:expr) => $( [ $( $EDGE:expr),*] )? )* )
 	=> {
 		{
-			use crate::new_node::Graph;
-			use crate::new_node::Node;
-			use crate::enums::*;
-			use crate::new_macros::nodes_exist;
+			use crate::graph::Graph;
+			use crate::*;
+			use crate::macros::nodes_exist;
 
 			let mut edges = Vec::<($K, $K)>::new();
-			let mut map = Graph::<$K, Node<$K, Empty, Empty>>::new();
+			edges.clear();
+			let mut graph = Graph::<$K, Empty, Empty>::new();
 			$(
 				$(
 					$(
@@ -73,30 +73,30 @@ macro_rules! graph {
 					)*
 				)?
 				let n = node!($NODE);
-				map.insert(n.id().clone(), n);
+				graph.insert(n);
 			)*
 			for (s, t) in edges {
-				if nodes_exist(map.clone(), s, t) {
-					let s = map.get(&s).unwrap();
-					let t = map.get(&t).unwrap();
-					connect!(s => t);
+				if nodes_exist(&graph, s, t) {
+					let s = graph.get(&s).unwrap();
+					let t = graph.get(&t).unwrap();
+					connect!(&s => &t);
 				}
 			}
-			map
+			graph
 		}
 	};
 
 	// (Key, Node)
-	( ($K:ty, $N:ty) $(($NODE:expr, $NPARAM:expr) => $( [$( ( $EDGE:expr) ),*] )? )* )
+	( ($K:ty, $N:ty) $(($NODE:expr, $NPARAM:expr) => $( [$(  $EDGE:expr) ,*] )? )* )
 	=> {
 		{
-			use crate::new_node::Graph;
-			use crate::new_node::Node;
-			use crate::enums::*;
-			use crate::new_macros::nodes_exist;
+			use crate::graph::Graph;
+			use crate::*;
+			use crate::macros::nodes_exist;
 
 			let mut edges = Vec::<($K, $K)>::new();
-			let mut map = Graph::<$K, Node<$K, $N, Empty>>::new();
+			edges.clear();
+			let mut graph = Graph::<$K, $N, Empty>::new();
 			$(
 				$(
 					$(
@@ -104,16 +104,16 @@ macro_rules! graph {
 					)*
 				)?
 				let n = node!($NODE, $NPARAM);
-				map.insert(n.id().clone(), n);
+				graph.insert(n);
 			)*
 			for (s, t) in edges {
-				if nodes_exist(map.clone(), s, t) {
-					let s = map.get(&s).unwrap();
-					let t = map.get(&t).unwrap();
-					connect!(s => t);
+				if nodes_exist(&graph, s, t) {
+					let s = graph.get(&s).unwrap();
+					let t = graph.get(&t).unwrap();
+					connect!(&s => &t);
 				}
 			}
-			map
+			graph
 		}
 	};
 
@@ -121,13 +121,13 @@ macro_rules! graph {
 	( ($K:ty) => [$E:ty] $(($NODE:expr) => $( [$( ( $EDGE:expr, $EPARAM:expr) ),*] )? )* )
 	=> {
 		{
-			use crate::new_node::Graph;
-			use crate::new_node::Node;
-			use crate::enums::*;
-			use crate::new_macros::nodes_exist;
+			use crate::graph::Graph;
+			use crate::*;
+			use crate::macros::nodes_exist;
 
 			let mut edges = Vec::<($K, $K, $E)>::new();
-			let mut map = Graph::<$K, Node<$K, Empty, $E>>::new();
+			edges.clear();
+			let mut graph = Graph::<$K, Empty, $E>::new();
 			$(
 				$(
 					$(
@@ -135,16 +135,16 @@ macro_rules! graph {
 					)*
 				)?
 				let n = node!($NODE);
-				map.insert(n.id().clone(), n);
+				graph.insert(n);
 			)*
 			for (s, t, param) in edges {
-				if nodes_exist(map.clone(), s, t) {
-					let s = map.get(&s).unwrap();
-					let t = map.get(&t).unwrap();
-					connect!(s => t, param);
+				if nodes_exist(&graph, s, t) {
+					let s = graph.get(&s).unwrap();
+					let t = graph.get(&t).unwrap();
+					connect!(&s => &t, param);
 				}
 			}
-			map
+			graph
 		}
 	};
 
@@ -153,11 +153,12 @@ macro_rules! graph {
 	=> {
 		{
 			use crate::*;
-			use crate::new_node::Graph;
-			use crate::new_macros::nodes_exist;
+			use crate::graph::Graph;
+			use crate::macros::nodes_exist;
 
 			let mut edges = Vec::<($K, $K, $E)>::new();
-			let mut map = Graph::<$K, $N, $E>::new();
+			edges.clear();
+			let mut graph = Graph::<$K, $N, $E>::new();
 			$(
 				$(
 					$(
@@ -165,16 +166,16 @@ macro_rules! graph {
 					)*
 				)?
 				let n = node!($NODE, $NPARAM);
-				map.insert(n);
+				graph.insert(n);
 			)*
 			for (s, t, param) in edges {
-				if nodes_exist(&map, s, t) {
-					let s = map.get(&s).unwrap();
-					let t = map.get(&t).unwrap();
+				if nodes_exist(&graph, s, t) {
+					let s = graph.get(&s).unwrap();
+					let t = graph.get(&t).unwrap();
 					connect!(&s => &t, param);
 				}
 			}
-			map
+			graph
 		}
 	};
 }
