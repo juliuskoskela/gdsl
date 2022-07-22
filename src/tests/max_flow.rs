@@ -54,7 +54,7 @@ pub fn max_flow(graph: Graph<usize, Empty, FlowEdge>) -> u64 {
 
 	// 1. We loop breadth-first until there is no more paths to explore.
 	let mut max_flow: u64 = 0;
-	while let Some(bfs) = graph[0].search().bfs_map(&graph[5], &|edge| {
+	while let Some(bfs) = graph[0].search().bfs_map(&graph[5], &|_, _, edge| {
 
 		// 2. We exclude saturated edges from the search.
 		edge.cur() < edge.max()

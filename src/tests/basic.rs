@@ -24,7 +24,7 @@ fn graph_search() {
 		panic!();
 	}
 
-	if let Some(bfs) = g[0].search().bfs_map(&g[5], &|_| {true}) {
+	if let Some(bfs) = g[0].search().bfs_map(&g[5], &|_, _, _| {true}) {
 		let path = bfs.node_path();
 		assert!(path[0] == g[0]);
 		assert!(path[1] == g[1]);
@@ -43,7 +43,7 @@ fn graph_search() {
 		panic!();
 	}
 
-	if let Some(dfs) = g[0].search().dfs_map(&g[5], &|_| {true})  {
+	if let Some(dfs) = g[0].search().dfs_map(&g[5], &|_, _, _| {true})  {
 		let path = dfs.node_path();
 		assert!(path[0] == g[0]);
 		assert!(path[1] == g[3]);

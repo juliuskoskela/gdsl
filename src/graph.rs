@@ -280,7 +280,7 @@ where
 	}
 }
 
-pub type Map<'a, K, N, E> = &'a dyn Fn(Edge<K, N, E>) -> bool;
+pub type Map<'a, K, N, E> = &'a dyn Fn(Node<K, N, E>, Node<K, N, E>, E) -> bool;
 
 pub struct NodeSearch<K, N, E>
 where
@@ -337,7 +337,8 @@ where
 		while let Some(node) = queue.pop() {
 			for edge in &node {
 				if visited.insert(edge.target()) {
-					if map(edge.clone()) {
+					let (s, t, e) = edge.decomp();
+					if map(s, t, e) {
 						self.edge_tree_mut().push(edge.clone());
 						if &edge.target() == target {
 							return Some(self);
@@ -379,7 +380,8 @@ where
 		while let Some(node) = queue.pop_front() {
 			for edge in &node {
 				if visited.insert(edge.target()) {
-					if map(edge.clone()) {
+					let (s, t, e) = edge.decomp();
+					if map(s, t, e) {
 						self.edge_tree_mut().push(edge.clone());
 						if &edge.target() == target {
 							return Some(self);
@@ -427,7 +429,8 @@ where
 		while let Some(node) = queue.pop_min() {
 			for edge in &node {
 				if visited.insert(edge.target()) {
-					if map(edge.clone()) {
+					let (s, t, e) = edge.decomp();
+					if map(s, t, e) {
 						self.edge_tree_mut().push(edge.clone());
 						if &edge.target() == target {
 							return Some(self);
@@ -475,7 +478,8 @@ where
 		while let Some(node) = queue.pop_max() {
 			for edge in &node {
 				if visited.insert(edge.target()) {
-					if map(edge.clone()) {
+					let (s, t, e) = edge.decomp();
+					if map(s, t, e) {
 						self.edge_tree_mut().push(edge.clone());
 						if &edge.target() == target {
 							return Some(self);
