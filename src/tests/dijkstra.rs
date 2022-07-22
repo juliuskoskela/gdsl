@@ -27,7 +27,7 @@ fn dijkstra_pfs_min() {
 	g["A"].search().pfs_min_map(&g["E"], &|edge| {
 		let s_dist = *edge.source().borrow();
 		let t_dist = *edge.target().borrow();
-		let delta = **edge;
+		let delta = *edge;
 
 		if t_dist > s_dist + delta {
 			edge.target().replace(s_dist + delta);
@@ -49,7 +49,7 @@ fn dijkstra_pfs_max() {
 	g["A"].search().pfs_max_map(&g["E"], &|edge| {
 		let s_dist = *edge.source().borrow();
 		let t_dist = *edge.target().borrow();
-		let delta = **edge;
+		let delta = *edge;
 
 		if t_dist > s_dist + delta {
 			edge.target().replace(s_dist + delta);
@@ -73,12 +73,7 @@ fn dijkstra() {
 	g["A"].replace(0);
 	heap.push(g["A"].clone());
 
-	while let Some(s) = heap.pop_min() {
-
-		if s == g["E"] {
-			break;
-		}
-
+	'search: while let Some(s) = heap.pop_min() {
 		for edge in &s {
 
 			let t = edge.target();
@@ -88,6 +83,7 @@ fn dijkstra() {
 			if visited.insert(t.clone()) {
 				if t_dist > s_dist + e_delta {
 					t.replace(s_dist + e_delta);
+					if s == g["E"] { break 'search }
 					heap.push(t.clone());
 				}
 			}

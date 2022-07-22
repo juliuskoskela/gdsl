@@ -23,7 +23,7 @@ where
 	nodes: HashMap<K, Node<K, N, E>>,
 }
 
-impl<K, N, E> Graph<K, N, E>
+impl<'a, K, N, E> Graph<K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
 	N: Clone,
@@ -37,6 +37,10 @@ where
 
 	pub fn contains(&self, key: &K) -> bool {
 		self.nodes.contains_key(key)
+	}
+
+	pub fn len(&self) -> usize {
+		self.nodes.len()
 	}
 
 	pub fn get(&self, key: &K) -> Option<Node<K, N, E>> {
@@ -100,7 +104,7 @@ where
 	}
 }
 
-impl<K, N, E> std::ops::Index<K> for Graph<K, N, E>
+impl<'a, K, N, E> std::ops::Index<K> for Graph<K, N, E>
 where
 	K: Clone + Hash + Display + Eq,
 	N: Clone,

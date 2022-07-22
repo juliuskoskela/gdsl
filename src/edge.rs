@@ -58,9 +58,7 @@ where
 	}
 
 	pub fn downgrade(&self) -> WeakEdge<K, N, E> {
-		WeakEdge {
-			handle: Rc::downgrade(&self.handle),
-		}
+		WeakEdge { handle: Rc::downgrade(&self.handle) }
 	}
 
 	pub fn source(&self) -> Node<K, N, E> {

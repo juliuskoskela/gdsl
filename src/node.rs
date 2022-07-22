@@ -8,6 +8,28 @@ use min_max_heap::MinMaxHeap;
 use crate::edge::*;
 use crate::graph::*;
 
+pub type Map<'a, K, N, E> = &'a dyn Fn(Edge<K, N, E>) -> bool;
+
+pub struct WeakNode<K, N, E>
+where
+	K: Clone + Hash + Display,
+	N: Clone,
+	E: Clone,
+{
+	handle: Weak<NodeInner<K, N, E>>,
+}
+
+impl<K, N, E> WeakNode<K, N, E>
+where
+	K: Clone + Hash + Display,
+	N: Clone,
+	E: Clone,
+{
+	pub fn upgrade(&self) -> Option<Node<K, N, E>> {
+		self.handle.upgrade().map(|handle| Node { handle })
+	}
+}
+
 struct NodeInner<K, N, E>
 where
 	K: Clone + Hash + Display,
@@ -47,27 +69,15 @@ where
 		}
 	}
 
-	pub fn downgrade(&self) -> WeakNode<K, N, E> {
-		WeakNode {
-			handle: Rc::downgrade(&self.handle),
-		}
-	}
+	pub fn downgrade(&self) -> WeakNode<K, N, E> { WeakNode { handle: Rc::downgrade(&self.handle) } }
 
-	pub fn key(&self) -> &K {
-		&self.handle.key
-	}
+	pub fn key(&self) -> &K { &self.handle.key }
 
-	pub fn params(&self) -> &N {
-		&self.handle.params
-	}
+	pub fn params(&self) -> &N { &self.handle.params }
 
-	pub fn inbound(&self) -> &RefCell<Vec<WeakEdge<K, N, E>>> {
-		&self.handle.inbound
-	}
+	pub fn inbound(&self) -> &RefCell<Vec<WeakEdge<K, N, E>>> { &self.handle.inbound }
 
-	pub fn outbound(&self) -> &RefCell<Vec<Edge<K, N, E>>> {
-		&self.handle.outbound
-	}
+	pub fn outbound(&self) -> &RefCell<Vec<Edge<K, N, E>>> { &self.handle.outbound }
 
 	pub fn connect(&self, other: &Node<K, N, E>, params: E) {
 		let edge = Edge::new(self, other.clone(), params);
@@ -107,10 +117,286 @@ where
 		found
 	}
 
+	pub fn isolate(&self) {
+		let mut outbound = self.outbound().borrow_mut();
+		let mut inbound = self.inbound().borrow_mut();
+
+		for edge in inbound.iter() {
+			let target = edge.upgrade().unwrap().target();
+			let mut i = 0;
+			for edge in target.outbound().borrow().iter() {
+				if &edge.target() == self {
+					target.outbound().borrow_mut().remove(i);
+					break;
+				}
+				i += 1;
+			}
+		}
+
+		for edge in outbound.iter() {
+			let target = edge.target();
+			let mut i = 0;
+			for edge in target.inbound().borrow().iter() {
+				let edge = edge.upgrade().unwrap();
+				if &edge.target() == self {
+					target.inbound().borrow_mut().remove(i);
+					break;
+				}
+				i += 1;
+			}
+		}
+
+		outbound.clear();
+		inbound.clear();
+	}
+
 	pub fn search(&self) -> NodeSearch<K, N, E> {
 		NodeSearch { root: self.clone(), edge_tree: vec![] }
 	}
 }
+
+pub struct NodeSearch<K, N, E>
+where
+	K: Clone + std::hash::Hash + std::fmt::Display + PartialEq + Eq,
+	N: Clone,
+	E: Clone,
+{
+	root: Node<K, N, E>,
+	edge_tree: Vec<Edge<K, N, E>>,
+}
+
+impl<K, N, E> NodeSearch<K, N, E>
+where
+	K: Clone + std::hash::Hash + std::fmt::Display + PartialEq + Eq,
+	N: Clone,
+	E: Clone,
+{
+	pub fn root(&self) -> Node<K, N, E> {
+		self.root.clone()
+	}
+
+	pub fn edge_tree(&self) -> &Vec<Edge<K, N, E>> {
+		&self.edge_tree
+	}
+
+	pub fn edge_tree_mut(&mut self) -> &mut Vec<Edge<K, N, E>> {
+		&mut self.edge_tree
+	}
+
+	pub fn dfs(&mut self, target: &Node<K, N, E>) -> Option<&Self> {
+		let mut queue = Vec::new();
+		let mut visited = Graph::new();
+
+		queue.push(self.root());
+		while let Some(node) = queue.pop() {
+			for edge in &node {
+				if visited.insert(edge.target()) {
+					self.edge_tree_mut().push(edge.clone());
+					if &edge.target() == target {
+						return Some(self);
+					}
+					queue.push(edge.target());
+				}
+			}
+		}
+		None
+	}
+
+	pub fn dfs_map<'a>(&mut self, target: &Node<K, N, E>, map: Map<'a, K, N, E>) -> Option<&Self> {
+		let mut queue = Vec::new();
+		let mut visited = Graph::new();
+
+		queue.push(self.root());
+		while let Some(node) = queue.pop() {
+			for edge in &node {
+				if visited.insert(edge.target()) {
+					if map(edge.clone()) {
+						self.edge_tree_mut().push(edge.clone());
+						if &edge.target() == target {
+							return Some(self);
+						}
+						queue.push(edge.target());
+					} else {
+						visited.remove(edge.target());
+					}
+				}
+			}
+		}
+		None
+	}
+
+	pub fn bfs(&mut self, target: &Node<K, N, E>) -> Option<&Self> {
+		let mut queue = VecDeque::new();
+		let mut visited = Graph::new();
+
+		queue.push_back(self.root());
+		while let Some(node) = queue.pop_front() {
+			for edge in &node {
+				if visited.insert(edge.target()) {
+					self.edge_tree_mut().push(edge.clone());
+					if &edge.target() == target {
+						return Some(self);
+					}
+					queue.push_back(edge.target());
+				}
+			}
+		}
+		None
+	}
+
+	pub fn bfs_map<'a>(&mut self, target: &Node<K, N, E>, map: Map<'a, K, N, E>)  -> Option<&Self> {
+		let mut queue = VecDeque::new();
+		let mut visited = Graph::new();
+
+		queue.push_back(self.root());
+		while let Some(node) = queue.pop_front() {
+			for edge in &node {
+				if visited.insert(edge.target()) {
+					if map(edge.clone()) {
+						self.edge_tree_mut().push(edge.clone());
+						if &edge.target() == target {
+							return Some(self);
+						}
+						queue.push_back(edge.target());
+					} else {
+						visited.remove(edge.target());
+					}
+				}
+			}
+		}
+		None
+	}
+
+	pub fn pfs_min(&mut self, target: &Node<K, N, E>) -> Option<&Self>
+	where
+		N: Ord,
+	{
+		let mut queue = MinMaxHeap::new();
+		let mut visited = Graph::new();
+
+		queue.push(self.root());
+		while let Some(node) = queue.pop_min() {
+			for edge in &node {
+				if visited.insert(edge.target()) {
+					self.edge_tree_mut().push(edge.clone());
+					if &edge.target() == target {
+						return Some(self);
+					}
+					queue.push(edge.target());
+				}
+			}
+		}
+		None
+	}
+
+	pub fn pfs_min_map<'a>(&mut self, target: &Node<K, N, E>, map: Map<'a, K, N, E>) -> Option<&Self>
+	where
+		N: Ord,
+	{
+		let mut queue = MinMaxHeap::new();
+		let mut visited = Graph::new();
+
+		queue.push(self.root());
+		while let Some(node) = queue.pop_min() {
+			for edge in &node {
+				if visited.insert(edge.target()) {
+					if map(edge.clone()) {
+						self.edge_tree_mut().push(edge.clone());
+						if &edge.target() == target {
+							return Some(self);
+						}
+						queue.push(edge.target());
+					} else {
+						visited.remove(edge.target());
+					}
+				}
+			}
+		}
+		None
+	}
+
+	pub fn pfs_max(&mut self, target: &Node<K, N, E>) -> Option<&Self>
+	where
+		N: Ord,
+	{
+		let mut queue = MinMaxHeap::new();
+		let mut visited = Graph::new();
+
+		queue.push(self.root());
+		while let Some(node) = queue.pop_max() {
+			for edge in &node {
+				if visited.insert(edge.target()) {
+					self.edge_tree_mut().push(edge.clone());
+					if &edge.target() == target {
+						return Some(self);
+					}
+					queue.push(edge.target());
+				}
+			}
+		}
+		None
+	}
+
+	pub fn pfs_max_map<'a>(&mut self, target: &Node<K, N, E>, map: Map<'a, K, N, E>) -> Option<&Self>
+	where
+		N: Ord,
+	{
+		let mut queue = MinMaxHeap::new();
+		let mut visited = Graph::new();
+
+		queue.push(self.root());
+		while let Some(node) = queue.pop_max() {
+			for edge in &node {
+				if visited.insert(edge.target()) {
+					if map(edge.clone()) {
+						self.edge_tree_mut().push(edge.clone());
+						if &edge.target() == target {
+							return Some(self);
+						}
+						queue.push(edge.target());
+					} else {
+						visited.remove(edge.target());
+					}
+				}
+			}
+		}
+		None
+	}
+
+	pub fn edge_path(&self) -> Vec<Edge<K, N, E>> {
+		let mut path = Vec::new();
+
+		let len = self.edge_tree().len() - 1;
+		let w = self.edge_tree()[len].clone();
+		path.push(w.clone());
+		let mut i = 0;
+		for edge in self.edge_tree().iter().rev() {
+			let source = path[i].source();
+			if edge.target() == source {
+				path.push(edge.clone());
+				i += 1;
+			}
+		}
+		path.reverse();
+		path
+	}
+
+	pub fn node_path(&self) -> Vec<Node<K, N, E>> {
+		if self.edge_path().len() == 0 {
+			return Vec::new();
+		}
+		let mut path = Vec::new();
+		path.push(self.edge_path()[0].source());
+		for edge in self.edge_path() {
+			path.push(edge.target());
+		}
+		path
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Blanket implementations for Graph<K, N, E>
+///////////////////////////////////////////////////////////////////////////////
 
 impl<K, N, E> Deref for Node<K, N, E>
 where
@@ -247,266 +533,5 @@ where
 
 	fn into_iter(self) -> Self::IntoIter {
 		NodeIterator { node: self, position: 0 }
-	}
-}
-
-pub struct WeakNode<K, N, E>
-where
-	K: Clone + Hash + Display,
-	N: Clone,
-	E: Clone,
-{
-	handle: Weak<NodeInner<K, N, E>>,
-}
-
-impl<K, N, E> WeakNode<K, N, E>
-where
-	K: Clone + Hash + Display,
-	N: Clone,
-	E: Clone,
-{
-	pub fn upgrade(&self) -> Option<Node<K, N, E>> {
-		self.handle.upgrade().map(|handle| Node { handle })
-	}
-}
-
-pub type Map<'a, K, N, E> = &'a dyn Fn(&Edge<K, N, E>) -> bool;
-
-pub struct NodeSearch<K, N, E>
-where
-	K: Clone + std::hash::Hash + std::fmt::Display + PartialEq + Eq,
-	N: Clone,
-	E: Clone,
-{
-	root: Node<K, N, E>,
-	edge_tree: Vec<Edge<K, N, E>>,
-}
-
-impl<K, N, E> NodeSearch<K, N, E>
-where
-	K: Clone + std::hash::Hash + std::fmt::Display + PartialEq + Eq,
-	N: Clone,
-	E: Clone,
-{
-	pub fn root(&self) -> Node<K, N, E> {
-		self.root.clone()
-	}
-
-	pub fn edge_tree(&self) -> &Vec<Edge<K, N, E>> {
-		&self.edge_tree
-	}
-
-	pub fn edge_tree_mut(&mut self) -> &mut Vec<Edge<K, N, E>> {
-		&mut self.edge_tree
-	}
-
-	pub fn dfs(&mut self, target: &Node<K, N, E>) -> Option<&Self> {
-		let mut queue = Vec::new();
-		let mut visited = Graph::new();
-
-		queue.push(self.root());
-		while let Some(node) = queue.pop() {
-			for edge in &node {
-				if visited.insert(edge.target()) {
-					self.edge_tree_mut().push(edge.clone());
-					if &edge.target() == target {
-						return Some(self);
-					}
-					queue.push(edge.target());
-				}
-			}
-		}
-		None
-	}
-
-	pub fn dfs_map<'a>(&mut self, target: &Node<K, N, E>, map: Map<'a, K, N, E>) -> Option<&Self> {
-		let mut queue = Vec::new();
-		let mut visited = Graph::new();
-
-		queue.push(self.root());
-		while let Some(node) = queue.pop() {
-			for edge in &node {
-				if visited.insert(edge.target()) {
-					if map(&edge) {
-						self.edge_tree_mut().push(edge.clone());
-						if &edge.target() == target {
-							return Some(self);
-						}
-						queue.push(edge.target());
-					} else {
-						visited.remove(edge.target());
-					}
-				}
-			}
-		}
-		None
-	}
-
-	pub fn bfs(&mut self, target: &Node<K, N, E>) -> Option<&Self> {
-		let mut queue = VecDeque::new();
-		let mut visited = Graph::new();
-
-		queue.push_back(self.root());
-		while let Some(node) = queue.pop_front() {
-			for edge in &node {
-				if visited.insert(edge.target()) {
-					self.edge_tree_mut().push(edge.clone());
-					if &edge.target() == target {
-						return Some(self);
-					}
-					queue.push_back(edge.target());
-				}
-			}
-		}
-		None
-	}
-
-	pub fn bfs_map<'a>(&mut self, target: &Node<K, N, E>, map: Map<'a, K, N, E>)  -> Option<&Self> {
-		let mut queue = VecDeque::new();
-		let mut visited = Graph::new();
-
-		queue.push_back(self.root());
-		while let Some(node) = queue.pop_front() {
-			for edge in &node {
-				if visited.insert(edge.target()) {
-					if map(&edge) {
-						self.edge_tree_mut().push(edge.clone());
-						if &edge.target() == target {
-							return Some(self);
-						}
-						queue.push_back(edge.target());
-					} else {
-						visited.remove(edge.target());
-					}
-				}
-			}
-		}
-		None
-	}
-
-	pub fn pfs_min(&mut self, target: &Node<K, N, E>) -> Option<&Self>
-	where
-		N: Ord,
-	{
-		let mut queue = MinMaxHeap::new();
-		let mut visited = Graph::new();
-
-		queue.push(self.root());
-		while let Some(node) = queue.pop_min() {
-			for edge in &node {
-				if visited.insert(edge.target()) {
-					self.edge_tree_mut().push(edge.clone());
-					if &edge.target() == target {
-						return Some(self);
-					}
-					queue.push(edge.target());
-				}
-			}
-		}
-		None
-	}
-
-	pub fn pfs_min_map<'a>(&mut self, target: &Node<K, N, E>, map: Map<'a, K, N, E>) -> Option<&Self>
-	where
-		N: Ord,
-	{
-		let mut queue = MinMaxHeap::new();
-		let mut visited = Graph::new();
-
-		queue.push(self.root());
-		while let Some(node) = queue.pop_min() {
-			for edge in &node {
-				if visited.insert(edge.target()) {
-					if map(&edge) {
-						self.edge_tree_mut().push(edge.clone());
-						if &edge.target() == target {
-							return Some(self);
-						}
-						queue.push(edge.target());
-					} else {
-						visited.remove(edge.target());
-					}
-				}
-			}
-		}
-		None
-	}
-
-	pub fn pfs_max(&mut self, target: &Node<K, N, E>) -> Option<&Self>
-	where
-		N: Ord,
-	{
-		let mut queue = MinMaxHeap::new();
-		let mut visited = Graph::new();
-
-		queue.push(self.root());
-		while let Some(node) = queue.pop_max() {
-			for edge in &node {
-				if visited.insert(edge.target()) {
-					self.edge_tree_mut().push(edge.clone());
-					if &edge.target() == target {
-						return Some(self);
-					}
-					queue.push(edge.target());
-				}
-			}
-		}
-		None
-	}
-
-	pub fn pfs_max_map<'a>(&mut self, target: &Node<K, N, E>, map: Map<'a, K, N, E>) -> Option<&Self>
-	where
-		N: Ord,
-	{
-		let mut queue = MinMaxHeap::new();
-		let mut visited = Graph::new();
-
-		queue.push(self.root());
-		while let Some(node) = queue.pop_max() {
-			for edge in &node {
-				if visited.insert(edge.target()) {
-					if map(&edge) {
-						self.edge_tree_mut().push(edge.clone());
-						if &edge.target() == target {
-							return Some(self);
-						}
-						queue.push(edge.target());
-					} else {
-						visited.remove(edge.target());
-					}
-				}
-			}
-		}
-		None
-	}
-
-	pub fn edge_path(&self) -> Vec<Edge<K, N, E>> {
-		let mut path = Vec::new();
-
-		let len = self.edge_tree().len() - 1;
-		let w = self.edge_tree()[len].clone();
-		path.push(w.clone());
-		let mut i = 0;
-		for edge in self.edge_tree().iter().rev() {
-			let source = path[i].source();
-			if edge.target() == source {
-				path.push(edge.clone());
-				i += 1;
-			}
-		}
-		path.reverse();
-		path
-	}
-
-	pub fn node_path(&self) -> Vec<Node<K, N, E>> {
-		if self.edge_path().len() == 0 {
-			return Vec::new();
-		}
-		let mut path = Vec::new();
-		path.push(self.edge_path()[0].source());
-		for edge in self.edge_path() {
-			path.push(edge.target());
-		}
-		path
 	}
 }
