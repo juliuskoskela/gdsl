@@ -1,8 +1,8 @@
 use criterion::Throughput;
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
-use fastgraph::async_graph::*;
-use fastgraph::graph::*;
-use fastgraph::*;
+use ndn_graph::async_graph::*;
+use ndn_graph::graph::*;
+use ndn_graph::*;
 use rand::*;
 use std::cell::RefCell;
 use min_max_heap::MinMaxHeap;

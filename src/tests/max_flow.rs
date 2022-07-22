@@ -11,6 +11,15 @@ pub struct Flow(u64, u64);
 #[derive(Clone)]
 pub struct FlowEdge(Rc<Cell<Flow>>, Weak<Cell<Flow>>);
 
+impl FmtDot for FlowEdge {
+	fn fmt_dot(&self) -> Vec<(String, String)> {
+		let key = format!("label");
+		let Flow (cur, max) = self.0.get();
+		let value = format!("{}/{}", cur, max);
+		vec![(key, value)]
+	}
+}
+
 impl FlowEdge {
 
 	// Connect two nodes with a flow.
@@ -80,6 +89,9 @@ pub fn max_flow(graph: Graph<usize, Empty, FlowEdge>) -> u64 {
 	max_flow
 }
 
+
+use crate::dot::*;
+
 #[test]
 fn test_max_flow() {
 
@@ -103,5 +115,6 @@ fn test_max_flow() {
 	FlowEdge::connect(&graph[4], &graph[5], 4);
 
 	// For this graph we expect the maximum flow from 0 -> 5 to be 23
+	println!("{}", fmt_dot(graph.to_vec()));
 	assert!(max_flow(graph) == 23);
 }

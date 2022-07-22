@@ -1,5 +1,6 @@
 pub mod graph;
 pub mod async_graph;
+pub mod dot;
 pub mod tests;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]

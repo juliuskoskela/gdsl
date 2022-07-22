@@ -1,3 +1,9 @@
+//!////////////////////////////////////////////////////////////////////////////
+//!
+//! Graph API for Rust
+//!
+//!////////////////////////////////////////////////////////////////////////////
+
 use std::fmt::Display;
 use std::collections::HashMap;
 use std::hash::Hash;
@@ -6,18 +12,13 @@ use std::cell::RefCell;
 use std::ops::Deref;
 use std::collections::VecDeque;
 use min_max_heap::MinMaxHeap;
-use crate::*;
 
-pub trait FmtDot {
-	fn fmt_dot(&self) -> String;
-}
+// Internal types
+type Map<'a, K, N, E> = &'a dyn Fn(Node<K, N, E>, Node<K, N, E>, E) -> bool;
 
-impl FmtDot for Empty {
-	fn fmt_dot(&self) -> String {
-		String::new()
-	}
-}
-
+///////////////////////////////////////////////////////////////////////////////
+///
+/// Graph container
 pub struct Graph<K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
@@ -88,23 +89,8 @@ where
 			.collect()
 	}
 
-	pub fn fmt_dot(&self) -> String
-	 where
-		N: FmtDot,
-		E: FmtDot,
-	{
-		let mut s = String::new();
-		s.push_str("digraph {\n");
-		for node in self.nodes.values() {
-			s.push_str(&format!("    {} [ label=\"{}: {}\" ]\n", node.key(), node.key(), node.fmt_dot()));
-		}
-		for node in self.nodes.values() {
-			for edge in node {
-				s.push_str(&format!("    {} -> {} [ label=\"{}\" ]\n", edge.source().key(), edge.target().key(), edge.fmt_dot()));
-			}
-		}
-		s.push_str("}");
-		s
+	pub fn to_vec(&self) -> Vec<Node<K, N, E>> {
+		self.nodes.values().map(|node| node.clone()).collect()
 	}
 }
 
@@ -121,6 +107,9 @@ where
 	}
 }
 
+///////////////////////////////////////////////////////////////////////////////
+///
+/// Weak reference to a node.
 pub struct WeakNode<K, N, E>
 where
 	K: Clone + Hash + Display,
@@ -141,6 +130,19 @@ where
 	}
 }
 
+///////////////////////////////////////////////////////////////////////////////
+///
+/// Node smart pointer.
+#[derive(Clone)]
+pub struct Node<K, N, E>
+where
+	K: Clone + Hash + Display,
+	N: Clone,
+	E: Clone,
+{
+	handle: Rc<NodeInner<K, N, E>>,
+}
+
 struct NodeInner<K, N, E>
 where
 	K: Clone + Hash + Display,
@@ -151,16 +153,6 @@ where
 	params: N,
 	outbound: RefCell<Vec<Edge<K, N, E>>>,
 	inbound: RefCell<Vec<WeakEdge<K, N, E>>>,
-}
-
-#[derive(Clone)]
-pub struct Node<K, N, E>
-where
-	K: Clone + Hash + Display,
-	N: Clone,
-	E: Clone,
-{
-	handle: Rc<NodeInner<K, N, E>>,
 }
 
 impl<K, N, E> Node<K, N, E>
@@ -280,7 +272,148 @@ where
 	}
 }
 
-pub type Map<'a, K, N, E> = &'a dyn Fn(Node<K, N, E>, Node<K, N, E>, E) -> bool;
+impl<K, N, E> Deref for Node<K, N, E>
+where
+	K: Clone + Hash + Display + PartialEq + Eq,
+	N: Clone,
+	E: Clone,
+{
+	type Target = N;
+
+	fn deref(&self) -> &Self::Target {
+		&self.params()
+	}
+}
+
+impl<K, N, E> PartialEq for Node<K, N, E>
+where
+	K: Clone + Hash + Display + PartialEq + Eq,
+	N: Clone,
+	E: Clone,
+{
+	fn eq(&self, other: &Self) -> bool {
+		self.key() == other.key()
+	}
+}
+
+
+impl<K, N, E> Eq for Node<K, N, E>
+where
+	K: Clone + Hash + Display + PartialEq + Eq,
+	N: Clone,
+	E: Clone,
+{ }
+
+impl<K, N, E> PartialOrd for Node<K, N, E>
+where
+	K: Clone + Hash + PartialEq + Display + Eq,
+	N: Clone + Ord,
+	E: Clone,
+{
+	fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+		Some(self.params().cmp(&other.params()))
+	}
+}
+
+impl<K, N, E> Ord for Node<K, N, E>
+where
+	K: Clone + Hash + PartialEq + Display + Eq,
+	N: Clone + Ord,
+	E: Clone,
+{
+	fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+		self.params().cmp(&other.params())
+	}
+}
+
+pub struct NodeIntoIterator<K, N, E>
+where
+	K: Clone + Hash + Display + PartialEq + Eq,
+	N: Clone,
+	E: Clone,
+{
+	node: Node<K, N, E>,
+	position: usize,
+}
+
+impl<K, N, E> Iterator for NodeIntoIterator<K, N, E>
+where
+	K: Clone + Hash + Display + PartialEq + Eq,
+	N: Clone,
+	E: Clone,
+{
+	type Item = Edge<K, N, E>;
+
+	fn next(&mut self) -> Option<Self::Item> {
+		if self.position >= self.node.outbound().borrow().len() {
+			None
+		} else {
+			self.position += 1;
+			Some(self.node.outbound().borrow()[self.position - 1].clone())
+		}
+	}
+}
+
+impl<'a, K, N, E> IntoIterator for Node<K, N, E>
+where
+	K: Clone + Hash + Display + PartialEq + Eq,
+	N: Clone,
+	E: Clone,
+{
+	type Item = Edge<K, N, E>;
+	type IntoIter = NodeIntoIterator<K, N, E>;
+
+	fn into_iter(self) -> Self::IntoIter {
+		NodeIntoIterator { node: self, position: 0 }
+	}
+}
+
+pub struct NodeIterator<'a, K, N, E>
+where
+	K: Clone + Hash + Display + PartialEq + Eq,
+	N: Clone,
+	E: Clone,
+{
+	node: &'a Node<K, N, E>,
+	position: usize,
+}
+
+impl<'a, K, N, E> Iterator for NodeIterator<'a, K, N, E>
+where
+	K: Clone + Hash + Display + PartialEq + Eq,
+	N: Clone,
+	E: Clone,
+{
+	type Item = Edge<K, N, E>;
+
+	fn next(&mut self) -> Option<Self::Item> {
+		if self.position >= self.node.outbound().borrow().len() {
+			None
+		} else {
+			self.position += 1;
+			Some(self.node.outbound().borrow()[self.position - 1].clone())
+		}
+	}
+}
+
+impl<'a, K, N, E> IntoIterator for &'a Node<K, N, E>
+where
+	K: Clone + Hash + Display + PartialEq + Eq,
+	N: Clone,
+	E: Clone,
+{
+	type Item = Edge<K, N, E>;
+	type IntoIter = NodeIterator<'a, K, N, E>;
+
+	fn into_iter(self) -> Self::IntoIter {
+		NodeIterator { node: self, position: 0 }
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+/// NodeSearch
+///
+/// Search for a node in the graph.
 
 pub struct NodeSearch<K, N, E>
 where
@@ -526,148 +659,17 @@ where
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// Blanket implementations for Graph<K, N, E>
-///////////////////////////////////////////////////////////////////////////////
-
-impl<K, N, E> Deref for Node<K, N, E>
+///
+/// Edge between two nodes.
+#[derive(Clone)]
+pub struct Edge<K, N, E>
 where
-	K: Clone + Hash + Display + PartialEq + Eq,
+	K: Clone + Hash + Display,
 	N: Clone,
 	E: Clone,
 {
-	type Target = N;
-
-	fn deref(&self) -> &Self::Target {
-		&self.params()
-	}
+	handle: Rc<EdgeInner<K, N, E>>,
 }
-
-impl<K, N, E> PartialEq for Node<K, N, E>
-where
-	K: Clone + Hash + Display + PartialEq + Eq,
-	N: Clone,
-	E: Clone,
-{
-	fn eq(&self, other: &Self) -> bool {
-		self.key() == other.key()
-	}
-}
-
-
-impl<K, N, E> Eq for Node<K, N, E>
-where
-	K: Clone + Hash + Display + PartialEq + Eq,
-	N: Clone,
-	E: Clone,
-{ }
-
-impl<K, N, E> PartialOrd for Node<K, N, E>
-where
-	K: Clone + Hash + PartialEq + Display + Eq,
-	N: Clone + Ord,
-	E: Clone,
-{
-	fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-		Some(self.params().cmp(&other.params()))
-	}
-}
-
-impl<K, N, E> Ord for Node<K, N, E>
-where
-	K: Clone + Hash + PartialEq + Display + Eq,
-	N: Clone + Ord,
-	E: Clone,
-{
-	fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-		self.params().cmp(&other.params())
-	}
-}
-
-pub struct NodeIntoIterator<K, N, E>
-where
-	K: Clone + Hash + Display + PartialEq + Eq,
-	N: Clone,
-	E: Clone,
-{
-	node: Node<K, N, E>,
-	position: usize,
-}
-
-impl<K, N, E> Iterator for NodeIntoIterator<K, N, E>
-where
-	K: Clone + Hash + Display + PartialEq + Eq,
-	N: Clone,
-	E: Clone,
-{
-	type Item = Edge<K, N, E>;
-
-	fn next(&mut self) -> Option<Self::Item> {
-		if self.position >= self.node.outbound().borrow().len() {
-			None
-		} else {
-			self.position += 1;
-			Some(self.node.outbound().borrow()[self.position - 1].clone())
-		}
-	}
-}
-
-impl<'a, K, N, E> IntoIterator for Node<K, N, E>
-where
-	K: Clone + Hash + Display + PartialEq + Eq,
-	N: Clone,
-	E: Clone,
-{
-	type Item = Edge<K, N, E>;
-	type IntoIter = NodeIntoIterator<K, N, E>;
-
-	fn into_iter(self) -> Self::IntoIter {
-		NodeIntoIterator { node: self, position: 0 }
-	}
-}
-
-pub struct NodeIterator<'a, K, N, E>
-where
-	K: Clone + Hash + Display + PartialEq + Eq,
-	N: Clone,
-	E: Clone,
-{
-	node: &'a Node<K, N, E>,
-	position: usize,
-}
-
-impl<'a, K, N, E> Iterator for NodeIterator<'a, K, N, E>
-where
-	K: Clone + Hash + Display + PartialEq + Eq,
-	N: Clone,
-	E: Clone,
-{
-	type Item = Edge<K, N, E>;
-
-	fn next(&mut self) -> Option<Self::Item> {
-		if self.position >= self.node.outbound().borrow().len() {
-			None
-		} else {
-			self.position += 1;
-			Some(self.node.outbound().borrow()[self.position - 1].clone())
-		}
-	}
-}
-
-impl<'a, K, N, E> IntoIterator for &'a Node<K, N, E>
-where
-	K: Clone + Hash + Display + PartialEq + Eq,
-	N: Clone,
-	E: Clone,
-{
-	type Item = Edge<K, N, E>;
-	type IntoIter = NodeIterator<'a, K, N, E>;
-
-	fn into_iter(self) -> Self::IntoIter {
-		NodeIterator { node: self, position: 0 }
-	}
-}
-
-// EDGE
 
 struct EdgeInner<K, N, E>
 where
@@ -678,16 +680,6 @@ where
 	params: E,
 	source: WeakNode<K, N, E>,
 	target: Node<K, N, E>,
-}
-
-#[derive(Clone)]
-pub struct Edge<K, N, E>
-where
-	K: Clone + Hash + Display,
-	N: Clone,
-	E: Clone,
-{
-	handle: Rc<EdgeInner<K, N, E>>,
 }
 
 impl<K, N, E> Edge<K, N, E>
@@ -759,6 +751,8 @@ where
 	}
 }
 
+
+// Macros
 pub fn nodes_exist<K, N, E>(graph: &Graph<K, N, E>, s: K, t: K) -> bool
 where
 	K: std::fmt::Debug + std::fmt::Display + Hash + Eq + Clone + PartialEq,
@@ -776,6 +770,9 @@ where
 	}
 }
 
+///////////////////////////////////////////////////////////////////////////////
+///
+/// Macro for creating a node.
 #[macro_export]
 macro_rules! node {
 	( $key:expr ) => {
@@ -794,6 +791,9 @@ macro_rules! node {
     };
 }
 
+///////////////////////////////////////////////////////////////////////////////
+///
+/// Macro for connecting two nodes.
 #[macro_export]
 macro_rules! connect {
 	( $s:expr => $t:expr ) => {
@@ -812,6 +812,9 @@ macro_rules! connect {
     };
 }
 
+///////////////////////////////////////////////////////////////////////////////
+///
+/// Macro for connecting creating a graph.
 #[macro_export]
 macro_rules! graph {
 

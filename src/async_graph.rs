@@ -6,7 +6,6 @@ use std::ops::Deref;
 use std::collections::VecDeque;
 use min_max_heap::MinMaxHeap;
 use std::collections::HashMap;
-use crate::graph::*;
 
 pub struct AsyncGraph<K, N, E>
 where
@@ -78,23 +77,8 @@ where
 			.collect()
 	}
 
-	pub fn fmt_dot(&self) -> String
-	 where
-		N: FmtDot,
-		E: FmtDot,
-	{
-		let mut s = String::new();
-		s.push_str("digraph {\n");
-		for node in self.nodes.values() {
-			s.push_str(&format!("    {} [ label=\"{}: {}\" ]\n", node.key(), node.key(), node.fmt_dot()));
-		}
-		for node in self.nodes.values() {
-			for edge in node {
-				s.push_str(&format!("    {} -> {} [ label=\"{}\" ]\n", edge.source().key(), edge.target().key(), edge.fmt_dot()));
-			}
-		}
-		s.push_str("}");
-		s
+	pub fn to_vec(&self) -> Vec<AsyncNode<K, N, E>> {
+		self.nodes.values().map(|node| node.clone()).collect()
 	}
 }
 
@@ -740,7 +724,7 @@ where
 	}
 }
 
-pub fn async_nodes_exist<K, N, E>(graph: &Graph<K, N, E>, s: K, t: K) -> bool
+pub fn async_nodes_exist<K, N, E>(graph: &AsyncGraph<K, N, E>, s: K, t: K) -> bool
 where
 	K: std::fmt::Debug + std::fmt::Display + Hash + Eq + Clone + PartialEq,
 	N: std::fmt::Debug + Clone,
