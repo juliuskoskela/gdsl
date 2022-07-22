@@ -75,14 +75,12 @@ fn dijkstra() {
 
 	'search: while let Some(s) = heap.pop_min() {
 		for edge in &s {
-
-			let t = edge.target();
+			let (_, t, delta) = edge.decomp();
 			let (s_dist, t_dist) = (*s.borrow(), *t.borrow());
-			let e_delta = *edge;
 
 			if visited.insert(t.clone()) {
-				if t_dist > s_dist + e_delta {
-					t.replace(s_dist + e_delta);
+				if t_dist > s_dist + delta {
+					t.replace(s_dist + delta);
 					if s == g["E"] { break 'search }
 					heap.push(t.clone());
 				}

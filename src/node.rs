@@ -5,10 +5,7 @@ use std::cell::RefCell;
 use std::ops::Deref;
 use std::collections::VecDeque;
 use min_max_heap::MinMaxHeap;
-use crate::edge::*;
 use crate::graph::*;
-
-pub type Map<'a, K, N, E> = &'a dyn Fn(Edge<K, N, E>) -> bool;
 
 pub struct WeakNode<K, N, E>
 where
@@ -69,15 +66,63 @@ where
 		}
 	}
 
-	pub fn downgrade(&self) -> WeakNode<K, N, E> { WeakNode { handle: Rc::downgrade(&self.handle) } }
+	fn downgrade(&self) -> WeakNode<K, N, E> { WeakNode { handle: Rc::downgrade(&self.handle) } }
 
 	pub fn key(&self) -> &K { &self.handle.key }
 
 	pub fn params(&self) -> &N { &self.handle.params }
 
+	pub fn outbound(&self) -> &RefCell<Vec<Edge<K, N, E>>> { &self.handle.outbound }
+
+	pub fn find_outbound(&self, other: &Node<K, N, E>) -> Option<Edge<K, N, E>> {
+		for edge in self.outbound().borrow().iter() {
+			if &edge.target() == other {
+				return Some(edge.clone());
+			}
+		}
+		None
+	}
+
+	fn delete_outbound(&self, other: &Node<K, N, E>) -> bool {
+		let mut outbound = self.outbound().borrow_mut();
+		let (mut idx, mut found) = (0, false);
+		for (i, edge) in outbound.iter().enumerate() {
+			if &edge.target() == other {
+				idx = i;
+				found = true;
+			}
+		}
+		if found {
+			outbound.remove(idx);
+		}
+		found
+	}
+
 	pub fn inbound(&self) -> &RefCell<Vec<WeakEdge<K, N, E>>> { &self.handle.inbound }
 
-	pub fn outbound(&self) -> &RefCell<Vec<Edge<K, N, E>>> { &self.handle.outbound }
+	pub fn find_inbound(&self, other: &Node<K, N, E>) -> Option<Edge<K, N, E>> {
+		for edge in self.inbound().borrow().iter() {
+			if &edge.upgrade().unwrap().source() == other {
+				return Some(edge.upgrade().unwrap().clone());
+			}
+		}
+		None
+	}
+
+	fn delete_inbound(&self, other: &Node<K, N, E>) -> bool {
+		let mut inbound = self.inbound().borrow_mut();
+		let (mut idx, mut found) = (0, false);
+		for (i, edge) in inbound.iter().enumerate() {
+			if &edge.upgrade().unwrap().source() == other {
+				idx = i;
+				found = true;
+			}
+		}
+		if found {
+			inbound.remove(idx);
+		}
+		found
+	}
 
 	pub fn connect(&self, other: &Node<K, N, E>, params: E) {
 		let edge = Edge::new(self, other.clone(), params);
@@ -94,66 +139,34 @@ where
 	}
 
 	pub fn disconnect(&self, other: Node<K, N, E>) -> bool{
-		let mut outbound = self.outbound().borrow_mut();
-		let mut inbound = other.inbound().borrow_mut();
-		let mut found = false;
-		let mut i = 0;
-		while i < outbound.len() {
-			if outbound[i].target().key() == other.key() {
-				outbound.remove(i);
-				found = true;
-				i -= 1;
-			}
-			i += 1;
+		if other.delete_inbound(self) {
+			self.delete_outbound(&other)
+		} else {
+			false
 		}
-		i = 0;
-		while i < inbound.len() {
-			if inbound[i].upgrade().unwrap().source().key() == self.key() {
-				inbound.remove(i);
-				i -= 1;
-			}
-			i += 1;
-		}
-		found
 	}
 
 	pub fn isolate(&self) {
-		let mut outbound = self.outbound().borrow_mut();
-		let mut inbound = self.inbound().borrow_mut();
-
-		for edge in inbound.iter() {
+		for edge in self.inbound().borrow().iter() {
 			let target = edge.upgrade().unwrap().target();
-			let mut i = 0;
-			for edge in target.outbound().borrow().iter() {
-				if &edge.target() == self {
-					target.outbound().borrow_mut().remove(i);
-					break;
-				}
-				i += 1;
-			}
+			target.delete_outbound(self);
 		}
 
-		for edge in outbound.iter() {
+		for edge in self.outbound().borrow().iter() {
 			let target = edge.target();
-			let mut i = 0;
-			for edge in target.inbound().borrow().iter() {
-				let edge = edge.upgrade().unwrap();
-				if &edge.target() == self {
-					target.inbound().borrow_mut().remove(i);
-					break;
-				}
-				i += 1;
-			}
+			target.delete_inbound(self);
 		}
 
-		outbound.clear();
-		inbound.clear();
+		self.outbound().borrow_mut().clear();
+		self.inbound().borrow_mut().clear();
 	}
 
 	pub fn search(&self) -> NodeSearch<K, N, E> {
 		NodeSearch { root: self.clone(), edge_tree: vec![] }
 	}
 }
+
+pub type Map<'a, K, N, E> = &'a dyn Fn(Edge<K, N, E>) -> bool;
 
 pub struct NodeSearch<K, N, E>
 where
@@ -533,5 +546,93 @@ where
 
 	fn into_iter(self) -> Self::IntoIter {
 		NodeIterator { node: self, position: 0 }
+	}
+}
+
+// EDGE
+
+struct EdgeInner<K, N, E>
+where
+	K: Clone + Hash + Display,
+	N: Clone,
+	E: Clone,
+{
+	params: E,
+	source: WeakNode<K, N, E>,
+	target: Node<K, N, E>,
+}
+
+#[derive(Clone)]
+pub struct Edge<K, N, E>
+where
+	K: Clone + Hash + Display,
+	N: Clone,
+	E: Clone,
+{
+	handle: Rc<EdgeInner<K, N, E>>,
+}
+
+impl<K, N, E> Edge<K, N, E>
+where
+	K: Clone + Hash + Display + PartialEq + Eq,
+	N: Clone,
+	E: Clone,
+{
+	fn new(source: &Node<K, N, E>, target: Node<K, N, E>, params: E) -> Self {
+		let handle = Rc::new(EdgeInner {
+			params,
+			source: source.downgrade(),
+			target: target.clone(),
+		});
+		Self { handle }
+	}
+
+	pub fn downgrade(&self) -> WeakEdge<K, N, E> {
+		WeakEdge { handle: Rc::downgrade(&self.handle) }
+	}
+
+	pub fn source(&self) -> Node<K, N, E> {
+		self.handle.source.upgrade().unwrap().clone()
+	}
+
+	pub fn target(&self) -> Node<K, N, E> {
+		self.handle.target.clone()
+	}
+
+	pub fn params(&self) -> &E {
+		&self.handle.params
+	}
+}
+
+impl<K, N, E> Deref for Edge<K, N, E>
+where
+	K: Clone + Hash + Display + PartialEq + Eq,
+	N: Clone,
+	E: Clone,
+{
+	type Target = E;
+
+	fn deref(&self) -> &Self::Target {
+		&self.params()
+	}
+}
+
+pub struct WeakEdge<K, N, E>
+where
+	K: Clone + Hash + Display,
+	N: Clone,
+	E: Clone,
+{
+	handle: Weak<EdgeInner<K, N, E>>,
+}
+
+impl<K, N, E> WeakEdge<K, N, E>
+where
+	K: Clone + Hash + Display,
+	N: Clone,
+	E: Clone,
+{
+	fn upgrade(&self) -> Option<Edge<K, N, E>> {
+		self.handle.upgrade().map(|handle| Edge { handle })
 	}
 }

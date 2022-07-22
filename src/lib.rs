@@ -1,7 +1,5 @@
 pub mod graph;
-pub mod node;
-pub mod edge;
-pub mod macros;
+pub mod async_graph;
 pub mod tests;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]

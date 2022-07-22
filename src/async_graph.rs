@@ -1,33 +1,23 @@
 use std::fmt::Display;
-use std::collections::HashMap;
 use std::hash::Hash;
-use std::rc::{Rc, Weak};
-use std::cell::RefCell;
+use std::sync::{Arc, Weak};
+use parking_lot::RwLock;
 use std::ops::Deref;
 use std::collections::VecDeque;
 use min_max_heap::MinMaxHeap;
-use crate::*;
+use std::collections::HashMap;
+use crate::graph::*;
 
-pub trait FmtDot {
-	fn fmt_dot(&self) -> String;
-}
-
-impl FmtDot for Empty {
-	fn fmt_dot(&self) -> String {
-		String::new()
-	}
-}
-
-pub struct Graph<K, N, E>
+pub struct AsyncGraph<K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
 	N: Clone,
 	E: Clone,
 {
-	nodes: HashMap<K, Node<K, N, E>>,
+	nodes: HashMap<K, AsyncNode<K, N, E>>,
 }
 
-impl<'a, K, N, E> Graph<K, N, E>
+impl<'a, K, N, E> AsyncGraph<K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
 	N: Clone,
@@ -47,11 +37,11 @@ where
 		self.nodes.len()
 	}
 
-	pub fn get(&self, key: &K) -> Option<Node<K, N, E>> {
+	pub fn get(&self, key: &K) -> Option<AsyncNode<K, N, E>> {
 		self.nodes.get(key).map(|node| node.clone())
 	}
 
-	pub fn insert(&mut self, node: Node<K, N, E>) -> bool {
+	pub fn insert(&mut self, node: AsyncNode<K, N, E>) -> bool {
 		if self.nodes.contains_key(node.key()) {
 			false
 		} else {
@@ -60,30 +50,30 @@ where
 		}
 	}
 
-	pub fn remove(&mut self, node: Node<K, N, E>) -> Option<Node<K, N, E>> {
+	pub fn remove(&mut self, node: AsyncNode<K, N, E>) -> Option<AsyncNode<K, N, E>> {
 		self.nodes.remove(node.key())
 	}
 
-	pub fn roots(&self) -> Vec<Node<K, N, E>> {
+	pub fn roots(&self) -> Vec<AsyncNode<K, N, E>> {
 		self.nodes
 			.values()
-			.filter(|node| node.inbound().borrow().is_empty())
+			.filter(|node| node.inbound().read().is_empty())
 			.map(|node| node.clone())
 			.collect()
 	}
 
-	pub fn leafs(&self) -> Vec<Node<K, N, E>> {
+	pub fn leafs(&self) -> Vec<AsyncNode<K, N, E>> {
 		self.nodes
 			.values()
-			.filter(|node| node.outbound().borrow().is_empty())
+			.filter(|node| node.outbound().read().is_empty())
 			.map(|node| node.clone())
 			.collect()
 	}
 
-	pub fn orphans(&self) -> Vec<Node<K, N, E>> {
+	pub fn orphans(&self) -> Vec<AsyncNode<K, N, E>> {
 		self.nodes
 			.values()
-			.filter(|node| node.inbound().borrow().is_empty() && node.outbound().borrow().is_empty())
+			.filter(|node| node.inbound().read().is_empty() && node.outbound().read().is_empty())
 			.map(|node| node.clone())
 			.collect()
 	}
@@ -108,40 +98,40 @@ where
 	}
 }
 
-impl<'a, K, N, E> std::ops::Index<K> for Graph<K, N, E>
+impl<'a, K, N, E> std::ops::Index<K> for AsyncGraph<K, N, E>
 where
 	K: Clone + Hash + Display + Eq,
 	N: Clone,
 	E: Clone,
 {
-	type Output = Node<K, N, E>;
+	type Output = AsyncNode<K, N, E>;
 
 	fn index(&self, key: K) -> &Self::Output {
 		&self.nodes[&key]
 	}
 }
 
-pub struct WeakNode<K, N, E>
+pub struct WeakAsyncNode<K, N, E>
 where
 	K: Clone + Hash + Display,
 	N: Clone,
 	E: Clone,
 {
-	handle: Weak<NodeInner<K, N, E>>,
+	handle: Weak<AsyncNodeInner<K, N, E>>,
 }
 
-impl<K, N, E> WeakNode<K, N, E>
+impl<K, N, E> WeakAsyncNode<K, N, E>
 where
 	K: Clone + Hash + Display,
 	N: Clone,
 	E: Clone,
 {
-	pub fn upgrade(&self) -> Option<Node<K, N, E>> {
-		self.handle.upgrade().map(|handle| Node { handle })
+	pub fn upgrade(&self) -> Option<AsyncNode<K, N, E>> {
+		self.handle.upgrade().map(|handle| AsyncNode { handle })
 	}
 }
 
-struct NodeInner<K, N, E>
+struct AsyncNodeInner<K, N, E>
 where
 	K: Clone + Hash + Display,
 	N: Clone,
@@ -149,21 +139,21 @@ where
 {
 	key: K,
 	params: N,
-	outbound: RefCell<Vec<Edge<K, N, E>>>,
-	inbound: RefCell<Vec<WeakEdge<K, N, E>>>,
+	outbound: RwLock<Vec<AsyncEdge<K, N, E>>>,
+	inbound: RwLock<Vec<WeakAsyncEdge<K, N, E>>>,
 }
 
 #[derive(Clone)]
-pub struct Node<K, N, E>
+pub struct AsyncNode<K, N, E>
 where
 	K: Clone + Hash + Display,
 	N: Clone,
 	E: Clone,
 {
-	handle: Rc<NodeInner<K, N, E>>,
+	handle: Arc<AsyncNodeInner<K, N, E>>,
 }
 
-impl<K, N, E> Node<K, N, E>
+impl<K, N, E> AsyncNode<K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
 	N: Clone,
@@ -171,25 +161,25 @@ where
 {
 	pub fn new(key: K, params: N) -> Self {
 		Self {
-			handle: Rc::new(NodeInner {
+			handle: Arc::new(AsyncNodeInner {
 				params,
 				key,
-				inbound: RefCell::new(vec![]),
-				outbound: RefCell::new(vec![]),
+				inbound: RwLock::new(vec![]),
+				outbound: RwLock::new(vec![]),
 			}),
 		}
 	}
 
-	fn downgrade(&self) -> WeakNode<K, N, E> { WeakNode { handle: Rc::downgrade(&self.handle) } }
+	fn downgrade(&self) -> WeakAsyncNode<K, N, E> { WeakAsyncNode { handle: Arc::downgrade(&self.handle) } }
 
 	pub fn key(&self) -> &K { &self.handle.key }
 
 	pub fn params(&self) -> &N { &self.handle.params }
 
-	pub fn outbound(&self) -> &RefCell<Vec<Edge<K, N, E>>> { &self.handle.outbound }
+	pub fn outbound(&self) -> &RwLock<Vec<AsyncEdge<K, N, E>>> { &self.handle.outbound }
 
-	pub fn find_outbound(&self, other: &Node<K, N, E>) -> Option<Edge<K, N, E>> {
-		for edge in self.outbound().borrow().iter() {
+	pub fn find_outbound(&self, other: &AsyncNode<K, N, E>) -> Option<AsyncEdge<K, N, E>> {
+		for edge in self.outbound().read().iter() {
 			if &edge.target() == other {
 				return Some(edge.clone());
 			}
@@ -197,25 +187,25 @@ where
 		None
 	}
 
-	fn delete_outbound(&self, other: &Node<K, N, E>) -> bool {
-		let mut outbound = self.outbound().borrow_mut();
+	fn delete_outbound(&self, other: &AsyncNode<K, N, E>) -> bool {
 		let (mut idx, mut found) = (0, false);
-		for (i, edge) in outbound.iter().enumerate() {
+		for (i, edge) in self.outbound().read().iter().enumerate() {
 			if &edge.target() == other {
 				idx = i;
 				found = true;
+				break;
 			}
 		}
 		if found {
-			outbound.remove(idx);
+			self.outbound().write().remove(idx);
 		}
 		found
 	}
 
-	pub fn inbound(&self) -> &RefCell<Vec<WeakEdge<K, N, E>>> { &self.handle.inbound }
+	pub fn inbound(&self) -> &RwLock<Vec<WeakAsyncEdge<K, N, E>>> { &self.handle.inbound }
 
-	pub fn find_inbound(&self, other: &Node<K, N, E>) -> Option<Edge<K, N, E>> {
-		for edge in self.inbound().borrow().iter() {
+	pub fn find_inbound(&self, other: &AsyncNode<K, N, E>) -> Option<AsyncEdge<K, N, E>> {
+		for edge in self.inbound().read().iter() {
 			if &edge.upgrade().unwrap().source() == other {
 				return Some(edge.upgrade().unwrap().clone());
 			}
@@ -223,36 +213,35 @@ where
 		None
 	}
 
-	fn delete_inbound(&self, other: &Node<K, N, E>) -> bool {
-		let mut inbound = self.inbound().borrow_mut();
+	fn delete_inbound(&self, other: &AsyncNode<K, N, E>) -> bool {
 		let (mut idx, mut found) = (0, false);
-		for (i, edge) in inbound.iter().enumerate() {
+		for (i, edge) in self.inbound().read().iter().enumerate() {
 			if &edge.upgrade().unwrap().source() == other {
 				idx = i;
 				found = true;
 			}
 		}
 		if found {
-			inbound.remove(idx);
+			self.inbound().write().remove(idx);
 		}
 		found
 	}
 
-	pub fn connect(&self, other: &Node<K, N, E>, params: E) {
-		let edge = Edge::new(self, other.clone(), params);
-		self.outbound().borrow_mut().push(edge.clone());
-		other.inbound().borrow_mut().push(edge.downgrade());
+	pub fn connect(&self, other: &AsyncNode<K, N, E>, params: E) {
+		let edge = AsyncEdge::new(self, other.clone(), params);
+		self.outbound().write().push(edge.clone());
+		other.inbound().write().push(edge.downgrade());
 	}
 
-	pub fn try_connect(&self, other: &Node<K, N, E>, params: E) -> bool {
-		if self.outbound().borrow().iter().any(|e| &e.target() == other) {
+	pub fn try_connect(&self, other: &AsyncNode<K, N, E>, params: E) -> bool {
+		if self.outbound().read().iter().any(|e| &e.target() == other) {
 			return false;
 		}
 		self.connect(other, params);
 		true
 	}
 
-	pub fn disconnect(&self, other: Node<K, N, E>) -> bool{
+	pub fn disconnect(&self, other: AsyncNode<K, N, E>) -> bool{
 		if other.delete_inbound(self) {
 			self.delete_outbound(&other)
 		} else {
@@ -261,58 +250,58 @@ where
 	}
 
 	pub fn isolate(&self) {
-		for edge in self.inbound().borrow().iter() {
+		for edge in self.inbound().read().iter() {
 			let target = edge.upgrade().unwrap().target();
 			target.delete_outbound(self);
 		}
 
-		for edge in self.outbound().borrow().iter() {
+		for edge in self.outbound().read().iter() {
 			let target = edge.target();
 			target.delete_inbound(self);
 		}
 
-		self.outbound().borrow_mut().clear();
-		self.inbound().borrow_mut().clear();
+		self.outbound().write().clear();
+		self.inbound().write().clear();
 	}
 
-	pub fn search(&self) -> NodeSearch<K, N, E> {
-		NodeSearch { root: self.clone(), edge_tree: vec![] }
+	pub fn search(&self) -> AsyncNodeSearch<K, N, E> {
+		AsyncNodeSearch { root: self.clone(), edge_tree: vec![] }
 	}
 }
 
-pub type Map<'a, K, N, E> = &'a dyn Fn(Edge<K, N, E>) -> bool;
+pub type Map<'a, K, N, E> = &'a dyn Fn(AsyncEdge<K, N, E>) -> bool;
 
-pub struct NodeSearch<K, N, E>
+pub struct AsyncNodeSearch<K, N, E>
 where
 	K: Clone + std::hash::Hash + std::fmt::Display + PartialEq + Eq,
 	N: Clone,
 	E: Clone,
 {
-	root: Node<K, N, E>,
-	edge_tree: Vec<Edge<K, N, E>>,
+	root: AsyncNode<K, N, E>,
+	edge_tree: Vec<AsyncEdge<K, N, E>>,
 }
 
-impl<K, N, E> NodeSearch<K, N, E>
+impl<K, N, E> AsyncNodeSearch<K, N, E>
 where
 	K: Clone + std::hash::Hash + std::fmt::Display + PartialEq + Eq,
 	N: Clone,
 	E: Clone,
 {
-	pub fn root(&self) -> Node<K, N, E> {
+	pub fn root(&self) -> AsyncNode<K, N, E> {
 		self.root.clone()
 	}
 
-	pub fn edge_tree(&self) -> &Vec<Edge<K, N, E>> {
+	pub fn edge_tree(&self) -> &Vec<AsyncEdge<K, N, E>> {
 		&self.edge_tree
 	}
 
-	pub fn edge_tree_mut(&mut self) -> &mut Vec<Edge<K, N, E>> {
+	pub fn edge_tree_mut(&mut self) -> &mut Vec<AsyncEdge<K, N, E>> {
 		&mut self.edge_tree
 	}
 
-	pub fn dfs(&mut self, target: &Node<K, N, E>) -> Option<&Self> {
+	pub fn dfs(&mut self, target: &AsyncNode<K, N, E>) -> Option<&Self> {
 		let mut queue = Vec::new();
-		let mut visited = Graph::new();
+		let mut visited = AsyncGraph::new();
 
 		queue.push(self.root());
 		while let Some(node) = queue.pop() {
@@ -329,9 +318,9 @@ where
 		None
 	}
 
-	pub fn dfs_map<'a>(&mut self, target: &Node<K, N, E>, map: Map<'a, K, N, E>) -> Option<&Self> {
+	pub fn dfs_map<'a>(&mut self, target: &AsyncNode<K, N, E>, map: Map<'a, K, N, E>) -> Option<&Self> {
 		let mut queue = Vec::new();
-		let mut visited = Graph::new();
+		let mut visited = AsyncGraph::new();
 
 		queue.push(self.root());
 		while let Some(node) = queue.pop() {
@@ -352,9 +341,9 @@ where
 		None
 	}
 
-	pub fn bfs(&mut self, target: &Node<K, N, E>) -> Option<&Self> {
+	pub fn bfs(&mut self, target: &AsyncNode<K, N, E>) -> Option<&Self> {
 		let mut queue = VecDeque::new();
-		let mut visited = Graph::new();
+		let mut visited = AsyncGraph::new();
 
 		queue.push_back(self.root());
 		while let Some(node) = queue.pop_front() {
@@ -371,9 +360,9 @@ where
 		None
 	}
 
-	pub fn bfs_map<'a>(&mut self, target: &Node<K, N, E>, map: Map<'a, K, N, E>)  -> Option<&Self> {
+	pub fn bfs_map<'a>(&mut self, target: &AsyncNode<K, N, E>, map: Map<'a, K, N, E>)  -> Option<&Self> {
 		let mut queue = VecDeque::new();
-		let mut visited = Graph::new();
+		let mut visited = AsyncGraph::new();
 
 		queue.push_back(self.root());
 		while let Some(node) = queue.pop_front() {
@@ -394,12 +383,12 @@ where
 		None
 	}
 
-	pub fn pfs_min(&mut self, target: &Node<K, N, E>) -> Option<&Self>
+	pub fn pfs_min(&mut self, target: &AsyncNode<K, N, E>) -> Option<&Self>
 	where
 		N: Ord,
 	{
 		let mut queue = MinMaxHeap::new();
-		let mut visited = Graph::new();
+		let mut visited = AsyncGraph::new();
 
 		queue.push(self.root());
 		while let Some(node) = queue.pop_min() {
@@ -416,12 +405,12 @@ where
 		None
 	}
 
-	pub fn pfs_min_map<'a>(&mut self, target: &Node<K, N, E>, map: Map<'a, K, N, E>) -> Option<&Self>
+	pub fn pfs_min_map<'a>(&mut self, target: &AsyncNode<K, N, E>, map: Map<'a, K, N, E>) -> Option<&Self>
 	where
 		N: Ord,
 	{
 		let mut queue = MinMaxHeap::new();
-		let mut visited = Graph::new();
+		let mut visited = AsyncGraph::new();
 
 		queue.push(self.root());
 		while let Some(node) = queue.pop_min() {
@@ -442,12 +431,12 @@ where
 		None
 	}
 
-	pub fn pfs_max(&mut self, target: &Node<K, N, E>) -> Option<&Self>
+	pub fn pfs_max(&mut self, target: &AsyncNode<K, N, E>) -> Option<&Self>
 	where
 		N: Ord,
 	{
 		let mut queue = MinMaxHeap::new();
-		let mut visited = Graph::new();
+		let mut visited = AsyncGraph::new();
 
 		queue.push(self.root());
 		while let Some(node) = queue.pop_max() {
@@ -464,12 +453,12 @@ where
 		None
 	}
 
-	pub fn pfs_max_map<'a>(&mut self, target: &Node<K, N, E>, map: Map<'a, K, N, E>) -> Option<&Self>
+	pub fn pfs_max_map<'a>(&mut self, target: &AsyncNode<K, N, E>, map: Map<'a, K, N, E>) -> Option<&Self>
 	where
 		N: Ord,
 	{
 		let mut queue = MinMaxHeap::new();
-		let mut visited = Graph::new();
+		let mut visited = AsyncGraph::new();
 
 		queue.push(self.root());
 		while let Some(node) = queue.pop_max() {
@@ -490,7 +479,7 @@ where
 		None
 	}
 
-	pub fn edge_path(&self) -> Vec<Edge<K, N, E>> {
+	pub fn edge_path(&self) -> Vec<AsyncEdge<K, N, E>> {
 		let mut path = Vec::new();
 
 		let len = self.edge_tree().len() - 1;
@@ -508,7 +497,7 @@ where
 		path
 	}
 
-	pub fn node_path(&self) -> Vec<Node<K, N, E>> {
+	pub fn node_path(&self) -> Vec<AsyncNode<K, N, E>> {
 		if self.edge_path().len() == 0 {
 			return Vec::new();
 		}
@@ -522,10 +511,10 @@ where
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// Blanket implementations for Graph<K, N, E>
+// Blanket implementations for AsyncGraph<K, N, E>
 ///////////////////////////////////////////////////////////////////////////////
 
-impl<K, N, E> Deref for Node<K, N, E>
+impl<K, N, E> Deref for AsyncNode<K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
 	N: Clone,
@@ -538,7 +527,7 @@ where
 	}
 }
 
-impl<K, N, E> PartialEq for Node<K, N, E>
+impl<K, N, E> PartialEq for AsyncNode<K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
 	N: Clone,
@@ -550,14 +539,14 @@ where
 }
 
 
-impl<K, N, E> Eq for Node<K, N, E>
+impl<K, N, E> Eq for AsyncNode<K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
 	N: Clone,
 	E: Clone,
 { }
 
-impl<K, N, E> PartialOrd for Node<K, N, E>
+impl<K, N, E> PartialOrd for AsyncNode<K, N, E>
 where
 	K: Clone + Hash + PartialEq + Display + Eq,
 	N: Clone + Ord,
@@ -568,7 +557,7 @@ where
 	}
 }
 
-impl<K, N, E> Ord for Node<K, N, E>
+impl<K, N, E> Ord for AsyncNode<K, N, E>
 where
 	K: Clone + Hash + PartialEq + Display + Eq,
 	N: Clone + Ord,
@@ -579,121 +568,121 @@ where
 	}
 }
 
-pub struct NodeIntoIterator<K, N, E>
+pub struct AsyncNodeIntoIterator<K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
 	N: Clone,
 	E: Clone,
 {
-	node: Node<K, N, E>,
+	node: AsyncNode<K, N, E>,
 	position: usize,
 }
 
-impl<K, N, E> Iterator for NodeIntoIterator<K, N, E>
+impl<K, N, E> Iterator for AsyncNodeIntoIterator<K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
 	N: Clone,
 	E: Clone,
 {
-	type Item = Edge<K, N, E>;
+	type Item = AsyncEdge<K, N, E>;
 
 	fn next(&mut self) -> Option<Self::Item> {
-		if self.position >= self.node.outbound().borrow().len() {
+		if self.position >= self.node.outbound().read().len() {
 			None
 		} else {
 			self.position += 1;
-			Some(self.node.outbound().borrow()[self.position - 1].clone())
+			Some(self.node.outbound().read()[self.position - 1].clone())
 		}
 	}
 }
 
-impl<'a, K, N, E> IntoIterator for Node<K, N, E>
+impl<'a, K, N, E> IntoIterator for AsyncNode<K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
 	N: Clone,
 	E: Clone,
 {
-	type Item = Edge<K, N, E>;
-	type IntoIter = NodeIntoIterator<K, N, E>;
+	type Item = AsyncEdge<K, N, E>;
+	type IntoIter = AsyncNodeIntoIterator<K, N, E>;
 
 	fn into_iter(self) -> Self::IntoIter {
-		NodeIntoIterator { node: self, position: 0 }
+		AsyncNodeIntoIterator { node: self, position: 0 }
 	}
 }
 
-pub struct NodeIterator<'a, K, N, E>
+pub struct AsyncNodeIterator<'a, K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
 	N: Clone,
 	E: Clone,
 {
-	node: &'a Node<K, N, E>,
+	node: &'a AsyncNode<K, N, E>,
 	position: usize,
 }
 
-impl<'a, K, N, E> Iterator for NodeIterator<'a, K, N, E>
+impl<'a, K, N, E> Iterator for AsyncNodeIterator<'a, K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
 	N: Clone,
 	E: Clone,
 {
-	type Item = Edge<K, N, E>;
+	type Item = AsyncEdge<K, N, E>;
 
 	fn next(&mut self) -> Option<Self::Item> {
-		if self.position >= self.node.outbound().borrow().len() {
+		if self.position >= self.node.outbound().read().len() {
 			None
 		} else {
 			self.position += 1;
-			Some(self.node.outbound().borrow()[self.position - 1].clone())
+			Some(self.node.outbound().read()[self.position - 1].clone())
 		}
 	}
 }
 
-impl<'a, K, N, E> IntoIterator for &'a Node<K, N, E>
+impl<'a, K, N, E> IntoIterator for &'a AsyncNode<K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
 	N: Clone,
 	E: Clone,
 {
-	type Item = Edge<K, N, E>;
-	type IntoIter = NodeIterator<'a, K, N, E>;
+	type Item = AsyncEdge<K, N, E>;
+	type IntoIter = AsyncNodeIterator<'a, K, N, E>;
 
 	fn into_iter(self) -> Self::IntoIter {
-		NodeIterator { node: self, position: 0 }
+		AsyncNodeIterator { node: self, position: 0 }
 	}
 }
 
 // EDGE
 
-struct EdgeInner<K, N, E>
+struct AsyncEdgeInner<K, N, E>
 where
 	K: Clone + Hash + Display,
 	N: Clone,
 	E: Clone,
 {
 	params: E,
-	source: WeakNode<K, N, E>,
-	target: Node<K, N, E>,
+	source: WeakAsyncNode<K, N, E>,
+	target: AsyncNode<K, N, E>,
 }
 
 #[derive(Clone)]
-pub struct Edge<K, N, E>
+pub struct AsyncEdge<K, N, E>
 where
 	K: Clone + Hash + Display,
 	N: Clone,
 	E: Clone,
 {
-	handle: Rc<EdgeInner<K, N, E>>,
+	handle: Arc<AsyncEdgeInner<K, N, E>>,
 }
 
-impl<K, N, E> Edge<K, N, E>
+impl<K, N, E> AsyncEdge<K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
 	N: Clone,
 	E: Clone,
 {
-	fn new(source: &Node<K, N, E>, target: Node<K, N, E>, params: E) -> Self {
-		let handle = Rc::new(EdgeInner {
+	fn new(source: &AsyncNode<K, N, E>, target: AsyncNode<K, N, E>, params: E) -> Self {
+		let handle = Arc::new(AsyncEdgeInner {
 			params,
 			source: source.downgrade(),
 			target: target.clone(),
@@ -701,28 +690,24 @@ where
 		Self { handle }
 	}
 
-	pub fn downgrade(&self) -> WeakEdge<K, N, E> {
-		WeakEdge { handle: Rc::downgrade(&self.handle) }
+	pub fn downgrade(&self) -> WeakAsyncEdge<K, N, E> {
+		WeakAsyncEdge { handle: Arc::downgrade(&self.handle) }
 	}
 
-	pub fn source(&self) -> Node<K, N, E> {
+	pub fn source(&self) -> AsyncNode<K, N, E> {
 		self.handle.source.upgrade().unwrap().clone()
 	}
 
-	pub fn target(&self) -> Node<K, N, E> {
+	pub fn target(&self) -> AsyncNode<K, N, E> {
 		self.handle.target.clone()
 	}
 
 	pub fn params(&self) -> &E {
 		&self.handle.params
 	}
-
-	pub fn decomp(&self) -> (Node<K, N, E>, Node<K, N, E>, E) {
-		(self.source(), self.target(), self.params().clone())
-	}
 }
 
-impl<K, N, E> Deref for Edge<K, N, E>
+impl<K, N, E> Deref for AsyncEdge<K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
 	N: Clone,
@@ -735,27 +720,27 @@ where
 	}
 }
 
-pub struct WeakEdge<K, N, E>
+pub struct WeakAsyncEdge<K, N, E>
 where
 	K: Clone + Hash + Display,
 	N: Clone,
 	E: Clone,
 {
-	handle: Weak<EdgeInner<K, N, E>>,
+	handle: Weak<AsyncEdgeInner<K, N, E>>,
 }
 
-impl<K, N, E> WeakEdge<K, N, E>
+impl<K, N, E> WeakAsyncEdge<K, N, E>
 where
 	K: Clone + Hash + Display,
 	N: Clone,
 	E: Clone,
 {
-	fn upgrade(&self) -> Option<Edge<K, N, E>> {
-		self.handle.upgrade().map(|handle| Edge { handle })
+	fn upgrade(&self) -> Option<AsyncEdge<K, N, E>> {
+		self.handle.upgrade().map(|handle| AsyncEdge { handle })
 	}
 }
 
-pub fn nodes_exist<K, N, E>(graph: &Graph<K, N, E>, s: K, t: K) -> bool
+pub fn async_nodes_exist<K, N, E>(graph: &Graph<K, N, E>, s: K, t: K) -> bool
 where
 	K: std::fmt::Debug + std::fmt::Display + Hash + Eq + Clone + PartialEq,
 	N: std::fmt::Debug + Clone,
@@ -773,49 +758,49 @@ where
 }
 
 #[macro_export]
-macro_rules! node {
+macro_rules! async_node {
 	( $key:expr ) => {
         {
-			use crate::graph::*;
+			use crate::async_graph::*;
 
-            Node::new($key, Empty)
+            AsyncNode::new($key, Empty)
         }
     };
     ( $key:expr, $param:expr ) => {
         {
-			use crate::graph::*;
+			use crate::async_graph::*;
 
-            Node::new($key, $param)
+            AsyncNode::new($key, $param)
         }
     };
 }
 
 #[macro_export]
-macro_rules! connect {
+macro_rules! async_connect {
 	( $s:expr => $t:expr ) => {
         {
-			use crate::graph::*;
+			use crate::async_graph::*;
 
-            Node::connect($s, $t, Empty)
+            AsyncNode::connect($s, $t, Empty)
         }
     };
     ( $s:expr => $t:expr, $params:expr ) => {
         {
-			use crate::graph::*;
+			use crate::async_graph::*;
 
-            Node::connect($s, $t, $params)
+            AsyncNode::connect($s, $t, $params)
         }
     };
 }
 
 #[macro_export]
-macro_rules! graph {
+macro_rules! async_graph {
 
 	// (Key)
 	( ($K:ty) $(($NODE:expr) => $( [ $( $EDGE:expr),*] )? )* )
 	=> {
 		{
-			use crate::graph::*;
+			use crate::async_graph::*;
 
 			let mut edges = Vec::<($K, $K)>::new();
 			edges.clear();
@@ -830,7 +815,7 @@ macro_rules! graph {
 				graph.insert(n);
 			)*
 			for (s, t) in edges {
-				if nodes_exist(&graph, s, t) {
+				if async_nodes_exist(&graph, s, t) {
 					let s = graph.get(&s).unwrap();
 					let t = graph.get(&t).unwrap();
 					connect!(&s => &t);
@@ -844,7 +829,7 @@ macro_rules! graph {
 	( ($K:ty, $N:ty) $(($NODE:expr, $NPARAM:expr) => $( [$(  $EDGE:expr) ,*] )? )* )
 	=> {
 		{
-			use crate::graph::*;
+			use crate::async_graph::*;
 
 			let mut edges = Vec::<($K, $K)>::new();
 			edges.clear();
@@ -859,7 +844,7 @@ macro_rules! graph {
 				graph.insert(n);
 			)*
 			for (s, t) in edges {
-				if nodes_exist(&graph, s, t) {
+				if async_nodes_exist(&graph, s, t) {
 					let s = graph.get(&s).unwrap();
 					let t = graph.get(&t).unwrap();
 					connect!(&s => &t);
@@ -873,7 +858,7 @@ macro_rules! graph {
 	( ($K:ty) => [$E:ty] $(($NODE:expr) => $( [$( ( $EDGE:expr, $EPARAM:expr) ),*] )? )* )
 	=> {
 		{
-			use crate::graph::*;
+			use crate::async_graph::*;
 
 			let mut edges = Vec::<($K, $K, $E)>::new();
 			edges.clear();
@@ -888,7 +873,7 @@ macro_rules! graph {
 				graph.insert(n);
 			)*
 			for (s, t, param) in edges {
-				if nodes_exist(&graph, s, t) {
+				if async_nodes_exist(&graph, s, t) {
 					let s = graph.get(&s).unwrap();
 					let t = graph.get(&t).unwrap();
 					connect!(&s => &t, param);
@@ -902,7 +887,7 @@ macro_rules! graph {
 	( ($K:ty, $N:ty) => [$E:ty] $(($NODE:expr, $NPARAM:expr) => $( [$( ( $EDGE:expr, $EPARAM:expr) ),*] )? )* )
 	=> {
 		{
-			use crate::graph::*;
+			use crate::async_graph::*;
 
 			let mut edges = Vec::<($K, $K, $E)>::new();
 			edges.clear();
@@ -917,7 +902,7 @@ macro_rules! graph {
 				graph.insert(n);
 			)*
 			for (s, t, param) in edges {
-				if nodes_exist(&graph, s, t) {
+				if async_nodes_exist(&graph, s, t) {
 					let s = graph.get(&s).unwrap();
 					let t = graph.get(&t).unwrap();
 					connect!(&s => &t, param);

@@ -1,29 +1,24 @@
-use crate::node::*;
 use crate::graph::*;
 use crate::*;
 use std::rc::{Weak, Rc};
 use std::cell::Cell;
 
-// Struct representing a flow edge. It contains flow to the
-// forward direction and flow to the reverse direction.
-// Flow is a tuple (max, cur).
+// pub trait
+
+#[derive(Clone, Copy)]
+pub struct Flow(u64, u64);
+
 #[derive(Clone)]
-pub struct Flow(Rc<Cell<(u64, u64)>>, Weak<Cell<(u64, u64)>>);
+pub struct FlowEdge(Rc<Cell<Flow>>, Weak<Cell<Flow>>);
 
-impl FmtDot for Flow {
-	fn fmt_dot(&self) -> String {
-		format!("{}/{}", self.cur(), self.max())
-	}
-}
-
-impl Flow {
+impl FlowEdge {
 
 	// Connect two nodes with a flow.
-	pub fn connect(s: &Node<usize, Empty, Flow>, t: &Node<usize, Empty, Flow>, max: u64) {
+	pub fn connect(s: &Node<usize, Empty, FlowEdge>, t: &Node<usize, Empty, FlowEdge>, max: u64) {
 
 		// Create a forward and a reverse flow.
-		let mut fflow = Flow(Rc::new(Cell::new((max, 0))), Weak::new());
-		let mut rflow = Flow(Rc::new(Cell::new((max, max))), Weak::new());
+		let mut fflow = FlowEdge(Rc::new(Cell::new(Flow(max, 0))), Weak::new());
+		let mut rflow = FlowEdge(Rc::new(Cell::new(Flow(max, max))), Weak::new());
 
 		// Cross-connect the flows.
 		fflow.1 = Rc::downgrade(&rflow.0);
@@ -39,13 +34,13 @@ impl Flow {
 
 		// Decompose the flow parameters.
 		let (fflow, rflow) = (&self.0, &self.1.upgrade().unwrap());
-		let (fmax, fcur) = fflow.get();
-		let (rmax, rcur)  = rflow.get();
+		let Flow (fmax, fcur) = fflow.get();
+		let Flow (rmax, rcur)  = rflow.get();
 
 		// Increase the flow in the forward direction and decrease
 		// the flow in the reverse direction.
-		fflow.set((fmax, fcur + aug_flow));
-		rflow.set((rmax, rcur - aug_flow));
+		fflow.set(Flow (fmax, fcur + aug_flow));
+		rflow.set(Flow (rmax, rcur - aug_flow));
 	}
 
 	// Get the max flow.
@@ -55,7 +50,7 @@ impl Flow {
 	pub fn cur(&self) -> u64 { self.0.get().1 }
 }
 
-pub fn max_flow(graph: Graph<usize, Empty, Flow>) -> u64 {
+pub fn max_flow(graph: Graph<usize, Empty, FlowEdge>) -> u64 {
 
 	// 1. We loop breadth-first until there is no more paths to explore.
 	let mut max_flow: u64 = 0;
@@ -96,16 +91,16 @@ fn test_max_flow() {
 	graph.insert(node!(3));
 	graph.insert(node!(4));
 	graph.insert(node!(5));
-	Flow::connect(&graph[0], &graph[1], 16);
-	Flow::connect(&graph[0], &graph[2], 13);
-	Flow::connect(&graph[1], &graph[2], 10);
-	Flow::connect(&graph[1], &graph[3], 12);
-	Flow::connect(&graph[2], &graph[1], 4);
-	Flow::connect(&graph[2], &graph[4], 14);
-	Flow::connect(&graph[3], &graph[2], 9);
-	Flow::connect(&graph[3], &graph[5], 20);
-	Flow::connect(&graph[4], &graph[3], 7);
-	Flow::connect(&graph[4], &graph[5], 4);
+	FlowEdge::connect(&graph[0], &graph[1], 16);
+	FlowEdge::connect(&graph[0], &graph[2], 13);
+	FlowEdge::connect(&graph[1], &graph[2], 10);
+	FlowEdge::connect(&graph[1], &graph[3], 12);
+	FlowEdge::connect(&graph[2], &graph[1], 4);
+	FlowEdge::connect(&graph[2], &graph[4], 14);
+	FlowEdge::connect(&graph[3], &graph[2], 9);
+	FlowEdge::connect(&graph[3], &graph[5], 20);
+	FlowEdge::connect(&graph[4], &graph[3], 7);
+	FlowEdge::connect(&graph[4], &graph[5], 4);
 
 	// For this graph we expect the maximum flow from 0 -> 5 to be 23
 	assert!(max_flow(graph) == 23);
