@@ -1,10 +1,10 @@
 use criterion::Throughput;
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
-use ndn_graph::async_graph::*;
-use ndn_graph::graph::*;
-use ndn_graph::*;
+use ggi::graph_async::digraph::*;
+use ggi::graph::digraph::*;
+use ggi::*;
 use rand::*;
-use std::cell::RefCell;
+use std::cell::{RefCell, Cell};
 use min_max_heap::MinMaxHeap;
 
 fn rand_range(start: usize, end: usize) -> usize {
@@ -12,10 +12,10 @@ fn rand_range(start: usize, end: usize) -> usize {
     rng.gen_range(start..end)
 }
 
-fn create_dijkstra_graph(size: usize, degree: usize) -> Graph<usize, RefCell<u64>, u64> {
-    let mut g = Graph::new();
+fn create_dijkstra_digraph(size: usize, degree: usize) -> DiGraph<usize, RefCell<u64>, u64> {
+    let mut g = DiGraph::new();
     for i in 0..size {
-        g.insert(node!(i, RefCell::new(u64::MAX)));
+        g.insert(dinode!(i, RefCell::new(u64::MAX)));
     }
     for i in 0..size {
         let new_degree = rand_range(0, degree * 2);
@@ -26,10 +26,24 @@ fn create_dijkstra_graph(size: usize, degree: usize) -> Graph<usize, RefCell<u64
     g
 }
 
-fn create_async_dijkstra_graph(size: usize, degree: usize) -> AsyncGraph<usize, RefCell<u64>, u64> {
-    let mut g = AsyncGraph::new();
+fn create_dijkstra_digraph_cell(size: usize, degree: usize) -> DiGraph<usize, Cell<u64>, u64> {
+    let mut g = DiGraph::new();
     for i in 0..size {
-        g.insert(async_node!(i, RefCell::new(u64::MAX)));
+        g.insert(dinode!(i, Cell::new(u64::MAX)));
+    }
+    for i in 0..size {
+        let new_degree = rand_range(0, degree * 2);
+        for _ in 0..new_degree {
+            connect!(&g[i] => &g[rand_range(0, size)], rand_range(1, 100) as u64);
+        }
+    }
+    g
+}
+
+fn create_async_dijkstra_digraph(size: usize, degree: usize) -> AsyncDiGraph<usize, RefCell<u64>, u64> {
+    let mut g = AsyncDiGraph::new();
+    for i in 0..size {
+        g.insert(async_dinode!(i, RefCell::new(u64::MAX)));
     }
     for i in 0..size {
         let new_degree = rand_range(0, degree * 2);
@@ -50,13 +64,15 @@ fn bench_dijkstra(c: &mut Criterion) {
         .iter()
         .enumerate()
     {
-		let g = create_dijkstra_graph(*size, 100);
+		let g = create_dijkstra_digraph(*size, 100);
+
 		group.throughput(Throughput::Elements(*size as u64));
+
         group.bench_with_input(BenchmarkId::new("Sync", size), &i, |b, _| {
 			b.iter(|| {
 				let mut dists = Vec::new();
 				let mut heap = MinMaxHeap::new();
-				let mut visited = Graph::new();
+				let mut visited = DiGraph::new();
 				let source = &g[rand_range(0, g.len())];
 				let target = &g[rand_range(0, g.len())];
 
@@ -87,12 +103,34 @@ fn bench_dijkstra(c: &mut Criterion) {
             })
         });
 
-		let ag = create_async_dijkstra_graph(*size, 100);
+		let gc = create_dijkstra_digraph_cell(*size, 100);
+
+		group.bench_with_input(BenchmarkId::new("Sync PFS", size), &i, |b, _| {
+			b.iter(|| {
+				let source = &gc[rand_range(0, g.len())];
+				let target = &gc[rand_range(0, g.len())];
+
+				source.replace(0);
+
+				source.search().pfs_min_map(&target, &|s, t, delta| {
+					match t.get() > s.get() + delta {
+						true => {
+							t.set(s.get() + delta);
+							true
+						},
+						false => false,
+					}
+				});
+            })
+        });
+
+		let ag = create_async_dijkstra_digraph(*size, 100);
+
 		group.bench_with_input(BenchmarkId::new("Async", size), &i, |b, _| {
 			b.iter(|| {
 				let mut dists = Vec::new();
 				let mut heap = MinMaxHeap::new();
-				let mut visited = AsyncGraph::new();
+				let mut visited = AsyncDiGraph::new();
 				let source = &ag[rand_range(0, g.len())];
 				let target = &ag[rand_range(0, g.len())];
 

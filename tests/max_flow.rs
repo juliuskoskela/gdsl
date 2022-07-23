@@ -1,18 +1,18 @@
-use crate::graph::*;
-use crate::*;
+#![allow(dead_code)]
+use ggi::graph::digraph::*;
+use ggi::*;
+use ggi::fmt_dot::*;
 use std::rc::{Weak, Rc};
 use std::cell::Cell;
 
-// pub trait
-
 #[derive(Clone, Copy)]
-pub struct Flow(u64, u64);
+struct Flow(u64, u64);
 
 #[derive(Clone)]
-pub struct FlowEdge(Rc<Cell<Flow>>, Weak<Cell<Flow>>);
+struct FlowEdge(Rc<Cell<Flow>>, Weak<Cell<Flow>>);
 
 impl FmtDot for FlowEdge {
-	fn fmt_dot(&self) -> Vec<(String, String)> {
+	fn attributes(&self) -> Vec<(String, String)> {
 		let key = format!("label");
 		let Flow (cur, max) = self.0.get();
 		let value = format!("{}/{}", cur, max);
@@ -23,7 +23,7 @@ impl FmtDot for FlowEdge {
 impl FlowEdge {
 
 	// Connect two nodes with a flow.
-	pub fn connect(s: &Node<usize, Empty, FlowEdge>, t: &Node<usize, Empty, FlowEdge>, max: u64) {
+	fn connect(s: &DiNode<usize, Empty, FlowEdge>, t: &DiNode<usize, Empty, FlowEdge>, max: u64) {
 
 		// Create a forward and a reverse flow.
 		let mut fflow = FlowEdge(Rc::new(Cell::new(Flow(max, 0))), Weak::new());
@@ -39,7 +39,7 @@ impl FlowEdge {
 	}
 
 	// Update the flow with the agmenting flow.
-	pub fn update(&self, aug_flow: u64) {
+	fn update(&self, aug_flow: u64) {
 
 		// Decompose the flow parameters.
 		let (fflow, rflow) = (&self.0, &self.1.upgrade().unwrap());
@@ -53,17 +53,17 @@ impl FlowEdge {
 	}
 
 	// Get the max flow.
-	pub fn max(&self) -> u64 { self.0.get().0 }
+	fn max(&self) -> u64 { self.0.get().0 }
 
 	// Get the current flow.
-	pub fn cur(&self) -> u64 { self.0.get().1 }
+	fn cur(&self) -> u64 { self.0.get().1 }
 }
 
-pub fn max_flow(graph: Graph<usize, Empty, FlowEdge>) -> u64 {
+fn max_flow(g: DiGraph<usize, Empty, FlowEdge>) -> u64 {
 
 	// 1. We loop breadth-first until there is no more paths to explore.
 	let mut max_flow: u64 = 0;
-	while let Some(bfs) = graph[0].search().bfs_map(&graph[5], &|_, _, edge| {
+	while let Some(bfs) = g[0].search().bfs_map(&g[5], &|_, _, edge| {
 
 		// 2. We exclude saturated edges from the search.
 		edge.cur() < edge.max()
@@ -89,32 +89,29 @@ pub fn max_flow(graph: Graph<usize, Empty, FlowEdge>) -> u64 {
 	max_flow
 }
 
-
-use crate::dot::*;
-
 #[test]
 fn test_max_flow() {
+	// Generate an example DiGraph with a max flow of 23 from 0 to 5.
+	let mut g = DiGraph::new();
 
-	// Generate an example graph with a max flow of 23 from 0 to 5.
-	let mut graph = crate::graph::Graph::new();
-	graph.insert(node!(0));
-	graph.insert(node!(1));
-	graph.insert(node!(2));
-	graph.insert(node!(3));
-	graph.insert(node!(4));
-	graph.insert(node!(5));
-	FlowEdge::connect(&graph[0], &graph[1], 16);
-	FlowEdge::connect(&graph[0], &graph[2], 13);
-	FlowEdge::connect(&graph[1], &graph[2], 10);
-	FlowEdge::connect(&graph[1], &graph[3], 12);
-	FlowEdge::connect(&graph[2], &graph[1], 4);
-	FlowEdge::connect(&graph[2], &graph[4], 14);
-	FlowEdge::connect(&graph[3], &graph[2], 9);
-	FlowEdge::connect(&graph[3], &graph[5], 20);
-	FlowEdge::connect(&graph[4], &graph[3], 7);
-	FlowEdge::connect(&graph[4], &graph[5], 4);
+	g.insert(dinode!(0));
+	g.insert(dinode!(1));
+	g.insert(dinode!(2));
+	g.insert(dinode!(3));
+	g.insert(dinode!(4));
+	g.insert(dinode!(5));
 
-	// For this graph we expect the maximum flow from 0 -> 5 to be 23
-	println!("{}", fmt_dot(graph.to_vec()));
-	assert!(max_flow(graph) == 23);
+	FlowEdge::connect(&g[0], &g[1], 16);
+	FlowEdge::connect(&g[0], &g[2], 13);
+	FlowEdge::connect(&g[1], &g[2], 10);
+	FlowEdge::connect(&g[1], &g[3], 12);
+	FlowEdge::connect(&g[2], &g[1], 4);
+	FlowEdge::connect(&g[2], &g[4], 14);
+	FlowEdge::connect(&g[3], &g[2], 9);
+	FlowEdge::connect(&g[3], &g[5], 20);
+	FlowEdge::connect(&g[4], &g[3], 7);
+	FlowEdge::connect(&g[4], &g[5], 4);
+
+	// For this DiGraph we expect the maximum flow from 0 -> 5 to be 23
+	assert!(max_flow(g) == 23);
 }

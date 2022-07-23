@@ -1,24 +1,21 @@
 [package]
-name = "ndn-graph"
+name = "ggi"
 version = "0.1.21"
 edition = "2021"
 readme = "README.md"
 license = "MIT/Apache-2.0"
 authors = [ "juliuskoskela" ]
 
-description = "Graph abstraction providing a generic interface and powerful parallelized traversals."
-documentation = "https://docs.rs/fastgraph/"
-repository = "https://github.com/juliuskoskela/fastgraph"
+description = "DiGraph abstraction providing a generic interface and powerful parallelized traversals."
+documentation = "https://docs.rs/fastDiGraph/"
+repository = "https://github.com/juliuskoskela/fastDiGraph"
 
-keywords = ["data-structure", "graph", "graph-algorithms"]
+keywords = ["data-structure", "DiGraph", "DiGraph-algorithms"]
 categories = ["data-structures"]
 
 [dependencies]
-rayon = "1.5.3"
 parking_lot = "0.11.2"
 min-max-heap = "1.3.0"
-lazy_static = "1.4.0"
-log = "0.4.17"
 
 [dev-dependencies]
 rand = "0.8.4"

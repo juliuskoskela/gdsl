@@ -1,25 +1,20 @@
+//! # Dot Formatting
+//!
+//! This module provides the `FmtDot` trait, which is used to represent a DiGraph in the DOT language.
 use crate::*;
-use crate::graph::*;
+use crate::graph::digraph::*;
 
 pub trait FmtDot {
-	fn fmt_dot(&self) -> Vec<(String, String)>;
-
-	fn parse_attrs(&self) -> String {
-		let mut attrs = String::new();
-		for (key, value) in self.fmt_dot() {
-			attrs.push_str(&format!(" [ {} = \"{}\" ]", key, value));
-		}
-		attrs
-	}
+	fn attributes(&self) -> Vec<(String, String)>;
 }
 
 impl FmtDot for Empty {
-	fn fmt_dot(&self) -> Vec<(String, String)> {
+	fn attributes(&self) -> Vec<(String, String)> {
 		Vec::new()
 	}
 }
 
-pub fn fmt_dot<K, N, E>(nodes: Vec<Node<K, N, E>>) -> String
+pub fn fmt_dot<K, N, E>(nodes: Vec<DiNode<K, N, E>>) -> String
 where
 	K: std::fmt::Display + std::fmt::Debug + std::hash::Hash + Eq + Clone,
 	N: FmtDot + Clone,
@@ -30,7 +25,7 @@ where
 	for node in &nodes {
 		let mut node_string = String::new();
 		node_string.push_str(&format!("{}", node.key()));
-		for attr in node.fmt_dot() {
+		for attr in node.attributes() {
 			node_string.push_str(&format!(" [ {}=\"{}\" ]", attr.0, attr.1));
 		}
 		s.push_str(&format!("    {}\n", node_string));
@@ -39,7 +34,7 @@ where
 		for edge in node {
 			let mut edge_string = String::new();
 			edge_string.push_str(&format!("{} -> {}", node.key(), edge.target().key()));
-			for attr in edge.fmt_dot() {
+			for attr in edge.attributes() {
 				edge_string.push_str(&format!(" [ {}=\"{}\" ]", attr.0, attr.1));
 			}
 			s.push_str(&format!("    {}\n", edge_string));
