@@ -1,5 +1,5 @@
-use ggi::graph::digraph::{DiGraph, DiNode};
-use ggi::*;
+use dug::digraph::{DiGraph, DiNode};
+use dug::*;
 use std::rc::{Weak, Rc};
 use std::cell::Cell;
 

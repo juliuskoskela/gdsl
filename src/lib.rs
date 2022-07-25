@@ -11,8 +11,8 @@
 //! Create a directed graph with nodes and edges
 //!
 //! ```
-//! use ggi::graph::digraph::*;
-//! use ggi::*;
+//! use ::digraph::*;
+//! use dug::*;
 //!
 //! let mut g = DiGraph::<usize, Empty, Empty>::new();
 //!
@@ -27,7 +27,7 @@
 //! Djikstra's Algorithm
 //!
 //! ```
-//! use ggi::*;
+//! use dug::*;
 //! use std::cell::Cell;
 //!
 //! // Create with the `graph!` macro. Since we want to mutate the distance
@@ -68,10 +68,9 @@
 //! assert!(g["E"].take() == 21);
 //! ```
 
-pub mod graph;
-pub mod graph_async;
-pub mod fmt_dot;
-// mod tests;
+pub mod digraph;
+pub mod ungraph;
+pub mod graph_macros;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Empty;
@@ -81,16 +80,3 @@ impl std::fmt::Display for Empty {
         write!(fmt, "_")
     }
 }
-
-use crate::graph::digraph::*;
-use crate::graph::bigraph::*;
-use std::collections::VecDeque;
-use min_max_heap::MinMaxHeap;
-
-pub type DiNodeStack<K, N, E> = Vec<DiNode<K, N, E>>;
-pub type DiNodeQueue<K, N, E> = VecDeque<DiNode<K, N, E>>;
-pub type DiNodePriorityQueue<K, N, E> = MinMaxHeap<DiNode<K, N, E>>;
-
-pub type BiNodeStack<K, N, E> = Vec<BiNode<K, N, E>>;
-pub type BiNodeQueue<K, N, E> = VecDeque<BiNode<K, N, E>>;
-pub type BiNodePriorityQueue<K, N, E> = MinMaxHeap<BiNode<K, N, E>>;

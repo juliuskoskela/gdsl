@@ -173,6 +173,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "dug"
+version = "0.1.21"
+dependencies = [
+ "criterion",
+ "min-max-heap",
+ "parking_lot",
+ "rand",
+]
+
+[[package]]
 name = "either"
 version = "1.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -187,16 +197,6 @@ dependencies = [
  "cfg-if",
  "libc",
  "wasi",
-]
-
-[[package]]
-name = "ggi"
-version = "0.1.21"
-dependencies = [
- "criterion",
- "min-max-heap",
- "parking_lot",
- "rand",
 ]
 
 [[package]]

@@ -1,6 +1,2 @@
 
-mod basic;
-
-mod max_flow;
-
-mod dijkstra;
+mod test_digraph;

@@ -1,7 +1,7 @@
-#[test]
-fn dijkstra_pfs_min() {
-	use ggi::*;
-	use std::cell::Cell;
+use dug::*;
+use std::cell::Cell;
+
+fn dijkstra_1() {
 
 	let g = graph![
 		(&str, Cell<u64>) => [u64]
@@ -19,20 +19,21 @@ fn dijkstra_pfs_min() {
 	g["A"].set(0);
 
 	g["A"].search().pfs_min_map(&g["E"], &|u, v, edge_len| {
-		match v.get() > u.get() + edge_len {
-			true => {v.set(u.get() + edge_len); true},
+
+		let (u_dist, v_dist) = (u.get(), v.get());
+
+		match v_dist > u_dist + edge_len {
+			true => {v.set(u_dist + edge_len); true},
 			false => false,
 		}
+
 	});
 
 	assert!(g["E"].take() == 21);
 }
 
-#[test]
-fn dijkstra() {
-	use ggi::*;
-	use ggi::graph::digraph::*;
-	use std::cell::Cell;
+fn dijkstra_2() {
+	use dug::*;
 	use min_max_heap::MinMaxHeap;
 
 	let g = graph![
@@ -49,18 +50,18 @@ fn dijkstra() {
 	];
 
 	let mut heap = MinMaxHeap::new();
-	let mut visited = DiGraph::new();
+	let mut visited = std::collections::HashSet::new();
 
 	g["A"].set(0);
 	heap.push(g["A"].clone());
 
 	'search: while let Some(s) = heap.pop_min() {
-		for edge in &s {
-			let (_, t, delta) = edge.decomp();
+		for (delta, t) in &s {
 			let (s_dist, t_dist) = (s.get(), t.get());
 
-			if visited.insert(t.clone()) {
+			if !visited.contains(t.key()) {
 				if t_dist > s_dist + delta {
+					visited.insert(t.key().clone());
 					t.set(s_dist + delta);
 					if s == g["E"] { break 'search }
 					heap.push(t.clone());
@@ -70,4 +71,9 @@ fn dijkstra() {
 	}
 
 	assert!(g["E"].take() == 21);
+}
+
+fn main() {
+	dijkstra_1();
+	dijkstra_2();
 }

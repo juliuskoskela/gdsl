@@ -1,28 +1,28 @@
-//! Graph types for directed and undirected async graphs.
-pub mod digraph;
-pub mod bigraph;
+//! Graph types for directed and undirected graphs.
+// use crate::digraph::*;
+// use crate::ungraph::*;
 
 ///////////////////////////////////////////////////////////////////////////////
 ///
-/// Macro for creating an async_node.
+/// Macro for creating a node.
 #[macro_export]
-macro_rules! async_dinode {
+macro_rules! dinode {
 
-	// digraph::AsyncDiNode<K>
+	// digraph::DiNode<K, _>
 	( $key:expr ) => {
         {
-			use crate::graph_async::digraph::*;
+			use dug::digraph::DiNode;
 
-            AsyncDiNode::new($key, Empty)
+            DiNode::new($key, Empty)
         }
     };
 
-	// digraph::AsyncDiNode<K, V>
+	// digraph::DiNode<K, N>
     ( $key:expr, $param:expr ) => {
         {
-			use crate::graph_async::digraph::*;
+			use dug::digraph::*;
 
-            AsyncDiNode::new($key, $param)
+            DiNode::new($key, $param)
         }
     };
 
@@ -30,25 +30,25 @@ macro_rules! async_dinode {
 
 ///////////////////////////////////////////////////////////////////////////////
 ///
-/// Macro for creating an async_binode.
+/// Macro for creating a binode.
 #[macro_export]
-macro_rules! async_binode {
+macro_rules! binode {
 
-	// AsyncBiNode<K, _>
+	// UnNode<K, _>
 	( $key:expr ) => {
         {
-			use crate::graph_async::bigraph::*;
+			use dug::ungraph::*;
 
-            AsyncBiNode::new($key, Empty)
+            UnNode::new($key, Empty)
         }
     };
 
-	// AsyncBiNode<K, V>
+	// UnNode<K, N>
     ( $key:expr, $param:expr ) => {
         {
-			use crate::graph_async::bigraph::*;
+			use dug::ungraph::*;
 
-            AsyncBiNode::new($key, $param)
+            UnNode::new($key, $param)
         }
     };
 
@@ -56,67 +56,64 @@ macro_rules! async_binode {
 
 ///////////////////////////////////////////////////////////////////////////////
 ///
-/// Macro for connecting two async nodes.
+/// Macro for connecting two nodes.
 #[macro_export]
-macro_rules! async_connect {
+macro_rules! connect {
 
 	( $s:expr => $t:expr ) => {
         {
-			use crate::graph_async::digraph::*;
+			use dug::digraph::*;
 
-            AsyncDiNode::connect($s, $t, Empty)
+            DiNode::connect($s, $t, Empty)
         }
     };
 
 	( $s:expr, $t:expr ) => {
         {
-			use crate::graph_async::bigraph::*;
+			use dug::ungraph::*;
 
-            AsyncBiNode::connect($s, $t, Empty)
+            UnNode::connect($s, $t, Empty)
         }
     };
 
     ( $s:expr => $t:expr, $params:expr ) => {
         {
-			use crate::graph_async::digraph::*;
+			use dug::digraph::*;
 
-            AsyncDiNode::connect($s, $t, $params)
+            DiNode::connect($s, $t, $params)
         }
     };
 
 	( $s:expr, $t:expr, $params:expr ) => {
         {
-			use crate::graph_async::bigraph::*;
+			use dug::ungraph::*;
 
-            AsyncBiNode::connect($s, $t, $params)
+            UnNode::connect($s, $t, $params)
         }
     };
 
 }
 
-///////////////////////////////////////////////////////////////////////////////
-///
-/// Macro for creating either directional or bi-directional (undirected) async
-/// graphs.
+/// Macro for creating either directional or bi-directional (undirected) graphs.
 #[macro_export]
-macro_rules! async_graph {
+macro_rules! graph {
 
-	//  AsyncDiGraph<K, _, _>
+	//  DiGraph<K, _, _>
 	( ($K:ty) $(($NODE:expr) => $( [ $( $EDGE:expr),*] )? )* )
 	=> {
 		{
-			use crate::graph_async::digraph::*;
+			use dug::digraph::*;
 
 			let mut edges = Vec::<($K, $K)>::new();
 			edges.clear();
-			let mut g = AsyncDiGraph::<$K, Empty, Empty>::new();
+			let mut g = DiGraph::<$K, Empty, Empty>::new();
 			$(
 				$(
 					$(
 						edges.push(($NODE, $EDGE));
 					)*
 				)?
-				let n = async_dinode!($NODE);
+				let n = dinode!($NODE);
 				g.insert(n);
 			)*
 			for (s, t) in edges {
@@ -135,22 +132,22 @@ macro_rules! async_graph {
 		}
 	};
 
-	// AsyncBiGraph<K, _, _>
+	// UnGraph<K, _, _>
 	( ($K:ty) $(($NODE:expr) : $( [ $( $EDGE:expr),*] )? )* )
 	=> {
 		{
-			use crate::graph_async::bigraph::*;
+			use dug::ungraph::*;
 
 			let mut edges = Vec::<($K, $K)>::new();
 			edges.clear();
-			let mut g = AsyncBiGraph::<$K, Empty, Empty>::new();
+			let mut g = UnGraph::<$K, Empty, Empty>::new();
 			$(
 				$(
 					$(
 						edges.push(($NODE, $EDGE));
 					)*
 				)?
-				let n = async_binode!($NODE);
+				let n = binode!($NODE);
 				g.insert(n);
 			)*
 			for (s, t) in edges {
@@ -169,22 +166,22 @@ macro_rules! async_graph {
 		}
 	};
 
-	// AsyncDiGraph<K, N, _>
+	// DiGraph<K, N, _>
 	( ($K:ty, $N:ty) $(($NODE:expr, $NPARAM:expr) => $( [$(  $EDGE:expr) ,*] )? )* )
 	=> {
 		{
-			use crate::graph_async::digraph::*;
+			use dug::digraph::*;
 
 			let mut edges = Vec::<($K, $K)>::new();
 			edges.clear();
-			let mut g = AsyncDiGraph::<$K, $N, Empty>::new();
+			let mut g = DiGraph::<$K, $N, Empty>::new();
 			$(
 				$(
 					$(
 						edges.push(($NODE, $EDGE));
 					)*
 				)?
-				let n = async_dinode!($NODE, $NPARAM);
+				let n = dinode!($NODE, $NPARAM);
 				g.insert(n);
 			)*
 			for (s, t) in edges {
@@ -203,22 +200,22 @@ macro_rules! async_graph {
 		}
 	};
 
-	// AsyncBiGraph<K, N, _>
+	// UnGraph<K, N, _>
 	( ($K:ty, $N:ty) $(($NODE:expr, $NPARAM:expr) : $( [$(  $EDGE:expr) ,*] )? )* )
 	=> {
 		{
-			use crate::graph_async::bigraph::*;
+			use dug::ungraph::*;
 
 			let mut edges = Vec::<($K, $K)>::new();
 			edges.clear();
-			let mut g = AsyncBiGraph::<$K, $N, Empty>::new();
+			let mut g = UnGraph::<$K, $N, Empty>::new();
 			$(
 				$(
 					$(
 						edges.push(($NODE, $EDGE));
 					)*
 				)?
-				let n = async_binode!($NODE, $NPARAM);
+				let n = binode!($NODE, $NPARAM);
 				g.insert(n);
 			)*
 			for (s, t) in edges {
@@ -237,22 +234,22 @@ macro_rules! async_graph {
 		}
 	};
 
-	// AsyncDiGraph<K, _, E>
+	// DiGraph<K, _, E>
 	( ($K:ty) => [$E:ty] $(($NODE:expr) => $( [$( ( $EDGE:expr, $EPARAM:expr) ),*] )? )* )
 	=> {
 		{
-			use crate::graph_async::digraph::*;
+			use dug::digraph::*;
 
 			let mut edges = Vec::<($K, $K, $E)>::new();
 			edges.clear();
-			let mut g = AsyncDiGraph::<$K, Empty, $E>::new();
+			let mut g = DiGraph::<$K, Empty, $E>::new();
 			$(
 				$(
 					$(
 						edges.push(($NODE, $EDGE, $EPARAM));
 					)*
 				)?
-				let n = async_dinode!($NODE);
+				let n = dinode!($NODE);
 				g.insert(n);
 			)*
 			for (s, t, param) in edges {
@@ -271,22 +268,22 @@ macro_rules! async_graph {
 		}
 	};
 
-	// AsyncBiGraph<K, _, E>
+	// UnGraph<K, _, E>
 	( ($K:ty) : [$E:ty] $(($NODE:expr) : $( [$( ( $EDGE:expr, $EPARAM:expr) ),*] )? )* )
 	=> {
 		{
-			use crate::graph_async::bigraph::*;
+			use dug::ungraph::*;
 
 			let mut edges = Vec::<($K, $K, $E)>::new();
 			edges.clear();
-			let mut g = AsyncBiGraph::<$K, Empty, $E>::new();
+			let mut g = UnGraph::<$K, Empty, $E>::new();
 			$(
 				$(
 					$(
 						edges.push(($NODE, $EDGE, $EPARAM));
 					)*
 				)?
-				let n = async_binode!($NODE);
+				let n = binode!($NODE);
 				g.insert(n);
 			)*
 			for (s, t, param) in edges {
@@ -305,22 +302,22 @@ macro_rules! async_graph {
 		}
 	};
 
-	// AsyncDiGraph<K, N, E>
+	// DiGraph<K, N, E>
 	( ($K:ty, $N:ty) => [$E:ty] $(($NODE:expr, $NPARAM:expr) => $( [$( ( $EDGE:expr, $EPARAM:expr) ),*] )? )* )
 	=> {
 		{
-			use crate::graph_async::digraph::*;
+			use dug::digraph::*;
 
 			let mut edges = Vec::<($K, $K, $E)>::new();
 			edges.clear();
-			let mut g = AsyncDiGraph::<$K, $N, $E>::new();
+			let mut g = DiGraph::<$K, $N, $E>::new();
 			$(
 				$(
 					$(
 						edges.push(($NODE, $EDGE, $EPARAM));
 					)*
 				)?
-				let n = async_dinode!($NODE, $NPARAM);
+				let n = dinode!($NODE, $NPARAM);
 				g.insert(n);
 			)*
 			for (s, t, param) in edges {
@@ -339,22 +336,22 @@ macro_rules! async_graph {
 		}
 	};
 
-	// AsyncBiGraph<K, N, E>
+	// UnGraph<K, N, E>
 	( ($K:ty, $N:ty) : [$E:ty] $(($NODE:expr, $NPARAM:expr) : $( [$( ( $EDGE:expr, $EPARAM:expr) ),*] )? )* )
 	=> {
 		{
-			use crate::graph_async::bigraph::*;
+			use dug::ungraph::*;
 
 			let mut edges = Vec::<($K, $K, $E)>::new();
 			edges.clear();
-			let mut g = AsyncBiGraph::<$K, $N, $E>::new();
+			let mut g = UnGraph::<$K, $N, $E>::new();
 			$(
 				$(
 					$(
 						edges.push(($NODE, $EDGE, $EPARAM));
 					)*
 				)?
-				let n = async_binode!($NODE, $NPARAM);
+				let n = binode!($NODE, $NPARAM);
 				g.insert(n);
 			)*
 			for (s, t, param) in edges {
