@@ -1,20 +1,19 @@
 [package]
-name = "dug"
+name = "gdsl"
 version = "0.1.21"
 edition = "2021"
 readme = "README.md"
 license = "MIT/Apache-2.0"
 authors = [ "juliuskoskela" ]
 
-description = "DiGraph abstraction providing a generic interface and powerful parallelized traversals."
-documentation = "https://docs.rs/fastDiGraph/"
-repository = "https://github.com/juliuskoskela/fastDiGraph"
+description = "Directed Graph Container and Algrotihm Library"
+documentation = "https://docs.rs/fastGraph/"
+repository = "https://github.com/juliuskoskela/fastGraph"
 
-keywords = ["data-structure", "DiGraph", "DiGraph-algorithms"]
+keywords = ["data-structure", "Graph", "Graph-algorithms"]
 categories = ["data-structures"]
 
 [dependencies]
-parking_lot = "0.11.2"
 min-max-heap = "1.3.0"
 
 [dev-dependencies]
@@ -22,5 +21,5 @@ rand = "0.8.4"
 criterion = "0.3"
 
 [[bench]]
-name = "digraph_benchmark"
+name = "graph_benchmark"
 harness = false

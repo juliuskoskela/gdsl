@@ -1,4 +1,4 @@
-use dug::*;
+use gdsl::*;
 use std::cell::Cell;
 
 fn dijkstra_1() {
@@ -18,12 +18,15 @@ fn dijkstra_1() {
 
 	g["A"].set(0);
 
-	g["A"].search().pfs_min_map(&g["E"], &|u, v, edge_len| {
+	g["A"].search().pfs_min_map(Some(&g["E"]), &|u, v, e| {
 
 		let (u_dist, v_dist) = (u.get(), v.get());
 
-		match v_dist > u_dist + edge_len {
-			true => {v.set(u_dist + edge_len); true},
+		match v_dist > u_dist + e {
+			true => {
+				v.set(u_dist + e);
+				true
+			},
 			false => false,
 		}
 
@@ -33,7 +36,7 @@ fn dijkstra_1() {
 }
 
 fn dijkstra_2() {
-	use dug::*;
+	use gdsl::*;
 	use min_max_heap::MinMaxHeap;
 
 	let g = graph![

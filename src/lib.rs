@@ -12,12 +12,12 @@
 //!
 //! ```
 //! use ::digraph::*;
-//! use dug::*;
+//! use gdsl::*;
 //!
-//! let mut g = DiGraph::<usize, Empty, Empty>::new();
+//! let mut g = Graph::<usize, Empty, Empty>::new();
 //!
-//! g.insert(dinode!(0));
-//! g.insert(dinode!(1));
+//! g.insert(node!(0));
+//! g.insert(node!(1));
 //!
 //! connect!(&g[0] => &g[1]);
 //! ```
@@ -27,7 +27,7 @@
 //! Djikstra's Algorithm
 //!
 //! ```
-//! use dug::*;
+//! use gdsl::*;
 //! use std::cell::Cell;
 //!
 //! // Create with the `graph!` macro. Since we want to mutate the distance
@@ -56,8 +56,8 @@
 //! 	// to get the inner value.
 //! 	let (dist_u, dist_v) = (u.get(), v.get());
 //!
-//! 	// We if the distance stored in v is greater than the distance stored in u + edge_len,
-//! 	// we update the distance stored in v.
+//! 	// We if the distance stored in v is greater than the distance stored
+//! 	// in u + edge_len we update the distance stored in v.
 //! 	match dist_v > dist_u + edge_len {
 //! 		true => {v.set(dist_u + edge_len); true},
 //! 		false => false,
@@ -68,8 +68,7 @@
 //! assert!(g["E"].take() == 21);
 //! ```
 
-pub mod digraph;
-pub mod ungraph;
+pub mod graph;
 pub mod graph_macros;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]

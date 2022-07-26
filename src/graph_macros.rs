@@ -1,54 +1,28 @@
 //! Graph types for directed and undirected graphs.
-// use crate::digraph::*;
+// use crate::graph::*;
 // use crate::ungraph::*;
 
 ///////////////////////////////////////////////////////////////////////////////
 ///
 /// Macro for creating a node.
 #[macro_export]
-macro_rules! dinode {
+macro_rules! node {
 
-	// digraph::DiNode<K, _>
+	// graph::Node<K, _>
 	( $key:expr ) => {
         {
-			use dug::digraph::DiNode;
+			use gdsl::graph::Node;
 
-            DiNode::new($key, Empty)
+            Node::new($key, Empty)
         }
     };
 
-	// digraph::DiNode<K, N>
+	// graph::Node<K, N>
     ( $key:expr, $param:expr ) => {
         {
-			use dug::digraph::*;
+			use gdsl::graph::*;
 
-            DiNode::new($key, $param)
-        }
-    };
-
-}
-
-///////////////////////////////////////////////////////////////////////////////
-///
-/// Macro for creating a binode.
-#[macro_export]
-macro_rules! binode {
-
-	// UnNode<K, _>
-	( $key:expr ) => {
-        {
-			use dug::ungraph::*;
-
-            UnNode::new($key, Empty)
-        }
-    };
-
-	// UnNode<K, N>
-    ( $key:expr, $param:expr ) => {
-        {
-			use dug::ungraph::*;
-
-            UnNode::new($key, $param)
+            Node::new($key, $param)
         }
     };
 
@@ -59,36 +33,19 @@ macro_rules! binode {
 /// Macro for connecting two nodes.
 #[macro_export]
 macro_rules! connect {
-
 	( $s:expr => $t:expr ) => {
         {
-			use dug::digraph::*;
+			use gdsl::graph::*;
 
-            DiNode::connect($s, $t, Empty)
-        }
-    };
-
-	( $s:expr, $t:expr ) => {
-        {
-			use dug::ungraph::*;
-
-            UnNode::connect($s, $t, Empty)
+            Node::connect($s, $t, Empty)
         }
     };
 
     ( $s:expr => $t:expr, $params:expr ) => {
         {
-			use dug::digraph::*;
+			use gdsl::graph::*;
 
-            DiNode::connect($s, $t, $params)
-        }
-    };
-
-	( $s:expr, $t:expr, $params:expr ) => {
-        {
-			use dug::ungraph::*;
-
-            UnNode::connect($s, $t, $params)
+            Node::connect($s, $t, $params)
         }
     };
 
@@ -98,22 +55,22 @@ macro_rules! connect {
 #[macro_export]
 macro_rules! graph {
 
-	//  DiGraph<K, _, _>
+	//  Graph<K, _, _>
 	( ($K:ty) $(($NODE:expr) => $( [ $( $EDGE:expr),*] )? )* )
 	=> {
 		{
-			use dug::digraph::*;
+			use gdsl::graph::*;
 
 			let mut edges = Vec::<($K, $K)>::new();
 			edges.clear();
-			let mut g = DiGraph::<$K, Empty, Empty>::new();
+			let mut g = Graph::<$K, Empty, Empty>::new();
 			$(
 				$(
 					$(
 						edges.push(($NODE, $EDGE));
 					)*
 				)?
-				let n = dinode!($NODE);
+				let n = node!($NODE);
 				g.insert(n);
 			)*
 			for (s, t) in edges {
@@ -132,56 +89,22 @@ macro_rules! graph {
 		}
 	};
 
-	// UnGraph<K, _, _>
-	( ($K:ty) $(($NODE:expr) : $( [ $( $EDGE:expr),*] )? )* )
-	=> {
-		{
-			use dug::ungraph::*;
-
-			let mut edges = Vec::<($K, $K)>::new();
-			edges.clear();
-			let mut g = UnGraph::<$K, Empty, Empty>::new();
-			$(
-				$(
-					$(
-						edges.push(($NODE, $EDGE));
-					)*
-				)?
-				let n = binode!($NODE);
-				g.insert(n);
-			)*
-			for (s, t) in edges {
-				if !g.contains(&s) || !g.contains(&t) {
-					if !g.contains(&s) {
-						panic!("Check your macro invocation: \"{}\" is not in the graph", s);
-					} else {
-						panic!("Check your macro invocation: \"{}\" is not in the graph", t);
-					}
-				}
-				let s = g.get(&s).unwrap();
-				let t = g.get(&t).unwrap();
-				connect!(&s, &t);
-			}
-			g
-		}
-	};
-
-	// DiGraph<K, N, _>
+	// Graph<K, N, _>
 	( ($K:ty, $N:ty) $(($NODE:expr, $NPARAM:expr) => $( [$(  $EDGE:expr) ,*] )? )* )
 	=> {
 		{
-			use dug::digraph::*;
+			use gdsl::graph::*;
 
 			let mut edges = Vec::<($K, $K)>::new();
 			edges.clear();
-			let mut g = DiGraph::<$K, $N, Empty>::new();
+			let mut g = Graph::<$K, $N, Empty>::new();
 			$(
 				$(
 					$(
 						edges.push(($NODE, $EDGE));
 					)*
 				)?
-				let n = dinode!($NODE, $NPARAM);
+				let n = node!($NODE, $NPARAM);
 				g.insert(n);
 			)*
 			for (s, t) in edges {
@@ -200,56 +123,22 @@ macro_rules! graph {
 		}
 	};
 
-	// UnGraph<K, N, _>
-	( ($K:ty, $N:ty) $(($NODE:expr, $NPARAM:expr) : $( [$(  $EDGE:expr) ,*] )? )* )
-	=> {
-		{
-			use dug::ungraph::*;
-
-			let mut edges = Vec::<($K, $K)>::new();
-			edges.clear();
-			let mut g = UnGraph::<$K, $N, Empty>::new();
-			$(
-				$(
-					$(
-						edges.push(($NODE, $EDGE));
-					)*
-				)?
-				let n = binode!($NODE, $NPARAM);
-				g.insert(n);
-			)*
-			for (s, t) in edges {
-				if !g.contains(&s) || !g.contains(&t) {
-					if !g.contains(&s) {
-						panic!("Check your macro invocation: \"{}\" is not in the graph", s);
-					} else {
-						panic!("Check your macro invocation: \"{}\" is not in the graph", t);
-					}
-				}
-				let s = g.get(&s).unwrap();
-				let t = g.get(&t).unwrap();
-				connect!(&s, &t);
-			}
-			g
-		}
-	};
-
-	// DiGraph<K, _, E>
+	// Graph<K, _, E>
 	( ($K:ty) => [$E:ty] $(($NODE:expr) => $( [$( ( $EDGE:expr, $EPARAM:expr) ),*] )? )* )
 	=> {
 		{
-			use dug::digraph::*;
+			use gdsl::graph::*;
 
 			let mut edges = Vec::<($K, $K, $E)>::new();
 			edges.clear();
-			let mut g = DiGraph::<$K, Empty, $E>::new();
+			let mut g = Graph::<$K, Empty, $E>::new();
 			$(
 				$(
 					$(
 						edges.push(($NODE, $EDGE, $EPARAM));
 					)*
 				)?
-				let n = dinode!($NODE);
+				let n = node!($NODE);
 				g.insert(n);
 			)*
 			for (s, t, param) in edges {
@@ -268,56 +157,22 @@ macro_rules! graph {
 		}
 	};
 
-	// UnGraph<K, _, E>
-	( ($K:ty) : [$E:ty] $(($NODE:expr) : $( [$( ( $EDGE:expr, $EPARAM:expr) ),*] )? )* )
-	=> {
-		{
-			use dug::ungraph::*;
-
-			let mut edges = Vec::<($K, $K, $E)>::new();
-			edges.clear();
-			let mut g = UnGraph::<$K, Empty, $E>::new();
-			$(
-				$(
-					$(
-						edges.push(($NODE, $EDGE, $EPARAM));
-					)*
-				)?
-				let n = binode!($NODE);
-				g.insert(n);
-			)*
-			for (s, t, param) in edges {
-				if !g.contains(&s) || !g.contains(&t) {
-					if !g.contains(&s) {
-						panic!("Check your macro invocation: \"{}\" is not in the graph", s);
-					} else {
-						panic!("Check your macro invocation: \"{}\" is not in the graph", t);
-					}
-				}
-				let s = g.get(&s).unwrap();
-				let t = g.get(&t).unwrap();
-				connect!(&s, &t, param);
-			}
-			g
-		}
-	};
-
-	// DiGraph<K, N, E>
+	// Graph<K, N, E>
 	( ($K:ty, $N:ty) => [$E:ty] $(($NODE:expr, $NPARAM:expr) => $( [$( ( $EDGE:expr, $EPARAM:expr) ),*] )? )* )
 	=> {
 		{
-			use dug::digraph::*;
+			use gdsl::graph::*;
 
 			let mut edges = Vec::<($K, $K, $E)>::new();
 			edges.clear();
-			let mut g = DiGraph::<$K, $N, $E>::new();
+			let mut g = Graph::<$K, $N, $E>::new();
 			$(
 				$(
 					$(
 						edges.push(($NODE, $EDGE, $EPARAM));
 					)*
 				)?
-				let n = dinode!($NODE, $NPARAM);
+				let n = node!($NODE, $NPARAM);
 				g.insert(n);
 			)*
 			for (s, t, param) in edges {
@@ -331,40 +186,6 @@ macro_rules! graph {
 				let s = g.get(&s).unwrap();
 				let t = g.get(&t).unwrap();
 				connect!(&s => &t, param);
-			}
-			g
-		}
-	};
-
-	// UnGraph<K, N, E>
-	( ($K:ty, $N:ty) : [$E:ty] $(($NODE:expr, $NPARAM:expr) : $( [$( ( $EDGE:expr, $EPARAM:expr) ),*] )? )* )
-	=> {
-		{
-			use dug::ungraph::*;
-
-			let mut edges = Vec::<($K, $K, $E)>::new();
-			edges.clear();
-			let mut g = UnGraph::<$K, $N, $E>::new();
-			$(
-				$(
-					$(
-						edges.push(($NODE, $EDGE, $EPARAM));
-					)*
-				)?
-				let n = binode!($NODE, $NPARAM);
-				g.insert(n);
-			)*
-			for (s, t, param) in edges {
-				if !g.contains(&s) || !g.contains(&t) {
-					if !g.contains(&s) {
-						panic!("Check your macro invocation: \"{}\" is not in the graph", s);
-					} else {
-						panic!("Check your macro invocation: \"{}\" is not in the graph", t);
-					}
-				}
-				let s = g.get(&s).unwrap();
-				let t = g.get(&t).unwrap();
-				connect!(&s, &t, param);
 			}
 			g
 		}

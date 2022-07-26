@@ -1,4 +1,4 @@
-//==== graph::digraph =========================================================
+//==== graphgdsl::graph =========================================================
 
 //! # Directed Graph
 
@@ -15,61 +15,60 @@ use std::{
 
 use min_max_heap::MinMaxHeap;
 
-//==== DiGraph ==================================================================
+//==== Graph ==================================================================
 
-pub struct DiGraph<K, N, E>
+pub struct Graph<K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
 	N: Clone,
 	E: Clone,
 {
-	nodes: HashMap<K, DiNode<K, N, E>>,
+	nodes: HashMap<K, Node<K, N, E>>,
 }
 
-impl<'a, K, N, E> DiGraph<K, N, E>
+impl<'a, K, N, E> Graph<K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
 	N: Clone,
 	E: Clone,
 {
-	/// Create a new DiGraph
+	/// Create a new Graph
 	///
 	/// # Examples
 	///
 	/// ```
-	/// use ::digraph::*;
+	/// use gdsl::graph::*;
 	///
-	/// let mut g = DiGraph::<String, f64, f64>::new();
+	/// let mut g = Graph::<&str, u64, u64>::new();
 	/// ```
 	pub fn new() -> Self { Self { nodes: HashMap::new() } }
 
-	/// Check if a node with the given key exists in the DiGraph
+	/// Check if a node with the given key exists in the Graph
 	///
 	/// # Examples
 	///
 	/// ```
-	/// use ::digraph::*;
-	/// use dug::*;
+	/// use gdsl::graph::*;
 	///
-	/// let mut g = DiGraph::<&str, u64, u64>::new();
+	/// let mut g = Graph::<&str, u64, u64>::new();
 	///
-	/// g.insert(DiNode::new("A", 0));
+	/// g.insert(Node::new("A", 0));
 	///
 	/// assert!(g.contains(&"A"));
 	/// ```
 	pub fn contains(&self, key: &K) -> bool { self.nodes.contains_key(key) }
 
-	/// Get the length of the DiGraph (amount of nodes)
+	/// Get the length of the Graph (amount of nodes)
 	///
 	/// # Examples
 	///
 	/// ```
-	/// use ::digraph::*;
+	/// use gdsl::graph::*;
 	///
-	/// let mut g = DiGraph::<&str, u64, u64>::new();
+	/// let mut g = Graph::<&str, u64, u64>::new();
 	///
-	/// g.insert(DiNode::new("A", 0));
-	/// g.insert(DiNode::new("B", 0));
+	/// g.insert(Node::new("A", 0));
+	/// g.insert(Node::new("B", 0));
 	///
 	/// let len = g.len();
 	///
@@ -82,48 +81,48 @@ where
 	/// # Examples
 	///
 	/// ```
-	/// use ::digraph::*;
+	/// use gdsl::graph::*;
 	///
-	/// let mut g = DiGraph::<&str, u64, u64>::new();
+	/// let mut g = Graph::<&str, u64, u64>::new();
 	///
-	/// g.insert(DiNode::new("A", 0));
-	/// g.insert(DiNode::new("B", 0));
-	/// g.insert(DiNode::new("C", 0));
+	/// g.insert(Node::new("A", 0));
+	/// g.insert(Node::new("B", 0));
+	/// g.insert(Node::new("C", 0));
 	///
 	/// let node = g.get(&"A").unwrap();
 	///
 	/// assert!(node.key() == &"A");
 	/// ```
-	pub fn get(&self, key: &K) -> Option<DiNode<K, N, E>> { self.nodes.get(key).map(|node| node.clone()) }
+	pub fn get(&self, key: &K) -> Option<Node<K, N, E>> { self.nodes.get(key).map(|node| node.clone()) }
 
-	/// Check if DiGraph is empty
+	/// Check if Graph is empty
 	///
 	/// # Examples
 	///
 	/// ```
-	/// use ::digraph::*;
+	/// use gdsl::graph::*;
 	///
-	/// let mut g = DiGraph::<&str, u64, u64>::new();
+	/// let mut g = Graph::<&str, u64, u64>::new();
 	///
 	/// assert!(g.is_empty());
 	/// ```
 	pub fn is_empty(&self) -> bool { self.nodes.is_empty() }
 
-	/// Insert a node into the DiGraph
+	/// Insert a node into the Graph
 	///
 	/// # Examples
 	///
 	/// ```
-	/// use ::digraph::*;
+	/// use gdsl::graph::*;
 	///
-	/// let mut g = DiGraph::<&str, u64, u64>::new();
+	/// let mut g = Graph::<&str, u64, u64>::new();
 	///
-	/// g.insert(DiNode::new("A", 0));
+	/// g.insert(Node::new("A", 0));
 	///
 	/// assert!(g.contains(&"A"));
-	/// assert!(g.insert(DiNode::new("A", 0)) == false);
+	/// assert!(g.insert(Node::new("A", 0)) == false);
 	/// ```
-	pub fn insert(&mut self, node: DiNode<K, N, E>) -> bool {
+	pub fn insert(&mut self, node: Node<K, N, E>) -> bool {
 		if self.nodes.contains_key(node.key()) {
 			false
 		} else {
@@ -132,17 +131,17 @@ where
 		}
 	}
 
-	/// Remove a node from the DiGraph
+	/// Remove a node from the Graph
 	///
 	/// # Examples
 	///
 	/// ```
-	/// use ::digraph::*;
+	/// use gdsl::graph::*;
 	///
-	/// let mut g = DiGraph::<&str, u64, u64>::new();
+	/// let mut g = Graph::<&str, u64, u64>::new();
 	///
-	/// g.insert(DiNode::new("A", 0));
-	/// g.insert(DiNode::new("B", 0));
+	/// g.insert(Node::new("A", 0));
+	/// g.insert(Node::new("B", 0));
 	///
 	/// assert!(g.contains(&"A"));
 	///
@@ -150,7 +149,7 @@ where
 	///
 	/// assert!(g.contains(&"A") == false);
 	/// ```
-	pub fn remove(&mut self, node: &K) -> Option<DiNode<K, N, E>> {
+	pub fn remove(&mut self, node: &K) -> Option<Node<K, N, E>> {
 		self.nodes.remove(node)
 	}
 
@@ -159,19 +158,19 @@ where
 	/// # Examples
 	///
 	/// ```
-	/// use ::digraph::*;
+	/// use gdsl::graph::*;
 	///
-	/// let mut g = DiGraph::<&str, u64, u64>::new();
+	/// let mut g = Graph::<&str, u64, u64>::new();
 	///
-	/// g.insert(DiNode::new("A", 0));
-	/// g.insert(DiNode::new("B", 0));
-	/// g.insert(DiNode::new("C", 0));
+	/// g.insert(Node::new("A", 0));
+	/// g.insert(Node::new("B", 0));
+	/// g.insert(Node::new("C", 0));
 	///
 	/// let nodes = g.to_vec();
 	///
 	/// assert!(nodes.len() == 3);
 	/// ```
-	pub fn to_vec(&self) -> Vec<DiNode<K, N, E>> {
+	pub fn to_vec(&self) -> Vec<Node<K, N, E>> {
 		self.nodes.values().map(|node| node.clone()).collect()
 	}
 
@@ -180,13 +179,13 @@ where
 	/// # Examples
 	///
 	/// ```
-	/// use ::digraph::*;
+	/// use gdsl::graph::*;
 	///
-	/// let mut g = DiGraph::<&str, u64, u64>::new();
+	/// let mut g = Graph::<&str, u64, u64>::new();
 	///
-	/// g.insert(DiNode::new("A", 0));
-	/// g.insert(DiNode::new("B", 0));
-	/// g.insert(DiNode::new("C", 0));
+	/// g.insert(Node::new("A", 0));
+	/// g.insert(Node::new("B", 0));
+	/// g.insert(Node::new("C", 0));
 	///
 	/// g["A"].connect(&g["B"], 0x1);
 	/// g["A"].connect(&g["C"], 0x1);
@@ -196,7 +195,7 @@ where
 	///
 	/// assert!(roots.len() == 1);
 	/// ```
-	pub fn roots(&self) -> Vec<DiNode<K, N, E>> {
+	pub fn roots(&self) -> Vec<Node<K, N, E>> {
 		self.nodes
 			.values()
 			.filter(|node| node.is_root())
@@ -209,13 +208,13 @@ where
 	/// # Examples
 	///
 	/// ```
-	/// use ::digraph::*;
+	/// use gdsl::graph::*;
 	///
-	/// let mut g = DiGraph::<&str, u64, u64>::new();
+	/// let mut g = Graph::<&str, u64, u64>::new();
 	///
-	/// g.insert(DiNode::new("A", 0));
-	/// g.insert(DiNode::new("B", 0));
-	/// g.insert(DiNode::new("C", 0));
+	/// g.insert(Node::new("A", 0));
+	/// g.insert(Node::new("B", 0));
+	/// g.insert(Node::new("C", 0));
 	///
 	/// g["A"].connect(&g["B"], 0x1);
 	/// g["A"].connect(&g["C"], 0x1);
@@ -224,7 +223,7 @@ where
 	///
 	/// assert!(leaves.len() == 2);
 	/// ```
-	pub fn leaves(&self) -> Vec<DiNode<K, N, E>> {
+	pub fn leaves(&self) -> Vec<Node<K, N, E>> {
 		self.nodes
 			.values()
 			.filter(|node| node.is_leaf())
@@ -237,14 +236,14 @@ where
 	/// # Examples
 	///
 	/// ```
-	/// use ::digraph::*;
+	/// use gdsl::graph::*;
 	///
-	/// let mut g = DiGraph::<&str, u64, u64>::new();
+	/// let mut g = Graph::<&str, u64, u64>::new();
 	///
-	/// g.insert(DiNode::new("A", 0));
-	/// g.insert(DiNode::new("B", 0));
-	/// g.insert(DiNode::new("C", 0));
-	/// g.insert(DiNode::new("D", 0));
+	/// g.insert(Node::new("A", 0));
+	/// g.insert(Node::new("B", 0));
+	/// g.insert(Node::new("C", 0));
+	/// g.insert(Node::new("D", 0));
 	///
 	/// g["A"].connect(&g["B"], 0x1);
 	///
@@ -252,7 +251,7 @@ where
 	///
 	/// assert!(orphans.len() == 2);
 	/// ```
-	pub fn orphans(&self) -> Vec<DiNode<K, N, E>> {
+	pub fn orphans(&self) -> Vec<Node<K, N, E>> {
 		self.nodes
 			.values()
 			.filter(|node| node.is_orphan())
@@ -261,31 +260,31 @@ where
 	}
 }
 
-impl<'a, K, N, E> std::ops::Index<K> for DiGraph<K, N, E>
+impl<'a, K, N, E> std::ops::Index<K> for Graph<K, N, E>
 where
 	K: Clone + Hash + Display + Eq,
 	N: Clone,
 	E: Clone,
 {
-	type Output = DiNode<K, N, E>;
+	type Output = Node<K, N, E>;
 
 	fn index(&self, key: K) -> &Self::Output { &self.nodes[&key]
 	}
 }
 
-//==== DiNode ===================================================================
+//==== Node ===================================================================
 
 #[derive(Clone)]
-pub struct DiNode<K, N, E>
+pub struct Node<K, N, E>
 where
 	K: Clone + Hash + PartialEq + Eq + Display,
     N: Clone,
     E: Clone,
 {
-	inner: Rc<DiNodeInner<K, N, E>>,
+	inner: Rc<NodeInner<K, N, E>>,
 }
 
-struct DiNodeInner<K, N, E>
+struct NodeInner<K, N, E>
 where
 	K: Clone + Hash + PartialEq + Eq + Display,
     N: Clone,
@@ -293,22 +292,22 @@ where
 {
     key: K,
     value: N,
-    edges: RefCell<DiNodeDiEdges<K, N, E>>,
+    edges: RefCell<NodeEdges<K, N, E>>,
 }
 
-struct DiNodeDiEdges<K, N, E>
+struct NodeEdges<K, N, E>
 where
 	K: Clone + Hash + PartialEq + Eq + Display,
 	N: Clone,
 	E: Clone,
 {
-	outbound: Vec<DiEdge<K, N, E>>,
-	inbound: Vec<DiEdge<K, N, E>>,
+	outbound: Vec<Edge<K, N, E>>,
+	inbound: Vec<Edge<K, N, E>>,
 }
 
-//==== DiNode: Implement ========================================================
+//==== Node: Implement ========================================================
 
-impl<K, N, E> DiNode<K, N, E>
+impl<K, N, E> Node<K, N, E>
 where
     K: Clone + Hash + PartialEq + Eq + Display,
     N: Clone,
@@ -317,11 +316,11 @@ where
 	//==== Public Methods =====================================================
 
     pub fn new(key: K, value: N) -> Self {
-		DiNode {
-			inner: Rc::new(DiNodeInner {
+		Node {
+			inner: Rc::new(NodeInner {
 				key,
 				value,
-				edges: RefCell::new(DiNodeDiEdges {
+				edges: RefCell::new(NodeEdges {
 					outbound: Vec::new(),
 					inbound: Vec::new(),
 				}),
@@ -337,13 +336,13 @@ where
         &self.inner.value
     }
 
-    pub fn connect(&self, other: &DiNode<K, N, E>, value: E) {
-        let edge = DiEdge::new(self, other.clone(), value);
+    pub fn connect(&self, other: &Node<K, N, E>, value: E) {
+        let edge = Edge::new(self, other.clone(), value);
         self.inner.edges.borrow_mut().outbound.push(edge.clone());
         other.inner.edges.borrow_mut().inbound.push(edge);
     }
 
-    pub fn disconnect(&self, other: DiNode<K, N, E>) {
+    pub fn disconnect(&self, other: Node<K, N, E>) {
         if self.delete_outbound(&other) {
             other.delete_inbound(self);
 		}
@@ -374,13 +373,13 @@ where
 		self.is_root() && self.is_leaf()
 	}
 
-	pub fn search(&self) -> DiNodeSearch<K, N, E> {
-		DiNodeSearch { root: self.clone(), edge_tree: vec![] }
+	pub fn search(&self) -> NodeSearch<K, N, E> {
+		NodeSearch { root: self.clone(), edge_tree: vec![] }
 	}
 
     //==== Private Methods ====================================================
 
-    fn delete_outbound(&self, other: &DiNode<K, N, E>) -> bool {
+    fn delete_outbound(&self, other: &Node<K, N, E>) -> bool {
         let mut edges = self.inner.edges.borrow_mut();
         let mut deleted = false;
         let mut idx = 0;
@@ -397,7 +396,7 @@ where
         deleted
     }
 
-	fn delete_inbound(&self, other: &DiNode<K, N, E>) -> bool {
+	fn delete_inbound(&self, other: &Node<K, N, E>) -> bool {
         let mut edges = self.inner.edges.borrow_mut();
         let inbound = &mut edges.inbound;
         let mut deleted = false;
@@ -415,35 +414,35 @@ where
         deleted
     }
 
-	fn downgrade(&self) -> WeakDiNode<K, N, E> { WeakDiNode { inner: Rc::downgrade(&self.inner) } }
+	fn downgrade(&self) -> WeakNode<K, N, E> { WeakNode { inner: Rc::downgrade(&self.inner) } }
 }
 
-//==== DiNode: Weak ===========================================================
+//==== Node: Weak ===========================================================
 
 #[derive(Clone)]
-struct WeakDiNode<K, N, E>
+struct WeakNode<K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
 	N: Clone,
 	E: Clone,
 {
-	inner: Weak<DiNodeInner<K, N, E>>,
+	inner: Weak<NodeInner<K, N, E>>,
 }
 
-impl<K, N, E> WeakDiNode<K, N, E>
+impl<K, N, E> WeakNode<K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
 	N: Clone,
 	E: Clone,
 {
-	fn upgrade(&self) -> Option<DiNode<K, N, E>> {
-		self.inner.upgrade().map(|inner| DiNode { inner: inner })
+	fn upgrade(&self) -> Option<Node<K, N, E>> {
+		self.inner.upgrade().map(|inner| Node { inner: inner })
 	}
 }
 
-//==== DiNode: Deref ==========================================================
+//==== Node: Deref ==========================================================
 
-impl<K, N, E> Deref for DiNode<K, N, E>
+impl<K, N, E> Deref for Node<K, N, E>
 where
     K: Clone + Hash + Display + PartialEq + Eq,
     N: Clone,
@@ -455,9 +454,9 @@ where
     }
 }
 
-//==== DiNode: PartialEq + Eq =================================================
+//==== Node: PartialEq + Eq =================================================
 
-impl<K, N, E> PartialEq for DiNode<K, N, E>
+impl<K, N, E> PartialEq for Node<K, N, E>
 where
     K: Clone + Hash + Display + PartialEq + Eq,
     N: Clone,
@@ -468,16 +467,16 @@ where
     }
 }
 
-impl<K, N, E> Eq for DiNode<K, N, E>
+impl<K, N, E> Eq for Node<K, N, E>
 where
     K: Clone + Hash + Display + PartialEq + Eq,
     N: Clone,
     E: Clone,
 {}
 
-//==== DiNode: PartialOrd + Ord ===============================================
+//==== Node: PartialOrd + Ord ===============================================
 
-impl<K, N, E> PartialOrd for DiNode<K, N, E>
+impl<K, N, E> PartialOrd for Node<K, N, E>
 where
     K: Clone + Hash + PartialEq + Display + Eq,
     N: Clone + Ord,
@@ -488,7 +487,7 @@ where
     }
 }
 
-impl<K, N, E> Ord for DiNode<K, N, E>
+impl<K, N, E> Ord for Node<K, N, E>
 where
     K: Clone + Hash + PartialEq + Display + Eq,
     N: Clone + Ord,
@@ -499,25 +498,25 @@ where
     }
 }
 
-//==== DiNode: Iterator =======================================================
+//==== Node: Iterator =======================================================
 
-pub struct DiNodeIterator<'a, K, N, E>
+pub struct NodeIterator<'a, K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
 	N: Clone,
 	E: Clone,
 {
-	node: &'a DiNode<K, N, E>,
+	node: &'a Node<K, N, E>,
 	position: usize,
 }
 
-impl<'a, K, N, E> Iterator for DiNodeIterator<'a, K, N, E>
+impl<'a, K, N, E> Iterator for NodeIterator<'a, K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
 	N: Clone,
 	E: Clone,
 {
-	type Item = (E, DiNode<K, N, E>);
+	type Item = (E, Node<K, N, E>);
 
 	fn next(&mut self) -> Option<Self::Item> {
 		let edges = self.node.inner.edges.borrow();
@@ -532,41 +531,41 @@ where
 	}
 }
 
-impl<'a, K, N, E> IntoIterator for &'a DiNode<K, N, E>
+impl<'a, K, N, E> IntoIterator for &'a Node<K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
 	N: Clone,
 	E: Clone,
 {
-	type Item = (E, DiNode<K, N, E>);
-	type IntoIter = DiNodeIterator<'a, K, N, E>;
+	type Item = (E, Node<K, N, E>);
+	type IntoIter = NodeIterator<'a, K, N, E>;
 
 	fn into_iter(self) -> Self::IntoIter {
-		DiNodeIterator { node: self, position: 0 }
+		NodeIterator { node: self, position: 0 }
 	}
 }
 
-//==== DiEdge =================================================================
+//==== Edge =================================================================
 
 #[derive(Clone)]
-pub struct DiEdge<K, N, E>
+pub struct Edge<K, N, E>
 where
 	K: Clone + Hash + PartialEq + Eq + Display,
 	N: Clone,
 	E: Clone,
 {
-    source: WeakDiNode<K, N, E>,
-    target: WeakDiNode<K, N, E>,
+    source: WeakNode<K, N, E>,
+    target: WeakNode<K, N, E>,
     value: E,
 }
 
-impl<K, N, E> DiEdge<K, N, E>
+impl<K, N, E> Edge<K, N, E>
 where
 	K: Clone + Hash + PartialEq + Eq + Display,
 	N: Clone,
 	E: Clone,
 {
-    fn new(source: &DiNode<K, N, E>, target: DiNode<K, N, E>, value: E) -> Self {
+    fn new(source: &Node<K, N, E>, target: Node<K, N, E>, value: E) -> Self {
 		Self {
 			value,
 			source: source.downgrade(),
@@ -574,11 +573,11 @@ where
 		}
     }
 
-	pub fn source(&self) -> DiNode<K, N, E> {
+	pub fn source(&self) -> Node<K, N, E> {
 		self.source.upgrade().unwrap()
 	}
 
-	pub fn target(&self) -> DiNode<K, N, E> {
+	pub fn target(&self) -> Node<K, N, E> {
 		self.target.upgrade().unwrap()
 	}
 
@@ -587,7 +586,7 @@ where
 	}
 }
 
-impl<K, N, E> Deref for DiEdge<K, N, E>
+impl<K, N, E> Deref for Edge<K, N, E>
 where
 	K: Clone + Hash + PartialEq + Eq + Display,
 	N: Clone,
@@ -601,26 +600,28 @@ where
 }
 
 
-type Map<'a, K, N, E> = &'a dyn Fn(&DiNode<K, N, E>, &DiNode<K, N, E>, &E) -> bool;
+type FilterMap<'a, K, N, E> = &'a dyn Fn(&Node<K, N, E>, &Node<K, N, E>, &E) -> bool;
+// type Filter<'a, K, N, E> = &'a dyn Fn(&Node<K, N, E>, &Node<K, N, E>, &E) -> bool;
+// type Map<'a, K, N, E> = &'a dyn Fn(&Node<K, N, E>, &Node<K, N, E>, &E);
 
-/// Search for a node in the DiGraph.
-pub struct DiNodeSearch<K, N, E>
+/// Search for a node in the Graph.
+pub struct NodeSearch<K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
 	N: Clone,
 	E: Clone,
 {
-	root: DiNode<K, N, E>,
-	edge_tree: Vec<DiEdge<K, N, E>>,
+	root: Node<K, N, E>,
+	edge_tree: Vec<Edge<K, N, E>>,
 }
 
-impl<K, N, E> DiNodeSearch<K, N, E>
+impl<K, N, E> NodeSearch<K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
 	N: Clone,
 	E: Clone,
 {
-	pub fn dfs(&mut self, target: &DiNode<K, N, E>) -> Option<&Self> {
+	pub fn dfs(&mut self, target: Option<&Node<K, N, E>>) -> Option<&Self> {
 		let mut queue = Vec::new();
 		let mut visited = HashSet::new();
 
@@ -632,8 +633,13 @@ where
 				Some(edge) => {
 					visited.insert(edge.target().key().clone());
 					self.edge_tree.push(edge.clone());
-					if edge.target() == *target {
-						return Some(self);
+					match target {
+						Some(target) => {
+							if edge.target() == *target {
+								return Some(self);
+							}
+						},
+						None => {},
 					}
 					queue.push(edge.target().clone());
 				}
@@ -643,7 +649,42 @@ where
 		None
 	}
 
-	pub fn dfs_map<'a>(&mut self, target: &DiNode<K, N, E>, map: Map<'a, K, N, E>) -> Option<&Self> {
+	pub fn dfsm(&mut self, target: Option<&Node<K, N, E>>) -> Option<&Self> {
+		let mut queue = Vec::new();
+		let mut visited = HashSet::new();
+		// type Idx = std::cell::Cell<usize>;
+
+		queue.push((0, self.root.clone()));
+		while let Some((mut edge_idx, node)) = queue.pop() {
+			let edge_list = node.inner.edges.borrow();
+			let edge = edge_list.outbound.get(edge_idx);
+			match edge {
+				Some(_) => {
+					while let Some(edge) = edge_list.outbound.get(edge_idx) {
+						edge_idx += 1;
+						if visited.contains(edge.target().key()) == false {
+							visited.insert(edge.target().key().clone());
+							self.edge_tree.push(edge.clone());
+							match target {
+								Some(target) => {
+									if edge.target() == *target {
+										return Some(self);
+									}
+								},
+								None => {},
+							}
+							queue.push((0, edge.target().clone()));
+							break;
+						}
+					}
+				},
+				None => {},
+			}
+		}
+		None
+	}
+
+	pub fn dfs_map<'a>(&mut self, target: Option<&Node<K, N, E>>, map: FilterMap<'a, K, N, E>) -> Option<&Self> {
 		let mut queue = Vec::new();
 		let mut visited = HashSet::new();
 
@@ -656,8 +697,13 @@ where
 					if map(&edge.source(), &edge.target(), edge.value()) {
 						visited.insert(edge.target().key().clone());
 						self.edge_tree.push(edge.clone());
-						if edge.target() == *target {
-							return Some(self);
+						match target {
+							Some(target) => {
+								if edge.target() == *target {
+									return Some(self);
+								}
+							},
+							None => {},
 						}
 						queue.push(edge.target().clone());
 					}
@@ -668,7 +714,7 @@ where
 		None
 	}
 
-	pub fn bfs(&mut self, target: &DiNode<K, N, E>) -> Option<&Self> {
+	pub fn bfs(&mut self, target: Option<&Node<K, N, E>>) -> Option<&Self> {
 		let mut queue = VecDeque::new();
 		let mut visited = HashSet::new();
 
@@ -679,8 +725,13 @@ where
 				if !visited.contains(edge.target().key()) {
 					visited.insert(edge.target().key().clone());
 					self.edge_tree.push(edge.clone());
-					if edge.target() == *target {
-						return Some(self);
+					match target {
+						Some(target) => {
+							if edge.target() == *target {
+								return Some(self);
+							}
+						},
+						None => {},
 					}
 					queue.push_back(edge.target().clone());
 				}
@@ -689,7 +740,7 @@ where
 		None
 	}
 
-	pub fn bfs_map<'a>(&mut self, target: &DiNode<K, N, E>, map: Map<'a, K, N, E>)  -> Option<&Self> {
+	pub fn bfs_map<'a>(&mut self, target: Option<&Node<K, N, E>>, map: FilterMap<'a, K, N, E>)  -> Option<&Self> {
 		let mut queue = VecDeque::new();
 		let mut visited = HashSet::new();
 
@@ -701,8 +752,13 @@ where
 					if map(&edge.source(), &edge.target(), edge.value()) {
 						visited.insert(edge.target().key().clone());
 						self.edge_tree.push(edge.clone());
-						if edge.target() == *target {
-							return Some(self);
+						match target {
+							Some(target) => {
+								if edge.target() == *target {
+									return Some(self);
+								}
+							},
+							None => {},
 						}
 						queue.push_back(edge.target().clone());
 					}
@@ -712,7 +768,7 @@ where
 		None
 	}
 
-	pub fn pfs_min(&mut self, target: &DiNode<K, N, E>) -> Option<&Self>
+	pub fn pfs_min(&mut self, target: Option<&Node<K, N, E>>) -> Option<&Self>
 	where
 		N: Ord,
 	{
@@ -726,8 +782,13 @@ where
 				if !visited.contains(edge.target().key()) {
 					visited.insert(edge.target().key().clone());
 					self.edge_tree.push(edge.clone());
-					if edge.target() == *target {
-						return Some(self);
+					match target {
+						Some(target) => {
+							if edge.target() == *target {
+								return Some(self);
+							}
+						},
+						None => {},
 					}
 					queue.push(edge.target().clone());
 				}
@@ -736,7 +797,7 @@ where
 		None
 	}
 
-	pub fn pfs_min_map<'a>(&mut self, target: &DiNode<K, N, E>, map: Map<'a, K, N, E>) -> Option<&Self>
+	pub fn pfs_min_map<'a>(&mut self, target: Option<&Node<K, N, E>>, map: FilterMap<'a, K, N, E>) -> Option<&Self>
 	where
 		N: Ord,
 	{
@@ -751,8 +812,13 @@ where
 					if map(&edge.source(), &edge.target(), edge.value()) {
 						visited.insert(edge.target().key().clone());
 						self.edge_tree.push(edge.clone());
-						if edge.target() == *target {
-							return Some(self);
+						match target {
+							Some(target) => {
+								if edge.target() == *target {
+									return Some(self);
+								}
+							},
+							None => {},
 						}
 						queue.push(edge.target().clone());
 					}
@@ -762,7 +828,7 @@ where
 		None
 	}
 
-	pub fn pfs_max(&mut self, target: &DiNode<K, N, E>) -> Option<&Self>
+	pub fn pfs_max(&mut self, target: Option<&Node<K, N, E>>) -> Option<&Self>
 	where
 		N: Ord,
 	{
@@ -775,8 +841,13 @@ where
 			for edge in edge_list.outbound.iter() {
 				if !visited.contains(edge.target().key()) {
 					visited.insert(edge.target().key().clone());
-					if edge.target() == *target {
-						return Some(self);
+					match target {
+						Some(target) => {
+							if edge.target() == *target {
+								return Some(self);
+							}
+						},
+						None => {},
 					}
 					queue.push(edge.target().clone());
 				}
@@ -785,7 +856,7 @@ where
 		None
 	}
 
-	pub fn pfs_max_map<'a>(&mut self, target: &DiNode<K, N, E>, map: Map<'a, K, N, E>) -> Option<&Self>
+	pub fn pfs_max_map<'a>(&mut self, target: Option<&Node<K, N, E>>, map: FilterMap<'a, K, N, E>) -> Option<&Self>
 	where
 		N: Ord,
 	{
@@ -800,8 +871,13 @@ where
 					if map(&edge.source(), &edge.target(), edge.value()) {
 						visited.insert(edge.target().key().clone());
 						self.edge_tree.push(edge.clone());
-						if edge.target() == *target {
-							return Some(self);
+						match target {
+							Some(target) => {
+								if edge.target() == *target {
+									return Some(self);
+								}
+							},
+							None => {},
 						}
 						queue.push(edge.target().clone());
 					}
@@ -811,7 +887,7 @@ where
 		None
 	}
 
-	pub fn edge_path(&self) -> Vec<DiEdge<K, N, E>> {
+	pub fn edge_path(&self) -> Vec<Edge<K, N, E>> {
 		let mut path = Vec::new();
 
 		let len = self.edge_tree.len() - 1;
@@ -829,7 +905,7 @@ where
 		path
 	}
 
-	pub fn node_path(&self) -> Vec<DiNode<K, N, E>> {
+	pub fn node_path(&self) -> Vec<Node<K, N, E>> {
 		let mut path = Vec::new();
 
 		if !self.edge_path().is_empty() {

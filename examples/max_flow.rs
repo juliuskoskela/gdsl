@@ -1,5 +1,5 @@
-use dug::digraph::{DiGraph, DiNode};
-use dug::*;
+use gdsl::graph::{Graph, Node};
+use gdsl::*;
 use std::rc::{Weak, Rc};
 use std::cell::Cell;
 
@@ -12,7 +12,7 @@ struct FlowEdge(Rc<Cell<Flow>>, Weak<Cell<Flow>>);
 impl FlowEdge {
 
 	// Connect two nodes with a flow.
-	fn connect(s: &DiNode<usize, Empty, FlowEdge>, t: &DiNode<usize, Empty, FlowEdge>, max: u64) {
+	fn connect(s: &Node<usize, Empty, FlowEdge>, t: &Node<usize, Empty, FlowEdge>, max: u64) {
 
 		// Create a forward and a reverse flow.
 		let mut fflow = FlowEdge(Rc::new(Cell::new(Flow(max, 0))), Weak::new());
@@ -48,11 +48,11 @@ impl FlowEdge {
 	fn cur(&self) -> u64 { self.0.get().1 }
 }
 
-fn max_flow(g: DiGraph<usize, Empty, FlowEdge>) -> u64 {
+fn max_flow(g: Graph<usize, Empty, FlowEdge>) -> u64 {
 
 	// 1. We loop breadth-first until there is no more paths to explore.
 	let mut max_flow: u64 = 0;
-	while let Some(bfs) = g[0].search().bfs_map(&g[5], &|_, _, edge| {
+	while let Some(bfs) = g[0].search().bfs_map(Some(&g[5]), &|_, _, edge| {
 
 		// 2. We exclude saturated edges from the search.
 		edge.cur() < edge.max()
@@ -79,15 +79,15 @@ fn max_flow(g: DiGraph<usize, Empty, FlowEdge>) -> u64 {
 }
 
 fn main() {
-	// Generate an example DiGraph with a max flow of 23 from 0 to 5.
-	let mut g = DiGraph::new();
+	// Generate an example Graph with a max flow of 23 from 0 to 5.
+	let mut g = Graph::new();
 
-	g.insert(dinode!(0));
-	g.insert(dinode!(1));
-	g.insert(dinode!(2));
-	g.insert(dinode!(3));
-	g.insert(dinode!(4));
-	g.insert(dinode!(5));
+	g.insert(node!(0));
+	g.insert(node!(1));
+	g.insert(node!(2));
+	g.insert(node!(3));
+	g.insert(node!(4));
+	g.insert(node!(5));
 
 	FlowEdge::connect(&g[0], &g[1], 16);
 	FlowEdge::connect(&g[0], &g[2], 13);
@@ -100,6 +100,6 @@ fn main() {
 	FlowEdge::connect(&g[4], &g[3], 7);
 	FlowEdge::connect(&g[4], &g[5], 4);
 
-	// For this DiGraph we expect the maximum flow from 0 -> 5 to be 23
+	// For this Graph we expect the maximum flow from 0 -> 5 to be 23
 	assert!(max_flow(g) == 23);
 }

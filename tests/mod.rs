@@ -1,2 +1,2 @@
 
-mod test_digraph;
+mod graph_tests;

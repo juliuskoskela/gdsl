@@ -1,18 +1,9 @@
-#[test]
-fn test_node_new() {
-	use dug::digraph::*;
-
-	let node = DiNode::<&str, &str, usize>::new("key", "val");
-
-	assert!(*node.key() == "key");
-	assert!(*node == "val");
-}
 
 #[test]
 fn test_graph_macro() {
-	use dug::*;
+	use gdsl::*;
 
-	let digraph = graph![
+	let g1 = graph![
 		(&str)
 		("A") => ["B", "C"]
 		("B") => ["C"]
@@ -20,7 +11,7 @@ fn test_graph_macro() {
 		("D") => []
 	];
 
-	let digraph_n = graph![
+	let g2 = graph![
 		(&str, i32)
 		("A", 42) => ["B", "C"]
 		("B", 42) => ["C"]
@@ -28,7 +19,7 @@ fn test_graph_macro() {
 		("D", 42) => []
 	];
 
-	let digraph_e = graph![
+	let g3 = graph![
 		(&str) => [i32]
 		("A") => [("B", 42), ("C", 42)]
 		("B") => [("C", 42)]
@@ -36,7 +27,7 @@ fn test_graph_macro() {
 		("D") => []
 	];
 
-	let digraph_ne = graph![
+	let g4 = graph![
 		(&str, i32) => [f64]
 		("A", 42) => [("B", 3.14), ("C", 3.14), ("D", 3.14)]
 		("B", 42) => [("C", 3.14), ("D", 3.14)]
@@ -44,15 +35,15 @@ fn test_graph_macro() {
 		("D", 42) => []
 	];
 
-	assert_eq!(digraph.len(), 4);
-	assert_eq!(digraph_n.len(), 4);
-	assert_eq!(digraph_e.len(), 4);
-	assert_eq!(digraph_ne.len(), 4);
+	assert_eq!(g1.len(), 4);
+	assert_eq!(g2.len(), 4);
+	assert_eq!(g3.len(), 4);
+	assert_eq!(g4.len(), 4);
 }
 
 #[test]
 fn test_digraph_bfs() {
-	use dug::*;
+	use gdsl::*;
 
 	let g = graph![(usize)
 		(0) => [1, 2, 3]
@@ -62,7 +53,7 @@ fn test_digraph_bfs() {
 		(4) => []
 	];
 
-	if let Some(bfs) = g[0].search().bfs(&g[4]) {
+	if let Some(bfs) = g[0].search().bfs(Some(&g[4])) {
 		let path = bfs.node_path();
 		assert!(path[0] == g[0]);
 		assert!(path[1] == g[2]);
@@ -74,7 +65,7 @@ fn test_digraph_bfs() {
 
 #[test]
 fn test_digraph_dfs() {
-	use dug::*;
+	use gdsl::*;
 
 	let g = graph![(usize)
 		(0) => [1, 2, 3]
@@ -84,7 +75,7 @@ fn test_digraph_dfs() {
 		(4) => []
 	];
 
-	if let Some(dfs) = g[0].search().dfs_map(&g[4], &|_, _, _| {true}) {
+	if let Some(dfs) = g[0].search().dfs_map(Some(&g[4]), &|_, _, _| {true}) {
 		let path = dfs.node_path();
 		assert!(path[0] == g[0]);
 		assert!(path[1] == g[1]);
@@ -94,11 +85,19 @@ fn test_digraph_dfs() {
 	} else {
 		panic!();
 	}
+
+	if let Some(dfs) = g[0].search().dfsm(Some(&g[4])) {
+		println!("REACHED!");
+		let path = dfs.node_path();
+		for node in path {
+			println!("{}", node.key());
+		}
+	}
 }
 
 #[test]
 fn digraph_search_pfs() {
-	use dug::*;
+	use gdsl::*;
 
 	let g = graph![(&str, u64)
 		("A", 0) => ["B", "C", "D"]
@@ -112,7 +111,7 @@ fn digraph_search_pfs() {
 
 	println!("\nPFS_MIN:\n");
 
-	if let Some(pfs) = g["A"].search().pfs_min(&g["G"])  {
+	if let Some(pfs) = g["A"].search().pfs_min(Some(&g["G"]))  {
 		let path = pfs.node_path();
 		for node in path {
 			println!("{}", node.key());
@@ -123,7 +122,7 @@ fn digraph_search_pfs() {
 
 	println!("\nPFS_MAX:\n");
 
-	if let Some(pfs) = g["A"].search().pfs_max(&g["G"])  {
+	if let Some(pfs) = g["A"].search().pfs_max(Some(&g["G"]))  {
 		let path = pfs.node_path();
 		for node in path {
 			println!("{}", node.key());
