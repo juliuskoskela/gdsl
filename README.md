@@ -1,49 +1,55 @@
 # Graph Data Structure Library
 
-- Overview
+GDSL is a graph data structure library providing efficient and easy-to-use
+abstractions for working with either directed or undirected graphs. The aim of
+this library is not to implement specific graph algorithms, but rather work as
+a building block for graphs and/or connected nodes for more specific use-cases.
+
+## Example: Simple Graph
+
+A simple example on how to create a graph without a container or using any
+macros for convenience. The `DiGraph` and `UnGraph` types are just containers,
+and they are not needed for most of the functionality which actually resides in
+the `DiNode` and `UnNode` abstractions. The nodes contain methods for
+connecting (adding edges), disconnecting, searching etc. They also behave as
+"smart pointers" and implement `Deref` so that they can be dereferenced into
+their inner values.
 
 ```rust
 
 fn main() {
+	use gdsl::digraph::node::DiNode;
 	use gdsl::*;
 
-	let digraph = graph![
-		(char) =>
-		('A') => ['C']
-		('B') => ['E', 'A']
-		('C') => ['D', 'B']
-		('D') => ['E']
-		('E') => []
-	];
+	// We create directed nodes with characters as keys and integers as values.
+	// The turbofish type-signature is included in the first line for clarity,
+	// but the types could be completely inferred. Note that in order to infer
+	// the type for the edge, `connect()` or `connect!()` must be used.
+	let node_a = DiNode::<char, i32, Empty>::new('A', 1);
+	let node_b = DiNode::new('B', 2);
+	let node_c = DiNode::new('C', 3);
 
-	let ungraph = graph![
-		(char) :
-		('A') : ['C']
-		('B') : ['E', 'A']
-		('C') : ['D', 'B']
-		('D') : ['E']
-		('E') : []
-	];
+	// We connect nodes a -> b and b -> c. The Empty struct is used to denote
+	// that the edge has no value associated with it.
+	node_a.connect(&node_b, Empty);
+	node_b.connect(&node_c, Empty);
 
-	if let Some(bfs) = digraph['A'].bfs_path().search(Some(&digraph['E'])) {
-		let path = bfs.node_path();
-		assert!(path[0] == digraph['A']);
-		assert!(path[1] == digraph['C']);
-		assert!(path[2] == digraph['D']);
-		assert!(path[3] == digraph['E']);
-	}
-
-	if let Some(bfs) = ungraph['A'].bfs_path().search(Some(&ungraph['E'])) {
-		let path = bfs.node_path();
-		assert!(path[0] == ungraph['A']);
-		assert!(path[1] == ungraph['B']);
-		assert!(path[2] == ungraph['E']);
-	}
+	// Check that a -> b && b -> c && !(a -> c)
+	assert!(node_a.is_connected(&node_b));
+	assert!(node_b.is_connected(&node_c));
+	assert!(!node_a.is_connected(&node_c));
 }
 
 ```
 
-## Dijkstra's Shortest Path
+## Example: Using the Macros
+
+TODO!
+
+## Example: Dijkstra's Shortest Path
+
+Below is a commented example of an implementation of Dijkstra's shortest path
+algorithm using abstractions from the graph library.
 
 ```rust
 
@@ -123,13 +129,3 @@ fn main() {
 }
 
 ```
-
-# Graph Types
-
-## Directed Graph
-
-## Undirected Graph
-
-- When these are finished created async versions with Arc and Mutex.
-
-# Graph Macros

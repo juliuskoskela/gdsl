@@ -7,6 +7,7 @@ use std::{
 };
 
 use crate::digraph::graph_search::*;
+use crate::Empty;
 
 //==== DiNode ===================================================================
 
@@ -20,7 +21,7 @@ use crate::digraph::graph_search::*;
 ///
 /// TODO!
 #[derive(Clone)]
-pub struct DiNode<K, N, E>
+pub struct DiNode<K, N = Empty, E = Empty>
 where
 	K: Clone + Hash + PartialEq + Eq + Display,
     N: Clone,
@@ -111,6 +112,14 @@ where
 	/// edges.
 	pub fn is_orphan(&self) -> bool {
 		self.is_root() && self.is_leaf()
+	}
+
+	pub fn is_connected(&self, other: &DiNode<K, N, E>) -> bool {
+		self.edges()
+			.borrow()
+			.iter_outbound()
+			.find(|&edge| &edge.target() == other)
+			.is_some()
 	}
 
 	pub fn dfs(&self) -> Dfs<K, N, E> {

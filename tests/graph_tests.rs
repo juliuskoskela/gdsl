@@ -128,3 +128,21 @@ fn test_digraph_dfs() {
 		panic!();
 	}
 }
+
+
+#[test]
+fn simple_graph() {
+	use gdsl::digraph::node::DiNode;
+	use gdsl::*;
+
+	let node_a = DiNode::new('A', 1);
+	let node_b = DiNode::new('B', 2);
+	let node_c = DiNode::new('C', 3);
+
+	node_a.connect(&node_b, Empty);
+	node_b.connect(&node_c, Empty);
+
+	assert!(node_a.is_connected(&node_b));
+	assert!(node_b.is_connected(&node_c));
+	assert!(!node_a.is_connected(&node_c));
+}
