@@ -7,6 +7,7 @@ use std::{
 };
 
 use crate::ungraph::graph_search::*;
+use crate::Empty;
 
 //==== UnNode ===================================================================
 
@@ -20,7 +21,7 @@ use crate::ungraph::graph_search::*;
 ///
 /// TODO!
 #[derive(Clone)]
-pub struct UnNode<K, N, E>
+pub struct UnNode<K, N = Empty, E = Empty>
 where
 	K: Clone + Hash + PartialEq + Eq + Display,
     N: Clone,
@@ -29,7 +30,7 @@ where
 	inner: Rc<UnNodeInner<K, N, E>>,
 }
 
-struct UnNodeInner<K, N, E>
+struct UnNodeInner<K, N = Empty, E = Empty>
 where
 	K: Clone + Hash + PartialEq + Eq + Display,
     N: Clone,
@@ -285,7 +286,7 @@ where
 //==== UnEdge =================================================================
 
 #[derive(Clone)]
-pub struct UnEdge<K, N, E>
+pub struct UnEdge<K, N = Empty, E = Empty>
 where
 	K: Clone + Hash + PartialEq + Eq + Display,
 	N: Clone,

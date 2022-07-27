@@ -30,7 +30,7 @@ where
 	inner: Rc<DiNodeInner<K, N, E>>,
 }
 
-struct DiNodeInner<K, N, E>
+pub struct DiNodeInner<K, N = Empty, E = Empty>
 where
 	K: Clone + Hash + PartialEq + Eq + Display,
     N: Clone,
@@ -377,7 +377,7 @@ where
 //==== DiEdge =================================================================
 
 #[derive(Clone)]
-pub struct DiEdge<K, N, E>
+pub struct DiEdge<K, N = Empty, E = Empty>
 where
 	K: Clone + Hash + PartialEq + Eq + Display,
 	N: Clone,
