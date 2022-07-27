@@ -68,9 +68,9 @@
 //! assert!(g["E"].take() == 21);
 //! ```
 
-pub mod graph_macros;
-pub mod digraph;
-pub mod ungraph;
+pub mod graph;
+pub mod graph_search;
+pub mod node;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Empty;
