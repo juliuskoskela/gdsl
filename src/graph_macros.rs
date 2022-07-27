@@ -11,7 +11,7 @@ macro_rules! node {
 	// graph::Node<K, _>
 	( $key:expr ) => {
         {
-			use gdsl::graph::Node;
+			use gdsl::node::Node;
 
             Node::new($key, Empty)
         }
@@ -20,7 +20,7 @@ macro_rules! node {
 	// graph::Node<K, N>
     ( $key:expr, $param:expr ) => {
         {
-			use gdsl::graph::*;
+			use gdsl::node::Node;
 
             Node::new($key, $param)
         }
@@ -36,6 +36,7 @@ macro_rules! connect {
 	( $s:expr => $t:expr ) => {
         {
 			use gdsl::graph::*;
+			use gdsl::node::Node;
 
             Node::connect($s, $t, Empty)
         }
@@ -44,6 +45,7 @@ macro_rules! connect {
     ( $s:expr => $t:expr, $params:expr ) => {
         {
 			use gdsl::graph::*;
+			use gdsl::node::Node;
 
             Node::connect($s, $t, $params)
         }

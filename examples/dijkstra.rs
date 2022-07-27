@@ -18,7 +18,7 @@ fn dijkstra_1() {
 
 	g["A"].set(0);
 
-	g["A"].search().pfs_min_map(Some(&g["E"]), &|u, v, e| {
+	g["A"].pfs_min().search_filter_map(Some(&g["E"]), &|u, v, e| {
 
 		let (u_dist, v_dist) = (u.get(), v.get());
 
@@ -58,16 +58,16 @@ fn dijkstra_2() {
 	g["A"].set(0);
 	heap.push(g["A"].clone());
 
-	'search: while let Some(s) = heap.pop_min() {
-		for (delta, t) in &s {
-			let (s_dist, t_dist) = (s.get(), t.get());
+	'search: while let Some(u) = heap.pop_min() {
+		for (v, delta) in &u {
+			let (u_dist, v_dist) = (u.get(), v.get());
 
-			if !visited.contains(t.key()) {
-				if t_dist > s_dist + delta {
-					visited.insert(t.key().clone());
-					t.set(s_dist + delta);
-					if s == g["E"] { break 'search }
-					heap.push(t.clone());
+			if !visited.contains(v.key()) {
+				if v_dist > u_dist + delta {
+					visited.insert(v.key().clone());
+					v.set(u_dist + delta);
+					if v == g["E"] { break 'search }
+					heap.push(v.clone());
 				}
 			}
 		}

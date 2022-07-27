@@ -69,7 +69,9 @@
 //! ```
 
 pub mod graph;
+pub mod graph_search;
 pub mod graph_macros;
+pub mod node;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Empty;

@@ -53,7 +53,7 @@ fn test_digraph_bfs() {
 		(4) => []
 	];
 
-	if let Some(bfs) = g[0].search().bfs(Some(&g[4])) {
+	if let Some(bfs) = g[0].bfs_path().search(Some(&g[4])) {
 		let path = bfs.node_path();
 		assert!(path[0] == g[0]);
 		assert!(path[1] == g[2]);
@@ -75,58 +75,13 @@ fn test_digraph_dfs() {
 		(4) => []
 	];
 
-	if let Some(dfs) = g[0].search().dfs_map(Some(&g[4]), &|_, _, _| {true}) {
+	if let Some(dfs) = g[0].dfs_path().search(Some(&g[4])) {
 		let path = dfs.node_path();
 		assert!(path[0] == g[0]);
 		assert!(path[1] == g[1]);
 		assert!(path[2] == g[3]);
 		assert!(path[3] == g[2]);
 		assert!(path[4] == g[4]);
-	} else {
-		panic!();
-	}
-
-	if let Some(dfs) = g[0].search().dfsm(Some(&g[4])) {
-		println!("REACHED!");
-		let path = dfs.node_path();
-		for node in path {
-			println!("{}", node.key());
-		}
-	}
-}
-
-#[test]
-fn digraph_search_pfs() {
-	use gdsl::*;
-
-	let g = graph![(&str, u64)
-		("A", 0) => ["B", "C", "D"]
-		("B", 1) => ["E"]
-		("C", 2) => ["G"]
-		("D", 3) => ["F"]
-		("E", 0) => ["G"]
-		("F", 0) => ["B", "G"]
-		("G", 0) => []
-	];
-
-	println!("\nPFS_MIN:\n");
-
-	if let Some(pfs) = g["A"].search().pfs_min(Some(&g["G"]))  {
-		let path = pfs.node_path();
-		for node in path {
-			println!("{}", node.key());
-		}
-	} else {
-		panic!();
-	}
-
-	println!("\nPFS_MAX:\n");
-
-	if let Some(pfs) = g["A"].search().pfs_max(Some(&g["G"]))  {
-		let path = pfs.node_path();
-		for node in path {
-			println!("{}", node.key());
-		}
 	} else {
 		panic!();
 	}

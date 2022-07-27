@@ -1,12 +1,12 @@
-#![allow(unused)]
 use criterion::Throughput;
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use gdsl::graph::*;
+use gdsl::node::Node;
 use gdsl::*;
 use rand::*;
 use std::cell::Cell;
 use std::cmp::{max, min};
-use min_max_heap::MinMaxHeap;
+// use min_max_heap::MinMaxHeap;
 
 fn rand_range(start: usize, end: usize) -> usize {
     let mut rng = rand::thread_rng();
@@ -50,7 +50,7 @@ fn create_dijkstra_digraph_against_petgraph(size: usize) -> Vec<Node<usize, Cell
 fn bench_search(c: &mut Criterion) {
     static B: usize = 1000;
 
-    let mut group = c.benchmark_group("Dijkstra");
+    let mut group = c.benchmark_group("Depth First Search");
     for (i, size) in [B, 2 * B, 4 * B, 8 * B, 16 * B]
         .iter()
         .enumerate()
@@ -59,23 +59,17 @@ fn bench_search(c: &mut Criterion) {
 		group.throughput(Throughput::Elements(*size as u64));
 		let g = create_dijkstra_digraph(*size, 10);
 
-        group.bench_with_input(BenchmarkId::new("Depth First Search", size), &i, |b, _| {
+        group.bench_with_input(BenchmarkId::new("unbound", size), &i, |b, _| {
 			b.iter(|| {
-				g[0].search().dfs(None);
+				g[0].dfs().search(None);
             })
         });
 
-		group.bench_with_input(BenchmarkId::new("*Depth First Search", size), &i, |b, _| {
+		group.bench_with_input(BenchmarkId::new("unbound path", size), &i, |b, _| {
 			b.iter(|| {
-				g[0].search().dfsm(None);
+				g[0].dfs_path().search(None);
             })
         });
-
-		// group.bench_with_input(BenchmarkId::new("Breadth First Search", size), &i, |b, _| {
-		// 	b.iter(|| {
-		// 		g[0].search().bfs(Some(&g[rand_range(0, *size)]));
-        //     })
-        // });
     }
     group.finish();
 }
@@ -93,53 +87,28 @@ fn bench_dijkstra(c: &mut Criterion) {
 
 		group.throughput(Throughput::Elements(*size as u64));
 
-        // group.bench_with_input(BenchmarkId::new("Sync Naive", size), &i, |b, _| {
-		// 	b.iter(|| {
-		// 		let g = create_dijkstra_digraph(*size, 100);
-		// 		let mut heap = MinMaxHeap::new();
-		// 		let mut visited = std::collections::HashSet::new();
-		// 		let source = &g[rand_range(0, g.len())];
-		// 		let target = &g[rand_range(0, g.len())];
+		let g = create_dijkstra_digraph(*size, 100);
 
-		// 		source.replace(0);
-		// 		heap.push(source.clone());
+		group.bench_with_input(BenchmarkId::new("With PFS", size), &i, |b, _| {
+			b.iter(|| {
+				let source = &g[rand_range(0, g.len())];
+				let target = &g[rand_range(0, g.len())];
 
-		// 		'search: while let Some(s) = heap.pop_min() {
-		// 			for (delta, t) in &s {
-		// 				if !visited.contains(t.key()) {
-		// 					let (s_dist, t_dist) = (s.get(), t.get());
-		// 					if t_dist > s_dist + delta {
-		// 						visited.insert(t.key().clone());
-		// 						t.replace(s_dist + delta);
-		// 						if &s == target { break 'search }
-		// 						heap.push(t.clone());
-		// 					}
-		// 				}
-		// 			}
-		// 		}
-        //     })
-        // });
+				source.replace(0);
 
-		// group.bench_with_input(BenchmarkId::new("Sync PFS", size), &i, |b, _| {
-		// 	b.iter(|| {
-		// 		let g = create_dijkstra_digraph(*size, 100);
-		// 		let source = &g[rand_range(0, g.len())];
-		// 		let target = &g[rand_range(0, g.len())];
-
-		// 		source.replace(0);
-
-		// 		source.search().pfs_min_map(Some(&target), &|s, t, delta| {
-		// 			let (s_dist, t_dist) = (s.get(), t.get());
-		// 			match t_dist > s_dist + delta {
-		// 				true => {
-		// 					t.set(s_dist + delta);
-		// 					true
-		// 				},
-		// 				false => false,
-		// 			}
-		// 		});
-        //     })
-        // });
+				source.pfs_min().search_filter_map(Some(&target), &|s, t, delta| {
+					let (s_dist, t_dist) = (s.get(), t.get());
+					match t_dist > s_dist + delta {
+						true => {
+							t.set(s_dist + delta);
+							true
+						},
+						false => false,
+					}
+				});
+				g.iter().for_each(|(_, n)| n.set(u64::MAX));
+            })
+        });
 
 		let g = create_dijkstra_digraph_against_petgraph(*size);
 		group.bench_with_input(BenchmarkId::new("Petgraph Test", size), &i, |b, _| {
@@ -148,7 +117,7 @@ fn bench_dijkstra(c: &mut Criterion) {
 
 				source.replace(0);
 
-				source.search().pfs_min_map(None, &|s, t, delta| {
+				source.pfs_min().search_filter_map(None, &|s, t, delta| {
 					let (s_dist, t_dist) = (s.get(), t.get());
 					match t_dist > s_dist + delta {
 						true => {
@@ -172,6 +141,6 @@ fn bench_dijkstra(c: &mut Criterion) {
 criterion_group!(
     benches,
 	bench_search,
-    // bench_dijkstra,
+    bench_dijkstra,
 );
 criterion_main!(benches);

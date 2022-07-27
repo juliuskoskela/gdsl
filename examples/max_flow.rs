@@ -1,4 +1,5 @@
-use gdsl::graph::{Graph, Node};
+use gdsl::graph::Graph;
+use gdsl::node::Node;
 use gdsl::*;
 use std::rc::{Weak, Rc};
 use std::cell::Cell;
@@ -52,7 +53,7 @@ fn max_flow(g: Graph<usize, Empty, FlowEdge>) -> u64 {
 
 	// 1. We loop breadth-first until there is no more paths to explore.
 	let mut max_flow: u64 = 0;
-	while let Some(bfs) = g[0].search().bfs_map(Some(&g[5]), &|_, _, edge| {
+	while let Some(bfs) = g[0].bfs_path().search_filter(Some(&g[5]), &|_, _, edge| {
 
 		// 2. We exclude saturated edges from the search.
 		edge.cur() < edge.max()
