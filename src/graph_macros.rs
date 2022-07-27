@@ -11,7 +11,7 @@ macro_rules! dinode {
 	// graph::Node<K, _>
 	( $key:expr ) => {
         {
-			use gdsl::digraph::node::DiNode;
+			use gdsl::digraph::DiNode;
 
             DiNode::new($key, Empty)
         }
@@ -20,7 +20,7 @@ macro_rules! dinode {
 	// graph::Node<K, N>
     ( $key:expr, $param:expr ) => {
         {
-			use gdsl::digraph::node::DiNode;
+			use gdsl::digraph::DiNode;
 
             DiNode::new($key, $param)
         }
@@ -37,7 +37,7 @@ macro_rules! unnode {
 	// graph::Node<K, _>
 	( $key:expr ) => {
         {
-			use gdsl::ungraph::node::UnNode;
+			use gdsl::ungraph::UnNode;
 
             UnNode::new($key, Empty)
         }
@@ -46,7 +46,7 @@ macro_rules! unnode {
 	// graph::Node<K, N>
     ( $key:expr, $param:expr ) => {
         {
-			use gdsl::ungraph::node::UnNode;
+			use gdsl::ungraph::UnNode;
 
             UnNode::new($key, $param)
         }
@@ -62,8 +62,8 @@ macro_rules! connect {
 
 	( $s:expr => $t:expr ) => {
         {
-			use gdsl::digraph::graph::*;
-			use gdsl::digraph::node::DiNode;
+			use gdsl::digraph::*;
+			use gdsl::digraph::DiNode;
 
             DiNode::connect($s, $t, Empty)
         }
@@ -71,8 +71,8 @@ macro_rules! connect {
 
     ( $s:expr => $t:expr, $params:expr ) => {
         {
-			use gdsl::digraph::graph::*;
-			use gdsl::digraph::node::DiNode;
+			use gdsl::digraph::*;
+			use gdsl::digraph::DiNode;
 
             DiNode::connect($s, $t, $params)
         }
@@ -80,8 +80,8 @@ macro_rules! connect {
 
 	( $s:expr, $t:expr ) => {
         {
-			use gdsl::ungraph::graph::*;
-			use gdsl::ungraph::node::UnNode;
+			use gdsl::ungraph::*;
+			use gdsl::ungraph::UnNode;
 
             UnNode::connect($s, $t, Empty)
         }
@@ -89,8 +89,8 @@ macro_rules! connect {
 
     ( $s:expr, $t:expr, $params:expr ) => {
         {
-			use gdsl::ungraph::graph::*;
-			use gdsl::ungraph::node::UnNode;
+			use gdsl::ungraph::*;
+			use gdsl::ungraph::UnNode;
 
             UnNode::connect($s, $t, $params)
         }
@@ -108,7 +108,7 @@ macro_rules! graph {
 	( ($K:ty) => $(($NODE:expr) => $( [ $( $EDGE:expr),*] )? )* )
 	=> {
 		{
-			use gdsl::digraph::graph::*;
+			use gdsl::digraph::*;
 
 			let mut edges = Vec::<($K, $K)>::new();
 			edges.clear();
@@ -142,7 +142,7 @@ macro_rules! graph {
 	( ($K:ty, $N:ty) => $(($NODE:expr, $NPARAM:expr) => $( [$(  $EDGE:expr) ,*] )? )* )
 	=> {
 		{
-			use gdsl::digraph::graph::*;
+			use gdsl::digraph::*;
 
 			let mut edges = Vec::<($K, $K)>::new();
 			edges.clear();
@@ -176,7 +176,7 @@ macro_rules! graph {
 	( ($K:ty) => [$E:ty] $(($NODE:expr) => $( [$( ( $EDGE:expr, $EPARAM:expr) ),*] )? )* )
 	=> {
 		{
-			use gdsl::digraph::graph::*;
+			use gdsl::digraph::*;
 
 			let mut edges = Vec::<($K, $K, $E)>::new();
 			edges.clear();
@@ -210,7 +210,7 @@ macro_rules! graph {
 	( ($K:ty, $N:ty) => [$E:ty] $(($NODE:expr, $NPARAM:expr) => $( [$( ( $EDGE:expr, $EPARAM:expr) ),*] )? )* )
 	=> {
 		{
-			use gdsl::digraph::graph::*;
+			use gdsl::digraph::*;
 
 			let mut edges = Vec::<($K, $K, $E)>::new();
 			edges.clear();
@@ -246,7 +246,7 @@ macro_rules! graph {
 	( ($K:ty) : $(($NODE:expr) : $( [ $( $EDGE:expr),*] )? )* )
 	=> {
 		{
-			use gdsl::ungraph::graph::*;
+			use gdsl::ungraph::*;
 
 			let mut edges = Vec::<($K, $K)>::new();
 			edges.clear();
@@ -280,7 +280,7 @@ macro_rules! graph {
 	( ($K:ty, $N:ty) : $(($NODE:expr, $NPARAM:expr) : $( [$(  $EDGE:expr) ,*] )? )* )
 	=> {
 		{
-			use gdsl::ungraph::graph::*;
+			use gdsl::ungraph::*;
 
 			let mut edges = Vec::<($K, $K)>::new();
 			edges.clear();
@@ -314,7 +314,7 @@ macro_rules! graph {
 	( ($K:ty) : [$E:ty] $(($NODE:expr) : $( [$( ( $EDGE:expr, $EPARAM:expr) ),*] )? )* )
 	=> {
 		{
-			use gdsl::ungraph::graph::*;
+			use gdsl::ungraph::*;
 
 			let mut edges = Vec::<($K, $K, $E)>::new();
 			edges.clear();
@@ -348,7 +348,7 @@ macro_rules! graph {
 	( ($K:ty, $N:ty) : [$E:ty] $(($NODE:expr, $NPARAM:expr) : $( [$( ( $EDGE:expr, $EPARAM:expr) ),*] )? )* )
 	=> {
 		{
-			use gdsl::ungraph::graph::*;
+			use gdsl::ungraph::*;
 
 			let mut edges = Vec::<($K, $K, $E)>::new();
 			edges.clear();

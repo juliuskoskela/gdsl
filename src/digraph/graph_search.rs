@@ -1,4 +1,4 @@
-use crate::digraph::node::*;
+use crate::digraph::*;
 
 use std::{
     fmt::Display,

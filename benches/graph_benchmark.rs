@@ -1,7 +1,6 @@
 use criterion::Throughput;
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
-use gdsl::digraph::graph::*;
-use gdsl::digraph::node::DiNode;
+use gdsl::digraph::*;
 use gdsl::*;
 use rand::*;
 use std::cell::Cell;

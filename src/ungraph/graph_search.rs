@@ -6,7 +6,7 @@ use std::{
 
 use min_max_heap::MinMaxHeap;
 
-use crate::ungraph::node::*;
+use crate::ungraph::*;
 
 //==== Search =================================================================
 

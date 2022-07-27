@@ -1,5 +1,5 @@
-use gdsl::digraph::graph::DiGraph as Graph;
-use gdsl::digraph::node::DiNode as Node;
+use gdsl::digraph::DiGraph as Graph;
+use gdsl::digraph::DiNode as Node;
 use gdsl::*;
 use std::rc::{Weak, Rc};
 use std::cell::Cell;

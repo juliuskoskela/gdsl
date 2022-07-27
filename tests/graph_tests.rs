@@ -2,7 +2,7 @@
 #[test]
 fn manual_bfs() {
 	use gdsl::*;
-	use gdsl::digraph::node::*;
+	use gdsl::digraph::*;
 	use std:: collections::VecDeque;
 	use std::collections::HashSet;
 
@@ -184,7 +184,7 @@ fn test_digraph_dfs() {
 
 #[test]
 fn simple_graph() {
-	use gdsl::digraph::node::DiNode;
+	use gdsl::digraph::DiNode;
 	use gdsl::*;
 
 	let node_a = DiNode::new('A', 1);
