@@ -1,5 +1,57 @@
 
 #[test]
+fn manual_bfs() {
+	use gdsl::*;
+	use gdsl::digraph::node::*;
+	use std:: collections::VecDeque;
+	use std::collections::HashSet;
+
+	let g = graph![
+		(char) =>
+		('A') => ['C']
+		('B') => ['E', 'A']
+		('C') => ['D', 'B']
+		('D') => ['E']
+		('E') => []
+	];
+
+	let mut queue = VecDeque::new();
+	let mut visited = HashSet::new();
+
+	queue.push_back(g['A'].clone());
+
+	'search: while let Some(u) = queue.pop_front() {
+		for (v, _) in &u {
+			if visited.contains(v.key()) == false {
+				queue.push_back(v.clone());
+				println!("searching {} -> {}", u.key(), v.key());
+				if *v.key() == 'E' {
+					println!("Target found!");
+					break 'search;
+				}
+				visited.insert(v.key().clone());
+			}
+		}
+	}
+
+	let sizeof_empty_node = std::mem::size_of::<DiNodeInner<char>>();
+	let sizeof_node_1param = std::mem::size_of::<DiNodeInner<char, usize>>();
+	let sizeof_node_2param = std::mem::size_of::<DiNodeInner<char, usize, usize>>();
+
+	println!("sizeof empty node: {}", sizeof_empty_node);
+	println!("sizeof node 1 param: {}", sizeof_node_1param);
+	println!("sizeof node 2 param: {}", sizeof_node_2param);
+
+	let sizeof_empty_edge = std::mem::size_of::<DiEdge<char, Empty, Empty>>();
+	let sizeof_edge_1param = std::mem::size_of::<DiEdge<char, usize, Empty>>();
+	let sizeof_edge_2param = std::mem::size_of::<DiEdge<char, usize, usize>>();
+
+	println!("sizeof empty edge: {}", sizeof_empty_edge);
+	println!("sizeof edge 1 param: {}", sizeof_edge_1param);
+	println!("sizeof edge 2 param: {}", sizeof_edge_2param);
+}
+
+#[test]
 fn test_graph_macro() {
 	use gdsl::*;
 

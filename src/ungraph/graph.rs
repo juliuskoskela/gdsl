@@ -213,6 +213,7 @@ where
 	///
 	/// ```
 	/// use gdsl::ungraph::node::UnNode;
+	///
 	/// use gdsl::ungraph::graph::*;
 	///
 	/// let mut g = UnGraph::<&str, u64, u64>::new();
