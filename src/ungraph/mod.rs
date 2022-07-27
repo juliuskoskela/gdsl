@@ -12,7 +12,7 @@
 //!
 //! ```
 //! use ::digraph::*;
-//! use gdsl::*;
+//! use gdsl::ungraph::*;
 //!
 //! let mut g = Graph::<usize, Empty, Empty>::new();
 //!
@@ -27,7 +27,7 @@
 //! Djikstra's Algorithm
 //!
 //! ```
-//! use gdsl::*;
+//! use gdsl::ungraph::*;
 //! use std::cell::Cell;
 //!
 //! // Create with the `graph!` macro. Since we want to mutate the distance
@@ -68,9 +68,9 @@
 //! assert!(g["E"].take() == 21);
 //! ```
 
-pub mod graph_macros;
-pub mod digraph;
-pub mod ungraph;
+pub mod graph;
+pub mod graph_search;
+pub mod node;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Empty;
