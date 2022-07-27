@@ -1,7 +1,7 @@
 use criterion::Throughput;
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
-use gdsl::graph::*;
-use gdsl::node::Node;
+use gdsl::digraph::graph::*;
+use gdsl::digraph::node::DiNode;
 use gdsl::*;
 use rand::*;
 use std::cell::Cell;
@@ -13,10 +13,10 @@ fn rand_range(start: usize, end: usize) -> usize {
     rng.gen_range(start..end)
 }
 
-fn create_dijkstra_digraph(size: usize, degree: usize) -> Graph<usize, Cell<u64>, u64> {
-    let mut g = Graph::new();
+fn create_dijkstra_digraph(size: usize, degree: usize) -> DiGraph<usize, Cell<u64>, u64> {
+    let mut g = DiGraph::new();
     for i in 0..size {
-        g.insert(node!(i, Cell::new(u64::MAX)));
+        g.insert(dinode!(i, Cell::new(u64::MAX)));
     }
     for i in 0..size {
         let new_degree = rand_range(0, degree * 2);
@@ -27,10 +27,10 @@ fn create_dijkstra_digraph(size: usize, degree: usize) -> Graph<usize, Cell<u64>
     g
 }
 
-fn create_dijkstra_digraph_against_petgraph(size: usize) -> Vec<Node<usize, Cell<usize>, usize>> {
+fn create_dijkstra_digraph_against_petgraph(size: usize) -> Vec<DiNode<usize, Cell<usize>, usize>> {
     let mut g = Vec::new();
     for i in 0..size {
-        g.push(node!(i, Cell::new(usize::MAX)));
+        g.push(dinode!(i, Cell::new(usize::MAX)));
     }
 
 	for (i, node) in g.iter().enumerate() {

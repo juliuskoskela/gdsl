@@ -1,5 +1,5 @@
-use gdsl::graph::Graph;
-use gdsl::node::Node;
+use gdsl::digraph::graph::DiGraph as Graph;
+use gdsl::digraph::node::DiNode as Node;
 use gdsl::*;
 use std::rc::{Weak, Rc};
 use std::cell::Cell;
@@ -83,12 +83,12 @@ fn main() {
 	// Generate an example Graph with a max flow of 23 from 0 to 5.
 	let mut g = Graph::new();
 
-	g.insert(node!(0));
-	g.insert(node!(1));
-	g.insert(node!(2));
-	g.insert(node!(3));
-	g.insert(node!(4));
-	g.insert(node!(5));
+	g.insert(dinode!(0));
+	g.insert(dinode!(1));
+	g.insert(dinode!(2));
+	g.insert(dinode!(3));
+	g.insert(dinode!(4));
+	g.insert(dinode!(5));
 
 	FlowEdge::connect(&g[0], &g[1], 16);
 	FlowEdge::connect(&g[0], &g[2], 13);

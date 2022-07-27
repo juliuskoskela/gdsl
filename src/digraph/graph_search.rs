@@ -1,4 +1,4 @@
-use crate::node::*;
+use crate::digraph::node::*;
 
 use std::{
     fmt::Display,
@@ -10,9 +10,9 @@ use min_max_heap::MinMaxHeap;
 
 //==== Search =================================================================
 
-type FilterMap<'a, K, N, E> = &'a dyn Fn(&Node<K, N, E>, &Node<K, N, E>, &E) -> bool;
-type Filter<'a, K, N, E> = &'a dyn Fn(&Node<K, N, E>, &Node<K, N, E>, &E) -> bool;
-type Map<'a, K, N, E> = &'a dyn Fn(&Node<K, N, E>, &Node<K, N, E>, &E);
+type FilterMap<'a, K, N, E> = &'a dyn Fn(&DiNode<K, N, E>, &DiNode<K, N, E>, &E) -> bool;
+type Filter<'a, K, N, E> = &'a dyn Fn(&DiNode<K, N, E>, &DiNode<K, N, E>, &E) -> bool;
+type Map<'a, K, N, E> = &'a dyn Fn(&DiNode<K, N, E>, &DiNode<K, N, E>, &E);
 
 //==== Depth First Search =====================================================
 
@@ -22,7 +22,7 @@ where
 	N: Clone,
 	E: Clone,
 {
-	root: Node<K, N, E>,
+	root: DiNode<K, N, E>,
 }
 
 impl<K, N, E> Dfs<K, N, E>
@@ -31,11 +31,11 @@ where
 	N: Clone,
 	E: Clone,
 {
-	pub fn new(root: &Node<K, N, E>) -> Self {
+	pub fn new(root: &DiNode<K, N, E>) -> Self {
 		Self { root: root.clone() }
 	}
 
-	pub fn search(&mut self, target: Option<&Node<K, N, E>>) -> Option<&Self> {
+	pub fn search(&mut self, target: Option<&DiNode<K, N, E>>) -> Option<&Self> {
 		let mut queue = Vec::new();
 		let mut visited = HashSet::new();
 
@@ -62,7 +62,7 @@ where
 		None
 	}
 
-	pub fn search_filter<'a>(&mut self, target: Option<&Node<K, N, E>>, f: Filter<'a, K, N, E>) -> Option<&Self> {
+	pub fn search_filter<'a>(&mut self, target: Option<&DiNode<K, N, E>>, f: Filter<'a, K, N, E>) -> Option<&Self> {
 		let mut queue = Vec::new();
 		let mut visited = HashSet::new();
 
@@ -91,7 +91,7 @@ where
 		None
 	}
 
-	pub fn search_map<'a>(&mut self, target: Option<&Node<K, N, E>>, f: Map<'a, K, N, E>) -> Option<&Self> {
+	pub fn search_map<'a>(&mut self, target: Option<&DiNode<K, N, E>>, f: Map<'a, K, N, E>) -> Option<&Self> {
 		let mut queue = Vec::new();
 		let mut visited = HashSet::new();
 
@@ -119,7 +119,7 @@ where
 		None
 	}
 
-	pub fn search_filter_map<'a>(&mut self, target: Option<&Node<K, N, E>>, f: FilterMap<'a, K, N, E>) -> Option<&Self> {
+	pub fn search_filter_map<'a>(&mut self, target: Option<&DiNode<K, N, E>>, f: FilterMap<'a, K, N, E>) -> Option<&Self> {
 		let mut queue = Vec::new();
 		let mut visited = HashSet::new();
 
@@ -155,8 +155,8 @@ where
 	N: Clone,
 	E: Clone,
 {
-	root: Node<K, N, E>,
-	edge_tree: Vec<Edge<K, N, E>>,
+	root: DiNode<K, N, E>,
+	edge_tree: Vec<DiEdge<K, N, E>>,
 }
 
 impl<K, N, E> DfsPath<K, N, E>
@@ -165,14 +165,14 @@ where
 	N: Clone,
 	E: Clone,
 {
-	pub fn new(root: &Node<K, N, E>) -> Self {
+	pub fn new(root: &DiNode<K, N, E>) -> Self {
 		Self {
 			root: root.clone(),
 			edge_tree: Vec::new(),
 		}
 	}
 
-	pub fn search(&mut self, target: Option<&Node<K, N, E>>) -> Option<&Self> {
+	pub fn search(&mut self, target: Option<&DiNode<K, N, E>>) -> Option<&Self> {
 		let mut queue = Vec::new();
 		let mut visited = HashSet::new();
 
@@ -200,7 +200,7 @@ where
 		None
 	}
 
-	pub fn search_filter<'a>(&mut self, target: Option<&Node<K, N, E>>, f: Filter<'a, K, N, E>) -> Option<&Self> {
+	pub fn search_filter<'a>(&mut self, target: Option<&DiNode<K, N, E>>, f: Filter<'a, K, N, E>) -> Option<&Self> {
 		let mut queue = Vec::new();
 		let mut visited = HashSet::new();
 
@@ -230,7 +230,7 @@ where
 		None
 	}
 
-	pub fn search_map<'a>(&mut self, target: Option<&Node<K, N, E>>, f: Map<'a, K, N, E>) -> Option<&Self> {
+	pub fn search_map<'a>(&mut self, target: Option<&DiNode<K, N, E>>, f: Map<'a, K, N, E>) -> Option<&Self> {
 		let mut queue = Vec::new();
 		let mut visited = HashSet::new();
 
@@ -259,7 +259,7 @@ where
 		None
 	}
 
-	pub fn search_filter_map<'a>(&mut self, target: Option<&Node<K, N, E>>, f: FilterMap<'a, K, N, E>) -> Option<&Self> {
+	pub fn search_filter_map<'a>(&mut self, target: Option<&DiNode<K, N, E>>, f: FilterMap<'a, K, N, E>) -> Option<&Self> {
 		let mut queue = Vec::new();
 		let mut visited = HashSet::new();
 
@@ -289,11 +289,11 @@ where
 		None
 	}
 
-	pub fn edge_tree(&self) -> &Vec<Edge<K, N, E>> {
+	pub fn edge_tree(&self) -> &Vec<DiEdge<K, N, E>> {
 		&self.edge_tree
 	}
 
-	pub fn edge_path(&self) -> Vec<Edge<K, N, E>> {
+	pub fn edge_path(&self) -> Vec<DiEdge<K, N, E>> {
 		let mut path = Vec::new();
 
 		let len = self.edge_tree.len() - 1;
@@ -311,7 +311,7 @@ where
 		path
 	}
 
-	pub fn node_path(&self) -> Vec<Node<K, N, E>> {
+	pub fn node_path(&self) -> Vec<DiNode<K, N, E>> {
 		let mut path = Vec::new();
 
 		if !self.edge_path().is_empty() {
@@ -334,7 +334,7 @@ where
 	N: Clone,
 	E: Clone,
 {
-	root: Node<K, N, E>,
+	root: DiNode<K, N, E>,
 }
 
 impl<K, N, E> Bfs<K, N, E>
@@ -343,11 +343,11 @@ where
 	N: Clone,
 	E: Clone,
 {
-	pub fn new(root: &Node<K, N, E>) -> Self {
+	pub fn new(root: &DiNode<K, N, E>) -> Self {
 		Bfs { root: root.clone() }
 	}
 
-	pub fn search(&mut self, target: Option<&Node<K, N, E>>) -> Option<&Self> {
+	pub fn search(&mut self, target: Option<&DiNode<K, N, E>>) -> Option<&Self> {
 		let mut queue = VecDeque::new();
 		let mut visited = HashSet::new();
 
@@ -372,7 +372,7 @@ where
 		None
 	}
 
-	pub fn search_map<'a>(&mut self, target: Option<&Node<K, N, E>>, f: Map<'a, K, N, E>)  -> Option<&Self> {
+	pub fn search_map<'a>(&mut self, target: Option<&DiNode<K, N, E>>, f: Map<'a, K, N, E>)  -> Option<&Self> {
 		let mut queue = VecDeque::new();
 		let mut visited = HashSet::new();
 
@@ -398,7 +398,7 @@ where
 		None
 	}
 
-	pub fn search_filter<'a>(&mut self, target: Option<&Node<K, N, E>>, f: Filter<'a, K, N, E>)  -> Option<&Self> {
+	pub fn search_filter<'a>(&mut self, target: Option<&DiNode<K, N, E>>, f: Filter<'a, K, N, E>)  -> Option<&Self> {
 		let mut queue = VecDeque::new();
 		let mut visited = HashSet::new();
 
@@ -425,7 +425,7 @@ where
 		None
 	}
 
-	pub fn search_filter_map<'a>(&mut self, target: Option<&Node<K, N, E>>, f: FilterMap<'a, K, N, E>)  -> Option<&Self> {
+	pub fn search_filter_map<'a>(&mut self, target: Option<&DiNode<K, N, E>>, f: FilterMap<'a, K, N, E>)  -> Option<&Self> {
 		let mut queue = VecDeque::new();
 		let mut visited = HashSet::new();
 
@@ -459,8 +459,8 @@ where
 	N: Clone,
 	E: Clone,
 {
-	root: Node<K, N, E>,
-	edge_tree: Vec<Edge<K, N, E>>,
+	root: DiNode<K, N, E>,
+	edge_tree: Vec<DiEdge<K, N, E>>,
 }
 
 impl<K, N, E> BfsPath<K, N, E>
@@ -469,14 +469,14 @@ where
 	N: Clone,
 	E: Clone,
 {
-	pub fn new(root: &Node<K, N, E>) -> Self {
+	pub fn new(root: &DiNode<K, N, E>) -> Self {
 		BfsPath {
 			root: root.clone(),
 			edge_tree: Vec::new(),
 		}
 	}
 
-	pub fn search(&mut self, target: Option<&Node<K, N, E>>) -> Option<&Self> {
+	pub fn search(&mut self, target: Option<&DiNode<K, N, E>>) -> Option<&Self> {
 		let mut queue = VecDeque::new();
 		let mut visited = HashSet::new();
 
@@ -502,7 +502,7 @@ where
 		None
 	}
 
-	pub fn search_map<'a>(&mut self, target: Option<&Node<K, N, E>>, f: Map<'a, K, N, E>)  -> Option<&Self> {
+	pub fn search_map<'a>(&mut self, target: Option<&DiNode<K, N, E>>, f: Map<'a, K, N, E>)  -> Option<&Self> {
 		let mut queue = VecDeque::new();
 		let mut visited = HashSet::new();
 
@@ -529,7 +529,7 @@ where
 		None
 	}
 
-	pub fn search_filter<'a>(&mut self, target: Option<&Node<K, N, E>>, f: Filter<'a, K, N, E>)  -> Option<&Self> {
+	pub fn search_filter<'a>(&mut self, target: Option<&DiNode<K, N, E>>, f: Filter<'a, K, N, E>)  -> Option<&Self> {
 		let mut queue = VecDeque::new();
 		let mut visited = HashSet::new();
 
@@ -557,7 +557,7 @@ where
 		None
 	}
 
-	pub fn search_filter_map<'a>(&mut self, target: Option<&Node<K, N, E>>, f: FilterMap<'a, K, N, E>)  -> Option<&Self> {
+	pub fn search_filter_map<'a>(&mut self, target: Option<&DiNode<K, N, E>>, f: FilterMap<'a, K, N, E>)  -> Option<&Self> {
 		let mut queue = VecDeque::new();
 		let mut visited = HashSet::new();
 
@@ -585,11 +585,11 @@ where
 		None
 	}
 
-	pub fn edge_tree(&self) -> &Vec<Edge<K, N, E>> {
+	pub fn edge_tree(&self) -> &Vec<DiEdge<K, N, E>> {
 		&self.edge_tree
 	}
 
-	pub fn edge_path(&self) -> Vec<Edge<K, N, E>> {
+	pub fn edge_path(&self) -> Vec<DiEdge<K, N, E>> {
 		let mut path = Vec::new();
 
 		let len = self.edge_tree.len() - 1;
@@ -607,7 +607,7 @@ where
 		path
 	}
 
-	pub fn node_path(&self) -> Vec<Node<K, N, E>> {
+	pub fn node_path(&self) -> Vec<DiNode<K, N, E>> {
 		let mut path = Vec::new();
 
 		if !self.edge_path().is_empty() {
@@ -630,7 +630,7 @@ where
 	N: Clone,
 	E: Clone,
 {
-	root: Node<K, N, E>,
+	root: DiNode<K, N, E>,
 }
 
 impl<K, N, E> PfsMin<K, N, E>
@@ -639,11 +639,11 @@ where
 	N: Clone,
 	E: Clone,
 {
-	pub fn new(root: &Node<K, N, E>) -> Self {
+	pub fn new(root: &DiNode<K, N, E>) -> Self {
 		PfsMin { root: root.clone() }
 	}
 
-	pub fn search(&mut self, target: Option<&Node<K, N, E>>) -> Option<&Self>
+	pub fn search(&mut self, target: Option<&DiNode<K, N, E>>) -> Option<&Self>
 	where
 		N: Ord,
 	{
@@ -671,7 +671,7 @@ where
 		None
 	}
 
-	pub fn search_map<'a>(&mut self, target: Option<&Node<K, N, E>>, map: Map<'a, K, N, E>) -> Option<&Self>
+	pub fn search_map<'a>(&mut self, target: Option<&DiNode<K, N, E>>, map: Map<'a, K, N, E>) -> Option<&Self>
 	where
 		N: Ord,
 	{
@@ -700,7 +700,7 @@ where
 		None
 	}
 
-	pub fn search_filter<'a>(&mut self, target: Option<&Node<K, N, E>>, map: Filter<'a, K, N, E>) -> Option<&Self>
+	pub fn search_filter<'a>(&mut self, target: Option<&DiNode<K, N, E>>, map: Filter<'a, K, N, E>) -> Option<&Self>
 	where
 		N: Ord,
 	{
@@ -730,7 +730,7 @@ where
 		None
 	}
 
-	pub fn search_filter_map<'a>(&mut self, target: Option<&Node<K, N, E>>, map: FilterMap<'a, K, N, E>) -> Option<&Self>
+	pub fn search_filter_map<'a>(&mut self, target: Option<&DiNode<K, N, E>>, map: FilterMap<'a, K, N, E>) -> Option<&Self>
 	where
 		N: Ord,
 	{
@@ -767,8 +767,8 @@ where
 	N: Clone,
 	E: Clone,
 {
-	root: Node<K, N, E>,
-	edge_tree: Vec<Edge<K, N, E>>,
+	root: DiNode<K, N, E>,
+	edge_tree: Vec<DiEdge<K, N, E>>,
 }
 
 impl<K, N, E> PfsMinPath<K, N, E>
@@ -777,14 +777,14 @@ where
 	N: Clone,
 	E: Clone,
 {
-	pub fn new(root: &Node<K, N, E>) -> Self {
+	pub fn new(root: &DiNode<K, N, E>) -> Self {
 		PfsMinPath {
 			root: root.clone(),
 			edge_tree: Vec::new(),
 		}
 	}
 
-	pub fn search(&mut self, target: Option<&Node<K, N, E>>) -> Option<&Self>
+	pub fn search(&mut self, target: Option<&DiNode<K, N, E>>) -> Option<&Self>
 	where
 		N: Ord,
 	{
@@ -813,7 +813,7 @@ where
 		None
 	}
 
-	pub fn search_map<'a>(&mut self, target: Option<&Node<K, N, E>>, f: Map<'a, K, N, E>) -> Option<&Self>
+	pub fn search_map<'a>(&mut self, target: Option<&DiNode<K, N, E>>, f: Map<'a, K, N, E>) -> Option<&Self>
 	where
 		N: Ord,
 	{
@@ -843,7 +843,7 @@ where
 		None
 	}
 
-	pub fn search_filter<'a>(&mut self, target: Option<&Node<K, N, E>>, f: Filter<'a, K, N, E>) -> Option<&Self>
+	pub fn search_filter<'a>(&mut self, target: Option<&DiNode<K, N, E>>, f: Filter<'a, K, N, E>) -> Option<&Self>
 	where
 		N: Ord,
 	{
@@ -874,7 +874,7 @@ where
 		None
 	}
 
-	pub fn search_filter_map<'a>(&mut self, target: Option<&Node<K, N, E>>, f: FilterMap<'a, K, N, E>) -> Option<&Self>
+	pub fn search_filter_map<'a>(&mut self, target: Option<&DiNode<K, N, E>>, f: FilterMap<'a, K, N, E>) -> Option<&Self>
 	where
 		N: Ord,
 	{
@@ -905,11 +905,11 @@ where
 		None
 	}
 
-	pub fn edge_tree(&self) -> &Vec<Edge<K, N, E>> {
+	pub fn edge_tree(&self) -> &Vec<DiEdge<K, N, E>> {
 		&self.edge_tree
 	}
 
-	pub fn edge_path(&self) -> Vec<Edge<K, N, E>> {
+	pub fn edge_path(&self) -> Vec<DiEdge<K, N, E>> {
 		let mut path = Vec::new();
 
 		let len = self.edge_tree.len() - 1;
@@ -927,7 +927,7 @@ where
 		path
 	}
 
-	pub fn node_path(&self) -> Vec<Node<K, N, E>> {
+	pub fn node_path(&self) -> Vec<DiNode<K, N, E>> {
 		let mut path = Vec::new();
 
 		if !self.edge_path().is_empty() {
@@ -948,7 +948,7 @@ where
 	N: Clone,
 	E: Clone,
 {
-	root: Node<K, N, E>,
+	root: DiNode<K, N, E>,
 }
 
 impl<K, N, E> PfsMax<K, N, E>
@@ -957,11 +957,11 @@ where
 	N: Clone,
 	E: Clone,
 {
-	pub fn new(root: &Node<K, N, E>) -> Self {
+	pub fn new(root: &DiNode<K, N, E>) -> Self {
 		PfsMax { root: root.clone() }
 	}
 
-	pub fn search(&mut self, target: Option<&Node<K, N, E>>) -> Option<&Self>
+	pub fn search(&mut self, target: Option<&DiNode<K, N, E>>) -> Option<&Self>
 	where
 		N: Ord,
 	{
@@ -989,7 +989,7 @@ where
 		None
 	}
 
-	pub fn search_map<'a>(&mut self, target: Option<&Node<K, N, E>>, map: Map<'a, K, N, E>) -> Option<&Self>
+	pub fn search_map<'a>(&mut self, target: Option<&DiNode<K, N, E>>, map: Map<'a, K, N, E>) -> Option<&Self>
 	where
 		N: Ord,
 	{
@@ -1018,7 +1018,7 @@ where
 		None
 	}
 
-	pub fn search_filter<'a>(&mut self, target: Option<&Node<K, N, E>>, map: Filter<'a, K, N, E>) -> Option<&Self>
+	pub fn search_filter<'a>(&mut self, target: Option<&DiNode<K, N, E>>, map: Filter<'a, K, N, E>) -> Option<&Self>
 	where
 		N: Ord,
 	{
@@ -1048,7 +1048,7 @@ where
 		None
 	}
 
-	pub fn search_filter_map<'a>(&mut self, target: Option<&Node<K, N, E>>, map: FilterMap<'a, K, N, E>) -> Option<&Self>
+	pub fn search_filter_map<'a>(&mut self, target: Option<&DiNode<K, N, E>>, map: FilterMap<'a, K, N, E>) -> Option<&Self>
 	where
 		N: Ord,
 	{
@@ -1085,8 +1085,8 @@ where
 	N: Clone,
 	E: Clone,
 {
-	root: Node<K, N, E>,
-	edge_tree: Vec<Edge<K, N, E>>,
+	root: DiNode<K, N, E>,
+	edge_tree: Vec<DiEdge<K, N, E>>,
 }
 
 impl<K, N, E> PfsMaxPath<K, N, E>
@@ -1095,14 +1095,14 @@ where
 	N: Clone,
 	E: Clone,
 {
-	pub fn new(root: &Node<K, N, E>) -> Self {
+	pub fn new(root: &DiNode<K, N, E>) -> Self {
 		PfsMaxPath {
 			root: root.clone(),
 			edge_tree: Vec::new(),
 		}
 	}
 
-	pub fn search(&mut self, target: Option<&Node<K, N, E>>) -> Option<&Self>
+	pub fn search(&mut self, target: Option<&DiNode<K, N, E>>) -> Option<&Self>
 	where
 		N: Ord,
 	{
@@ -1131,7 +1131,7 @@ where
 		None
 	}
 
-	pub fn search_map<'a>(&mut self, target: Option<&Node<K, N, E>>, f: Map<'a, K, N, E>) -> Option<&Self>
+	pub fn search_map<'a>(&mut self, target: Option<&DiNode<K, N, E>>, f: Map<'a, K, N, E>) -> Option<&Self>
 	where
 		N: Ord,
 	{
@@ -1161,7 +1161,7 @@ where
 		None
 	}
 
-	pub fn search_filter<'a>(&mut self, target: Option<&Node<K, N, E>>, f: Filter<'a, K, N, E>) -> Option<&Self>
+	pub fn search_filter<'a>(&mut self, target: Option<&DiNode<K, N, E>>, f: Filter<'a, K, N, E>) -> Option<&Self>
 	where
 		N: Ord,
 	{
@@ -1192,7 +1192,7 @@ where
 		None
 	}
 
-	pub fn search_filter_map<'a>(&mut self, target: Option<&Node<K, N, E>>, f: FilterMap<'a, K, N, E>) -> Option<&Self>
+	pub fn search_filter_map<'a>(&mut self, target: Option<&DiNode<K, N, E>>, f: FilterMap<'a, K, N, E>) -> Option<&Self>
 	where
 		N: Ord,
 	{
@@ -1223,11 +1223,11 @@ where
 		None
 	}
 
-	pub fn edge_tree(&self) -> &Vec<Edge<K, N, E>> {
+	pub fn edge_tree(&self) -> &Vec<DiEdge<K, N, E>> {
 		&self.edge_tree
 	}
 
-	pub fn edge_path(&self) -> Vec<Edge<K, N, E>> {
+	pub fn edge_path(&self) -> Vec<DiEdge<K, N, E>> {
 		let mut path = Vec::new();
 
 		let len = self.edge_tree.len() - 1;
@@ -1245,7 +1245,7 @@ where
 		path
 	}
 
-	pub fn node_path(&self) -> Vec<Node<K, N, E>> {
+	pub fn node_path(&self) -> Vec<DiNode<K, N, E>> {
 		let mut path = Vec::new();
 
 		if !self.edge_path().is_empty() {

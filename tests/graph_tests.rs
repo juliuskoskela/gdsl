@@ -4,7 +4,7 @@ fn test_graph_macro() {
 	use gdsl::*;
 
 	let g1 = graph![
-		(&str)
+		(&str) =>
 		("A") => ["B", "C"]
 		("B") => ["C"]
 		("C") => ["D"]
@@ -12,7 +12,7 @@ fn test_graph_macro() {
 	];
 
 	let g2 = graph![
-		(&str, i32)
+		(&str, i32) =>
 		("A", 42) => ["B", "C"]
 		("B", 42) => ["C"]
 		("C", 42) => ["D"]
@@ -42,10 +42,51 @@ fn test_graph_macro() {
 }
 
 #[test]
+fn test_digraph_ungraph() {
+	use gdsl::*;
+
+	let digraph = graph![
+		(char) =>
+		('A') => ['C']
+		('B') => ['E', 'A']
+		('C') => ['D', 'B']
+		('D') => ['E']
+		('E') => []
+	];
+
+	let ungraph = graph![
+		(char) :
+		('A') : ['C']
+		('B') : ['E', 'A']
+		('C') : ['D', 'B']
+		('D') : ['E']
+		('E') : []
+	];
+
+	if let Some(bfs) = digraph['A'].bfs_path().search(Some(&digraph['E'])) {
+		let path = bfs.node_path();
+		assert!(path[0] == digraph['A']);
+		assert!(path[1] == digraph['C']);
+		assert!(path[2] == digraph['D']);
+		assert!(path[3] == digraph['E']);
+	}
+
+	print!("\n");
+
+	if let Some(bfs) = ungraph['A'].bfs_path().search(Some(&ungraph['E'])) {
+		let path = bfs.node_path();
+		assert!(path[0] == ungraph['A']);
+		assert!(path[1] == ungraph['B']);
+		assert!(path[2] == ungraph['E']);
+	}
+}
+
+#[test]
 fn test_digraph_bfs() {
 	use gdsl::*;
 
-	let g = graph![(usize)
+	let g = graph![
+		(usize) =>
 		(0) => [1, 2, 3]
 		(1) => [3]
 		(2) => [4]
@@ -67,7 +108,8 @@ fn test_digraph_bfs() {
 fn test_digraph_dfs() {
 	use gdsl::*;
 
-	let g = graph![(usize)
+	let g = graph![
+		(usize) =>
 		(0) => [1, 2, 3]
 		(1) => [3]
 		(2) => [4]

@@ -6,11 +6,11 @@ use std::{
     rc::{Rc, Weak},
 };
 
-use crate::graph_search::*;
+use crate::digraph::graph_search::*;
 
-//==== Node ===================================================================
+//==== DiNode ===================================================================
 
-/// # Directed Graph Node
+/// # Directed Graph DiNode
 ///
 /// A node in a dirtected graph is a smart pointer containing a key,
 /// a value and a set of edges. The adjacent edges are represented as two
@@ -20,16 +20,16 @@ use crate::graph_search::*;
 ///
 /// TODO!
 #[derive(Clone)]
-pub struct Node<K, N, E>
+pub struct DiNode<K, N, E>
 where
 	K: Clone + Hash + PartialEq + Eq + Display,
     N: Clone,
     E: Clone,
 {
-	inner: Rc<NodeInner<K, N, E>>,
+	inner: Rc<DiNodeInner<K, N, E>>,
 }
 
-struct NodeInner<K, N, E>
+struct DiNodeInner<K, N, E>
 where
 	K: Clone + Hash + PartialEq + Eq + Display,
     N: Clone,
@@ -40,9 +40,9 @@ where
     edges: RefCell<Adjacent<K, N, E>>,
 }
 
-//==== Node: Implement ========================================================
+//==== DiNode: Implement ========================================================
 
-impl<K, N, E> Node<K, N, E>
+impl<K, N, E> DiNode<K, N, E>
 where
     K: Clone + Hash + PartialEq + Eq + Display,
     N: Clone,
@@ -52,8 +52,8 @@ where
 
 	/// Create a new node with the given key and value.
     pub fn new(key: K, value: N) -> Self {
-		Node {
-			inner: Rc::new(NodeInner {
+		DiNode {
+			inner: Rc::new(DiNodeInner {
 				key,
 				value,
 				edges: RefCell::new(Adjacent::new()),
@@ -72,14 +72,14 @@ where
     }
 
 	/// Connect two nodes.
-    pub fn connect(&self, other: &Node<K, N, E>, value: E) {
-        let edge = Edge::new(self, other, value);
+    pub fn connect(&self, other: &DiNode<K, N, E>, value: E) {
+        let edge = DiEdge::new(self, other, value);
         self.edges().borrow_mut().push_outbound(edge.clone());
         other.edges().borrow_mut().push_inbound(edge);
     }
 
 	/// Disconnect two nodes.
-    pub fn disconnect(&self, other: Node<K, N, E>) {
+    pub fn disconnect(&self, other: DiNode<K, N, E>) {
         if self.edges().borrow_mut().remove_outbound(&other) {
             other.edges().borrow_mut().remove_inbound(self);
 		}
@@ -145,22 +145,22 @@ where
 		PfsMaxPath::new(self)
 	}
 
-	pub fn iter_outbound(&self) -> NodeOutboundIterator<K, N, E> {
-		NodeOutboundIterator { node: self, position: 0 }
+	pub fn iter_outbound(&self) -> DiNodeOutboundIterator<K, N, E> {
+		DiNodeOutboundIterator { node: self, position: 0 }
 	}
 
-	pub fn iter_inbound(&self) -> NodeInboundIterator<K, N, E> {
-		NodeInboundIterator { node: self, position: 0 }
+	pub fn iter_inbound(&self) -> DiNodeInboundIterator<K, N, E> {
+		DiNodeInboundIterator { node: self, position: 0 }
 	}
 
-	pub fn iter_undir(&self) -> NodeUndirIterator<K, N, E> {
-		NodeUndirIterator { node: self, position: 0 }
+	pub fn iter_undir(&self) -> DiNodeUndirIterator<K, N, E> {
+		DiNodeUndirIterator { node: self, position: 0 }
 	}
 
     //==== Private Methods ====================================================
 
-	fn downgrade(&self) -> WeakNode<K, N, E> {
-		WeakNode {
+	fn downgrade(&self) -> WeakDiNode<K, N, E> {
+		WeakDiNode {
 			inner: Rc::downgrade(&self.inner)
 		}
 	}
@@ -170,32 +170,32 @@ where
 	}
 }
 
-//==== Node: Weak ===========================================================
+//==== DiNode: Weak ===========================================================
 
 #[derive(Clone)]
-struct WeakNode<K, N, E>
+struct WeakDiNode<K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
 	N: Clone,
 	E: Clone,
 {
-	inner: Weak<NodeInner<K, N, E>>,
+	inner: Weak<DiNodeInner<K, N, E>>,
 }
 
-impl<K, N, E> WeakNode<K, N, E>
+impl<K, N, E> WeakDiNode<K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
 	N: Clone,
 	E: Clone,
 {
-	fn upgrade(&self) -> Option<Node<K, N, E>> {
-		self.inner.upgrade().map(|inner| Node { inner: inner })
+	fn upgrade(&self) -> Option<DiNode<K, N, E>> {
+		self.inner.upgrade().map(|inner| DiNode { inner: inner })
 	}
 }
 
-//==== Node: Deref ==========================================================
+//==== DiNode: Deref ==========================================================
 
-impl<K, N, E> Deref for Node<K, N, E>
+impl<K, N, E> Deref for DiNode<K, N, E>
 where
     K: Clone + Hash + Display + PartialEq + Eq,
     N: Clone,
@@ -207,9 +207,9 @@ where
     }
 }
 
-//==== Node: PartialEq + Eq =================================================
+//==== DiNode: PartialEq + Eq =================================================
 
-impl<K, N, E> PartialEq for Node<K, N, E>
+impl<K, N, E> PartialEq for DiNode<K, N, E>
 where
     K: Clone + Hash + Display + PartialEq + Eq,
     N: Clone,
@@ -220,16 +220,16 @@ where
     }
 }
 
-impl<K, N, E> Eq for Node<K, N, E>
+impl<K, N, E> Eq for DiNode<K, N, E>
 where
     K: Clone + Hash + Display + PartialEq + Eq,
     N: Clone,
     E: Clone,
 {}
 
-//==== Node: PartialOrd + Ord ===============================================
+//==== DiNode: PartialOrd + Ord ===============================================
 
-impl<K, N, E> PartialOrd for Node<K, N, E>
+impl<K, N, E> PartialOrd for DiNode<K, N, E>
 where
     K: Clone + Hash + PartialEq + Display + Eq,
     N: Clone + Ord,
@@ -240,7 +240,7 @@ where
     }
 }
 
-impl<K, N, E> Ord for Node<K, N, E>
+impl<K, N, E> Ord for DiNode<K, N, E>
 where
     K: Clone + Hash + PartialEq + Display + Eq,
     N: Clone + Ord,
@@ -251,25 +251,25 @@ where
     }
 }
 
-//==== Node: Iterator =======================================================
+//==== DiNode: Iterator =======================================================
 
-pub struct NodeOutboundIterator<'a, K, N, E>
+pub struct DiNodeOutboundIterator<'a, K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
 	N: Clone,
 	E: Clone,
 {
-	node: &'a Node<K, N, E>,
+	node: &'a DiNode<K, N, E>,
 	position: usize,
 }
 
-impl<'a, K, N, E> Iterator for NodeOutboundIterator<'a, K, N, E>
+impl<'a, K, N, E> Iterator for DiNodeOutboundIterator<'a, K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
 	N: Clone,
 	E: Clone,
 {
-	type Item = (Node<K, N, E>, E);
+	type Item = (DiNode<K, N, E>, E);
 
 	fn next(&mut self) -> Option<Self::Item> {
 		let edges = self.node.inner.edges.borrow();
@@ -284,23 +284,23 @@ where
 	}
 }
 
-pub struct NodeInboundIterator<'a, K, N, E>
+pub struct DiNodeInboundIterator<'a, K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
 	N: Clone,
 	E: Clone,
 {
-	node: &'a Node<K, N, E>,
+	node: &'a DiNode<K, N, E>,
 	position: usize,
 }
 
-impl<'a, K, N, E> Iterator for NodeInboundIterator<'a, K, N, E>
+impl<'a, K, N, E> Iterator for DiNodeInboundIterator<'a, K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
 	N: Clone,
 	E: Clone,
 {
-	type Item = (Node<K, N, E>, E);
+	type Item = (DiNode<K, N, E>, E);
 
 	fn next(&mut self) -> Option<Self::Item> {
 		let edges = self.node.inner.edges.borrow();
@@ -315,23 +315,23 @@ where
 	}
 }
 
-pub struct NodeUndirIterator<'a, K, N, E>
+pub struct DiNodeUndirIterator<'a, K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
 	N: Clone,
 	E: Clone,
 {
-	node: &'a Node<K, N, E>,
+	node: &'a DiNode<K, N, E>,
 	position: usize,
 }
 
-impl<'a, K, N, E> Iterator for NodeUndirIterator<'a, K, N, E>
+impl<'a, K, N, E> Iterator for DiNodeUndirIterator<'a, K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
 	N: Clone,
 	E: Clone,
 {
-	type Item = (Node<K, N, E>, E);
+	type Item = (DiNode<K, N, E>, E);
 
 	fn next(&mut self) -> Option<Self::Item> {
 		let edges = self.node.edges().borrow();
@@ -351,41 +351,41 @@ where
 	}
 }
 
-impl<'a, K, N, E> IntoIterator for &'a Node<K, N, E>
+impl<'a, K, N, E> IntoIterator for &'a DiNode<K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
 	N: Clone,
 	E: Clone,
 {
-	type Item = (Node<K, N, E>, E);
-	type IntoIter = NodeOutboundIterator<'a, K, N, E>;
+	type Item = (DiNode<K, N, E>, E);
+	type IntoIter = DiNodeOutboundIterator<'a, K, N, E>;
 
 	fn into_iter(self) -> Self::IntoIter {
-		NodeOutboundIterator { node: self, position: 0 }
+		DiNodeOutboundIterator { node: self, position: 0 }
 	}
 }
 
-//==== Edge =================================================================
+//==== DiEdge =================================================================
 
 #[derive(Clone)]
-pub struct Edge<K, N, E>
+pub struct DiEdge<K, N, E>
 where
 	K: Clone + Hash + PartialEq + Eq + Display,
 	N: Clone,
 	E: Clone,
 {
-    source: WeakNode<K, N, E>,
-    target: WeakNode<K, N, E>,
+    source: WeakDiNode<K, N, E>,
+    target: WeakDiNode<K, N, E>,
     value: E,
 }
 
-impl<K, N, E> Edge<K, N, E>
+impl<K, N, E> DiEdge<K, N, E>
 where
 	K: Clone + Hash + PartialEq + Eq + Display,
 	N: Clone,
 	E: Clone,
 {
-    fn new(source: &Node<K, N, E>, target: &Node<K, N, E>, value: E) -> Self {
+    fn new(source: &DiNode<K, N, E>, target: &DiNode<K, N, E>, value: E) -> Self {
 		Self {
 			value,
 			source: source.downgrade(),
@@ -393,11 +393,11 @@ where
 		}
     }
 
-	pub fn source(&self) -> Node<K, N, E> {
+	pub fn source(&self) -> DiNode<K, N, E> {
 		self.source.upgrade().unwrap()
 	}
 
-	pub fn target(&self) -> Node<K, N, E> {
+	pub fn target(&self) -> DiNode<K, N, E> {
 		self.target.upgrade().unwrap()
 	}
 
@@ -405,8 +405,8 @@ where
 		&self.value
 	}
 
-	pub fn reverse(&self) -> Edge<K, N, E> {
-		Edge {
+	pub fn reverse(&self) -> DiEdge<K, N, E> {
+		DiEdge {
 			source: self.target.clone(),
 			target: self.source.clone(),
 			value: self.value.clone(),
@@ -414,7 +414,7 @@ where
 	}
 }
 
-impl<K, N, E> Deref for Edge<K, N, E>
+impl<K, N, E> Deref for DiEdge<K, N, E>
 where
 	K: Clone + Hash + PartialEq + Eq + Display,
 	N: Clone,
@@ -435,8 +435,8 @@ where
 	N: Clone,
 	E: Clone,
 {
-	outbound: Vec<Edge<K, N, E>>,
-	inbound: Vec<Edge<K, N, E>>,
+	outbound: Vec<DiEdge<K, N, E>>,
+	inbound: Vec<DiEdge<K, N, E>>,
 }
 
 impl<K, N, E> Adjacent<K, N, E>
@@ -452,11 +452,11 @@ where
 		}
 	}
 
-	pub fn outbound(&self) -> &Vec<Edge<K, N, E>> {
+	pub fn outbound(&self) -> &Vec<DiEdge<K, N, E>> {
 		&self.outbound
 	}
 
-	pub fn inbound(&self) -> &Vec<Edge<K, N, E>> {
+	pub fn inbound(&self) -> &Vec<DiEdge<K, N, E>> {
 		&self.inbound
 	}
 
@@ -468,21 +468,21 @@ where
 		self.inbound.len()
 	}
 
-	pub fn push_inbound(&mut self, edge: Edge<K, N, E>) {
+	pub fn push_inbound(&mut self, edge: DiEdge<K, N, E>) {
 		self.inbound.push(edge);
 	}
 
-	pub fn push_outbound(&mut self, edge: Edge<K, N, E>) {
+	pub fn push_outbound(&mut self, edge: DiEdge<K, N, E>) {
 		self.outbound.push(edge);
 	}
 
-	pub fn remove_inbound(&mut self, source: &Node<K, N, E>) -> bool {
+	pub fn remove_inbound(&mut self, source: &DiNode<K, N, E>) -> bool {
 		let start_len = self.inbound.len();
 		self.inbound.retain(|edge| edge.source() != *source);
 		start_len != self.inbound.len()
 	}
 
-	pub fn remove_outbound(&mut self, target: &Node<K, N, E>) -> bool {
+	pub fn remove_outbound(&mut self, target: &DiNode<K, N, E>) -> bool {
 		let start_len = self.outbound.len();
 		self.outbound.retain(|e| e.target() != *target);
 		start_len != self.outbound.len()
@@ -496,11 +496,11 @@ where
 		self.outbound.clear();
 	}
 
-	pub fn iter_outbound(&self) -> std::slice::Iter<Edge<K, N, E>> {
+	pub fn iter_outbound(&self) -> std::slice::Iter<DiEdge<K, N, E>> {
 		self.outbound.iter()
 	}
 
-	pub fn iter_inbound(&self) -> std::slice::Iter<Edge<K, N, E>> {
+	pub fn iter_inbound(&self) -> std::slice::Iter<DiEdge<K, N, E>> {
 		self.inbound.iter()
 	}
 }
@@ -521,7 +521,7 @@ where
 	N: Clone,
 	E: Clone,
 {
-	type Item = Edge<K, N, E>;
+	type Item = DiEdge<K, N, E>;
 
 	fn next(&mut self) -> Option<Self::Item> {
 		let (out_len, in_len) = (self.adjacent.outbound.len(), self.adjacent.inbound.len());
