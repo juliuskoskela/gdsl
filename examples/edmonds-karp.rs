@@ -1,3 +1,7 @@
+// # Edmonds–Karp algorithm for maximum flow.
+//
+// https://en.wikipedia.org/wiki/Edmonds%E2%80%93Karp_algorithm
+
 use gdsl::digraph::DiGraph as Graph;
 use gdsl::digraph::DiNode as Node;
 use gdsl::*;
@@ -53,24 +57,24 @@ fn max_flow(g: Graph<usize, Empty, FlowEdge>) -> u64 {
 
 	// 1. We loop breadth-first until there is no more paths to explore.
 	let mut max_flow: u64 = 0;
-	while let Some(bfs) = g[0].bfs_path().search_filter(Some(&g[5]), &|_, _, edge| {
-
+	while let Some(path) = g[0].bfs()
+		.target(&5)
 		// 2. We exclude saturated edges from the search.
-		edge.cur() < edge.max()
-	}) {
-		let path = bfs.edge_path();
+		.filter(&|_, _, edge| edge.cur() < edge.max())
+		.path_edges()
+	{
 		let mut aug_flow = std::u64::MAX;
 
 		// 3. We find the minimum augmenting flow along the path.
-		for edge in &path {
-			if edge.max() - edge.cur() < aug_flow {
-				aug_flow = edge.max() - edge.cur();
+		for (_, _, e) in &path {
+			if e.max() - e.cur() < aug_flow {
+				aug_flow = e.max() - e.cur();
 			}
 		}
 
 		// 4. We update the flow along the path.
-		for edge in &path {
-			edge.update(aug_flow);
+		for (_, _, e) in &path {
+			e.update(aug_flow);
 		}
 
 		// 5. We update the maximum flow.

@@ -19,7 +19,7 @@ a node from another.
 like an iterator, allowing the user to conduct a traversal from some node in the graph
 in a breadth-first, depth-first or priority-first order.
 
-- The library provides a powerful `graph![]` macro that can be used to create both
+- The library provides a `graph![]` macro that can be used to create both
 directed and undirected graphs by writing out an edge-list representation of the graph.
 
 ## Example: Simple Graph
