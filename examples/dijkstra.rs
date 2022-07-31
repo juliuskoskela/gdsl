@@ -2,8 +2,6 @@ use gdsl::*;
 use std::cell::Cell;
 
 fn main() {
-	use gdsl::*;
-	// use std::cell::Cell;
 
 	// We create a directed graph using the `graph!` macro. In the macro
 	// invocation we specify the type of the nodes and the type of the edges

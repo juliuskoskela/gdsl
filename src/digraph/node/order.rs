@@ -6,13 +6,12 @@ use std::{
 	collections::HashSet,
 };
 
-use crate::digraph::*;
-use crate::digraph::node::*;
-use crate::digraph::node::method::*;
+use super::*;
+use super::method::*;
 
 //==== Ordering ===============================================================
 
-pub struct DirectedOrdering<'a, K, N, E>
+pub struct DiOrder<'a, K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
 	N: Clone,
@@ -25,7 +24,7 @@ where
 }
 
 
-impl<'a, K, N, E> DirectedOrdering<'a, K, N, E>
+impl<'a, K, N, E> DiOrder<'a, K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
 	N: Clone,
@@ -157,7 +156,7 @@ where
 		queue: &mut Vec<DiNode<K, N, E>>,
 	) -> bool {
 		if let Some(node) = queue.pop() {
-			for (u, v, e) in node.iter_outbound() {
+			for (u, v, e) in node.iter_out() {
 				if visited.contains(v.key()) == false {
 					if self.method.exec(&u, &v, &e) {
 						visited.insert(v.key().clone());
@@ -181,7 +180,7 @@ where
 		queue: &mut Vec<DiNode<K, N, E>>,
 	) -> bool {
 		if let Some(node) = queue.pop() {
-			for (v, u, e) in node.iter_inbound() {
+			for (v, u, e) in node.iter_in() {
 				if visited.contains(v.key()) == false {
 					if self.method.exec(&u, &v, &e) {
 						visited.insert(v.key().clone());
@@ -205,7 +204,7 @@ where
 		queue: &mut Vec<DiNode<K, N, E>>,
 	) -> bool {
 		if let Some(node) = queue.pop() {
-			for (u, v, e) in node.iter_outbound() {
+			for (u, v, e) in node.iter_out() {
 				if visited.contains(v.key()) == false {
 					if self.method.exec(&u, &v, &e) {
 						visited.insert(v.key().clone());
@@ -229,7 +228,7 @@ where
 		queue: &mut Vec<DiNode<K, N, E>>,
 	) -> bool {
 		if let Some(node) = queue.pop() {
-			for (v, u, e) in node.iter_inbound() {
+			for (v, u, e) in node.iter_in() {
 				if visited.contains(v.key()) == false {
 					if self.method.exec(&u, &v, &e) {
 						visited.insert(v.key().clone());

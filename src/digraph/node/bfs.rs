@@ -9,7 +9,7 @@ use std::{
 use crate::digraph::*;
 use crate::digraph::node::method::*;
 
-pub struct BFS<'a, K, N, E>
+pub struct DiBFS<'a, K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
 	N: Clone,
@@ -21,14 +21,14 @@ where
 	transpose: Direction,
 }
 
-impl<'a, K, N, E> BFS<'a, K, N, E>
+impl<'a, K, N, E> DiBFS<'a, K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
 	N: Clone,
 	E: Clone,
 {
 	pub fn new(root: &DiNode<K, N, E>) -> Self {
-		BFS {
+		DiBFS {
 			root: root.clone(),
 			target: None,
 			method: Method::NullMethod,
@@ -69,7 +69,7 @@ where
 		queue: &mut VecDeque<DiNode<K, N, E>>,
 	) -> bool {
 		while let Some(node) = queue.pop_front() {
-			for (u, v, e) in node.iter_outbound() {
+			for (u, v, e) in node.iter_out() {
 				if !visited.contains(v.key()) {
 					if self.method.exec(&u, &v, &e) {
 						visited.insert(v.key().clone());
@@ -92,7 +92,7 @@ where
 		queue: &mut VecDeque<DiNode<K, N, E>>,
 	) -> bool {
 		while let Some(node) = queue.pop_front() {
-			for (v, u, e) in node.iter_outbound() {
+			for (v, u, e) in node.iter_in() {
 				if !visited.contains(v.key()) {
 					if self.method.exec(&u, &v, &e) {
 						visited.insert(v.key().clone());
@@ -142,6 +142,24 @@ where
 		None
 	}
 
+	fn backtrack_edge_tree(edge_tree: Vec<DiEdge<K, N, E>>) -> Vec<DiEdge<K, N, E>> {
+		let mut path = Vec::new();
+
+		let len = edge_tree.len() - 1;
+		let w = edge_tree[len].clone();
+		path.push(w.clone());
+		let mut i = 0;
+		for (u, v, e) in edge_tree.iter().rev() {
+			let (s, _, _) = &path[i];
+			if s == v {
+				path.push((u.clone(), v.clone(), e.clone()));
+				i += 1;
+			}
+		}
+		path.reverse();
+		path
+	}
+
 	pub fn path_edges(&mut self) -> Option<Vec<DiEdge<K, N, E>>> {
 		let mut edges = vec![];
 		let mut queue = VecDeque::new();
@@ -160,7 +178,7 @@ where
 			}
 		}
 		if target_found {
-			return Some(edges);
+			return Some(Self::backtrack_edge_tree(edges));
 		}
 		None
 	}

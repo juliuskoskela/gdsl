@@ -16,7 +16,7 @@ enum Priority {
 	Max
 }
 
-pub struct PFS<'a, K, N, E>
+pub struct DiPFS<'a, K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
 	N: Clone,
@@ -29,14 +29,14 @@ where
 	priority: Priority,
 }
 
-impl<'a, K, N, E> PFS<'a, K, N, E>
+impl<'a, K, N, E> DiPFS<'a, K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
 	N: Clone + Ord,
 	E: Clone,
 {
 	pub fn new(root: &DiNode<K, N, E>) -> Self {
-		PFS {
+		DiPFS {
 			root: root.clone(),
 			target: None,
 			method: Method::NullMethod,
@@ -88,7 +88,7 @@ where
 		queue: &mut MinMaxHeap<DiNode<K, N, E>>,
 	) -> bool {
 		while let Some(node) = queue.pop_min() {
-			for (u, v, e) in node.iter_outbound() {
+			for (u, v, e) in node.iter_out() {
 				if !visited.contains(v.key()) {
 					if self.method.exec(&u, &v, &e) {
 						visited.insert(v.key().clone());
@@ -111,7 +111,7 @@ where
 		queue: &mut MinMaxHeap<DiNode<K, N, E>>,
 	) -> bool {
 		while let Some(node) = queue.pop_min() {
-			for (v, u, e) in node.iter_outbound() {
+			for (v, u, e) in node.iter_in() {
 				if !visited.contains(v.key()) {
 					if self.method.exec(&u, &v, &e) {
 						visited.insert(v.key().clone());
@@ -134,7 +134,7 @@ where
 		queue: &mut MinMaxHeap<DiNode<K, N, E>>,
 	) -> bool {
 		while let Some(node) = queue.pop_max() {
-			for (u, v, e) in node.iter_outbound() {
+			for (u, v, e) in node.iter_out() {
 				if !visited.contains(v.key()) {
 					if self.method.exec(&u, &v, &e) {
 						visited.insert(v.key().clone());
@@ -157,7 +157,7 @@ where
 		queue: &mut MinMaxHeap<DiNode<K, N, E>>,
 	) -> bool {
 		while let Some(node) = queue.pop_max() {
-			for (v, u, e) in node.iter_outbound() {
+			for (v, u, e) in node.iter_in() {
 				if !visited.contains(v.key()) {
 					if self.method.exec(&u, &v, &e) {
 						visited.insert(v.key().clone());

@@ -16,16 +16,27 @@ use std::{
     rc::{Rc, Weak},
 };
 
-use crate::digraph::node::order::*;
-use crate::digraph::node::dfs::*;
-use crate::digraph::node::bfs::*;
-use crate::digraph::node::pfs::*;
+use self::{
+	pfs::*,
+	dfs::*,
+	bfs::*,
+	order::*,
+};
 
-pub use crate::Empty;
-pub use crate::{graph, connect, dinode};
+pub use crate::{
+	graph,
+	connect,
+	dinode,
+	Empty
+};
 
-//==== DiNode =================================================================
+//==== Public =================================================================
 
+/// Edge between directed nodes.
+pub type DiEdge<K, N, E> = (DiNode<K, N, E>, DiNode<K, N, E>, E);
+
+/// A directed node. Node has both outbound and inbound connections. Default
+/// direction when iterating over the node's neighbours is outbound.
 #[derive(Clone)]
 pub struct DiNode<K, N = Empty, E = Empty>
 where
@@ -36,150 +47,185 @@ where
 	inner: Rc<DiNodeInner<K, N, E>>,
 }
 
-struct DiNodeInner<K, N = Empty, E = Empty>
-where
-	K: Clone + Hash + PartialEq + Eq + Display,
-    N: Clone,
-    E: Clone,
-{
-    key: K,
-    value: N,
-    edges: RefCell<Adjacent<K, N, E>>,
-}
-
-//==== DiNode: Implement ======================================================
-
 impl<K, N, E> DiNode<K, N, E>
 where
     K: Clone + Hash + PartialEq + Eq + Display,
     N: Clone,
     E: Clone,
 {
-	//==== Public Methods =====================================================
-
+	/// Creates a new node with a given key and value. The key is used to
+	/// identify the node in the graph. Two nodes with the same key are
+	/// considered equal. Value is optional, node use's `Empty` as default
+	/// value type.
     pub fn new(key: K, value: N) -> Self {
 		DiNode {
 			inner: Rc::new(DiNodeInner {
 				key,
 				value,
-				edges: RefCell::new(Adjacent::new()),
+				edges: Adjacent::new(),
 			}),
 		}
     }
 
+	/// Returns a reference to the node's key.
     pub fn key(&self) -> &K {
         &self.inner.key
     }
 
+	/// Returns a reference to the node's value.
     pub fn value(&self) -> &N {
         &self.inner.value
     }
 
+	/// Connects this node to another node. The connection is created in both
+	/// directions. The connection is created with the given edge value and
+	/// defaults to `Empty`. This function allows for creating multiple
+	/// connections between the same nodes.
     pub fn connect(&self, other: &DiNode<K, N, E>, value: E) {
         let edge = DiEdgeInner::new(self, other, value);
-        self.edges().borrow_mut().push_outbound(edge.clone());
-        other.edges().borrow_mut().push_inbound(edge);
+        self.inner.edges.push_outbound(edge.clone());
+        other.inner.edges.push_inbound(edge);
     }
 
-    pub fn disconnect(&self, other: DiNode<K, N, E>) {
-        if self.edges().borrow_mut().remove_outbound(&other) {
-            other.edges().borrow_mut().remove_inbound(self);
+	/// Connects this node to another node. The connection is created in both
+	/// directions. The connection is created with the given edge value and
+	/// defaults to `Empty`. This function doesn't allow for creating multiple
+	/// connections between the same nodes. Returns Ok(()) if the connection
+	/// was created, Err(EdgeValue) if the connection already exists.
+	pub fn try_connect(&self, other: &DiNode<K, N, E>, value: E) -> Result<(), E> {
+		if self.is_connected(other.key()) {
+			Err(value)
+		} else {
+			self.connect(other, value);
+			Ok(())
 		}
-    }
+	}
 
+	/// Disconnect two nodes from each other. The connection is removed in both
+	/// directions. Returns Ok(EdgeValue) if the connection was removed, Err(())
+	/// if the connection doesn't exist.
+    pub fn disconnect(&self, other: &K) -> Result<E, ()> {
+		if let Some(other) = self.find_outbound(other) {
+			if let Ok(edge) = self.inner.edges
+				.remove_outbound(other.key()) {
+				if other.inner.edges
+					.remove_inbound(self.key())
+					.is_err() {
+					panic!("This should not happen!");
+				}
+				Ok(edge)
+			} else {
+				Err(())
+			}
+		} else {
+			Err(())
+		}
+	}
+
+	/// Removes all inbound and outbound connections to and from the node.
 	pub fn isolate(&self) {
-		for edge in self.edges().borrow().iter_outbound() {
-			edge.target().edges().borrow_mut().remove_inbound(self);
+		for (_, v, _) in self.iter_out() {
+			if v.inner.edges
+				.remove_inbound(self.key())
+				.is_err() {
+				panic!("This should not happen!");
+			}
 		}
-		for edge in self.edges().borrow().iter_inbound() {
-			edge.source().edges().borrow_mut().remove_outbound(self);
+		for (u, _, _) in self.iter_in() {
+			if u.inner.edges
+				.remove_outbound(self.key())
+				.is_err() {
+				panic!("Matching outbound connection not found!");
+			}
 		}
-		self.edges().borrow_mut().clear_outbound();
-		self.edges().borrow_mut().clear_inbound();
+		self.inner.edges.clear_outbound();
+		self.inner.edges.clear_inbound();
 	}
 
+	/// Returns true if the node is a root node. Root nodes are nodes that have
+	/// no incoming connections.
 	pub fn is_root(&self) -> bool {
-		self.edges().borrow().inbound().is_empty()
+		self.inner.edges.len_inbound() == 0
 	}
 
+	/// Returns true if the node is a leaf node. Leaf nodes are nodes that have
+	/// no outgoing connections.
 	pub fn is_leaf(&self) -> bool {
-		self.edges().borrow().outbound().is_empty()
+		self.inner.edges.len_outbound() == 0
 	}
 
+	/// Returns true if the node is an oprhan. Orphan nodes are nodes that have
+	/// no connections.
 	pub fn is_orphan(&self) -> bool {
 		self.is_root() && self.is_leaf()
 	}
 
-	pub fn is_connected(&self, other: &DiNode<K, N, E>) -> bool {
-		self.edges()
-			.borrow()
-			.iter_outbound()
-			.find(|&edge| &edge.target() == other)
-			.is_some()
+	/// Returns true if the node is connected to another node with a given key.
+	pub fn is_connected(&self, other: &K) -> bool {
+		self.find_outbound(other).is_some()
 	}
 
-	pub fn ordering(&self) -> DirectedOrdering<K, N, E> {
-		DirectedOrdering::new(self)
-	}
-
-	pub fn dfs(&self) -> DFS<K, N, E> {
-		DFS::new(self)
-	}
-
-	pub fn bfs(&self) -> BFS<K, N, E> {
-		BFS::new(self)
-	}
-
-	pub fn pfs(&self) -> PFS<K, N, E>
-	where
-		N: Ord
-	{
-		PFS::new(self)
-	}
-
-	pub fn iter_outbound(&self) -> DiNodeOutboundIterator<K, N, E> {
-		DiNodeOutboundIterator { node: self, position: 0 }
-	}
-
-	pub fn iter_inbound(&self) -> DiNodeInboundIterator<K, N, E> {
-		DiNodeInboundIterator { node: self, position: 0 }
-	}
-
-    //==== Private Methods ====================================================
-
-	fn downgrade(&self) -> WeakDiNode<K, N, E> {
-		WeakDiNode {
-			inner: Rc::downgrade(&self.inner)
+	/// Get a pointer to an adjacent node with a given key. Returns None if no
+	/// node with the given key is found from the node's adjacency list.
+	pub fn find_outbound(&self, other: &K) -> Option<DiNode<K, N, E>> {
+		let edge = self.inner.edges.find_outbound(other);
+		if let Some(edge) = edge {
+			Some(edge.target().clone())
+		} else {
+			None
 		}
 	}
 
-	fn edges(&self) -> &RefCell<Adjacent<K, N, E>> {
-		&self.inner.edges
+	pub fn find_inbound(&self, other: &K) -> Option<DiNode<K, N, E>> {
+		let edge = self.inner.edges.find_inbound(other);
+		if let Some(edge) = edge {
+			Some(edge.source().clone())
+		} else {
+			None
+		}
+	}
+
+	/// Returns an iterator-like object that can be used to map, filter and
+	/// collect reachable nodes or edges in different orderings such as
+	/// postorder or preorder.
+	pub fn order(&self) -> DiOrder<K, N, E> {
+		DiOrder::new(self)
+	}
+
+	/// Returns an iterator-like object that can be used to map, filter,
+	/// search and collect nodes or edges resulting from a depth-first search.
+	pub fn dfs(&self) -> DiDFS<K, N, E> {
+		DiDFS::new(self)
+	}
+
+	/// Returns an iterator-like object that can be used to map, filter,
+	/// search and collect nodes or edges resulting from a breadth-first search.
+	pub fn bfs(&self) -> DiBFS<K, N, E> {
+		DiBFS::new(self)
+	}
+
+	/// Returns an iterator-like object that can be used to map, filter,
+	/// search and collect nodes or edges resulting from a
+	/// priotity-first search.
+	pub fn pfs(&self) -> DiPFS<K, N, E>
+	where
+		N: Ord
+	{
+		DiPFS::new(self)
+	}
+
+	/// Returns an iterator over the node's outbound edges.
+	pub fn iter_out(&self) -> DiNodeOutboundIterator<K, N, E> {
+		DiNodeOutboundIterator { node: self, position: 0 }
+	}
+
+	/// Returns an iterator over the node's inbound edges.
+	pub fn iter_in(&self) -> DiNodeInboundIterator<K, N, E> {
+		DiNodeInboundIterator { node: self, position: 0 }
 	}
 }
 
-//==== DiNode: Weak ===========================================================
-
-#[derive(Clone)]
-struct WeakDiNode<K, N, E>
-where
-	K: Clone + Hash + Display + PartialEq + Eq,
-	N: Clone,
-	E: Clone,
-{
-	inner: Weak<DiNodeInner<K, N, E>>,
-}
-
-impl<K, N, E> WeakDiNode<K, N, E>
-where
-	K: Clone + Hash + Display + PartialEq + Eq,
-	N: Clone,
-	E: Clone,
-{
-	fn upgrade(&self) -> Option<DiNode<K, N, E>> {
-		self.inner.upgrade().map(|inner| DiNode { inner })
-	}
-}
+//==== Trait Implementations ==================================================
 
 //==== DiNode: Deref ==========================================================
 
@@ -260,8 +306,7 @@ where
 	type Item = (DiNode<K, N, E>, DiNode<K, N, E>, E);
 
 	fn next(&mut self) -> Option<Self::Item> {
-		let edges = self.node.inner.edges.borrow();
-		let edge = edges.outbound().get(self.position);
+		let edge = self.node.inner.edges.get_outbound(self.position);
 		match edge {
 			Some(edge) => {
 				self.position += 1;
@@ -291,8 +336,7 @@ where
 	type Item = (DiNode<K, N, E>, DiNode<K, N, E>, E);
 
 	fn next(&mut self) -> Option<Self::Item> {
-		let edges = self.node.inner.edges.borrow();
-		let edge = edges.inbound().get(self.position);
+		let edge = self.node.inner.edges.get_inbound(self.position);
 		match edge {
 			Some(edge) => {
 				self.position += 1;
@@ -314,6 +358,50 @@ where
 
 	fn into_iter(self) -> Self::IntoIter {
 		DiNodeOutboundIterator { node: self, position: 0 }
+	}
+}
+
+//==== Private ================================================================
+
+//==== DiNode: Inner ===========================================================
+
+struct DiNodeInner<K, N = Empty, E = Empty>
+where
+	K: Clone + Hash + PartialEq + Eq + Display,
+    N: Clone,
+    E: Clone,
+{
+    key: K,
+    value: N,
+    edges: Adjacent<K, N, E>,
+}
+
+//==== DiNode: Weak ===========================================================
+
+#[derive(Clone)]
+struct WeakDiNode<K, N, E>
+where
+	K: Clone + Hash + Display + PartialEq + Eq,
+	N: Clone,
+	E: Clone,
+{
+	inner: Weak<DiNodeInner<K, N, E>>,
+}
+
+impl<K, N, E> WeakDiNode<K, N, E>
+where
+	K: Clone + Hash + Display + PartialEq + Eq,
+	N: Clone,
+	E: Clone,
+{
+	fn upgrade(&self) -> Option<DiNode<K, N, E>> {
+		self.inner.upgrade().map(|inner| DiNode { inner })
+	}
+
+	fn downgrade(node: &DiNode<K, N, E>) -> Self {
+		WeakDiNode {
+			inner: Rc::downgrade(&node.inner)
+		}
 	}
 }
 
@@ -340,8 +428,8 @@ where
     fn new(source: &DiNode<K, N, E>, target: &DiNode<K, N, E>, value: E) -> Self {
 		Self {
 			value,
-			source: source.downgrade(),
-			target: target.downgrade(),
+			source: WeakDiNode::downgrade(source),
+			target: WeakDiNode::downgrade(target),
 		}
     }
 
@@ -373,7 +461,18 @@ where
 
 //==== Adjacency List =========================================================
 
+#[derive(Clone)]
 struct Adjacent<K, N, E>
+where
+	K: Clone + Hash + PartialEq + Eq + Display,
+	N: Clone,
+	E: Clone,
+{
+	edges: RefCell<AdjacentInner<K, N, E>>,
+}
+
+#[derive(Clone)]
+struct AdjacentInner<K, N, E>
 where
 	K: Clone + Hash + PartialEq + Eq + Display,
 	N: Clone,
@@ -390,53 +489,83 @@ where
 	E: Clone,
 {
 	fn new() -> Self {
-		Adjacent {
-			outbound: Vec::new(),
-			inbound: Vec::new(),
+		Self {
+			edges: RefCell::new(AdjacentInner {
+				outbound: Vec::new(),
+				inbound: Vec::new(),
+			}),
 		}
 	}
 
-	fn outbound(&self) -> &Vec<DiEdgeInner<K, N, E>> {
-		&self.outbound
+	fn get_outbound(&self, idx: usize) -> Option<DiEdgeInner<K, N, E>> {
+		let edges = self.edges.borrow();
+		edges.outbound.get(idx).cloned()
 	}
 
-	fn inbound(&self) -> &Vec<DiEdgeInner<K, N, E>> {
-		&self.inbound
+	fn get_inbound(&self, idx: usize) -> Option<DiEdgeInner<K, N, E>> {
+		let edges = self.edges.borrow();
+		edges.inbound.get(idx).cloned()
 	}
 
-	fn push_inbound(&mut self, edge: DiEdgeInner<K, N, E>) {
-		self.inbound.push(edge);
+	fn find_outbound(&self, node: &K) -> Option<DiEdgeInner<K, N, E>> {
+		let edges = self.edges.borrow();
+		edges.outbound.iter().find(|edge| edge.target().key() == node).cloned()
 	}
 
-	fn push_outbound(&mut self, edge: DiEdgeInner<K, N, E>) {
-		self.outbound.push(edge);
+	fn find_inbound(&self, node: &K) -> Option<DiEdgeInner<K, N, E>> {
+		let edges = self.edges.borrow();
+		edges.inbound.iter().find(|edge| edge.source().key() == node).cloned()
 	}
 
-	fn remove_inbound(&mut self, source: &DiNode<K, N, E>) -> bool {
-		let start_len = self.inbound.len();
-		self.inbound.retain(|edge| edge.source() != *source);
-		start_len != self.inbound.len()
+	fn len_outbound(&self) -> usize {
+		let edges = self.edges.borrow();
+		edges.outbound.len()
 	}
 
-	fn remove_outbound(&mut self, target: &DiNode<K, N, E>) -> bool {
-		let start_len = self.outbound.len();
-		self.outbound.retain(|e| e.target() != *target);
-		start_len != self.outbound.len()
+	fn len_inbound(&self) -> usize {
+		let edges = self.edges.borrow();
+		edges.inbound.len()
 	}
 
-	fn clear_inbound(&mut self) {
-		self.inbound.clear();
+	fn push_inbound(&self, edge: DiEdgeInner<K, N, E>) {
+		self.edges.borrow_mut().inbound.push(edge);
 	}
 
-	fn clear_outbound(&mut self) {
-		self.outbound.clear();
+	fn push_outbound(&self, edge: DiEdgeInner<K, N, E>) {
+		self.edges.borrow_mut().outbound.push(edge);
 	}
 
-	fn iter_outbound(&self) -> std::slice::Iter<DiEdgeInner<K, N, E>> {
-		self.outbound.iter()
+	fn remove_inbound(&self, source: &K) -> Result<E, ()> {
+		let mut index = 0;
+		for edge in self.edges.borrow().inbound.iter() {
+			if edge.source().key() == source {
+				self.edges.borrow_mut().inbound.remove(index);
+				return Ok(edge.value().clone());
+			}
+			index += 1;
+		}
+		Err(())
 	}
 
-	fn iter_inbound(&self) -> std::slice::Iter<DiEdgeInner<K, N, E>> {
-		self.inbound.iter()
+	fn remove_outbound(&self, target: &K) -> Result<E, ()> {
+		let mut index = 0;
+		for edge in self.edges.borrow().outbound.iter() {
+			if edge.target().key() == target {
+				self.edges.borrow_mut().outbound.remove(index);
+				return Ok(edge.value().clone());
+			}
+			index += 1;
+		}
+		Err(())
+	}
+
+	fn clear_inbound(&self) {
+		self.edges.borrow_mut().inbound.clear();
+	}
+
+	fn clear_outbound(&self) {
+		self.edges.borrow_mut().outbound.clear();
 	}
 }
+
+//==== EOF ====================================================================

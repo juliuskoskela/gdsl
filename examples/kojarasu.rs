@@ -17,7 +17,7 @@ fn ordering(graph: &Graph) -> Vec<Node> {
 	for (_, root) in graph.iter() {
 		if !visited.contains(root.key()) {
 			let partition = root
-				.ordering()
+				.order()
 				.post()
 				.filter(&|_, v, _| !visited.contains(v.key()))
 				.collect_nodes();

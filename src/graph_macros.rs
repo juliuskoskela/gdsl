@@ -63,7 +63,6 @@ macro_rules! connect {
 	( $s:expr => $t:expr ) => {
         {
 			use gdsl::digraph::*;
-			use gdsl::digraph::DiNode;
 
             DiNode::connect($s, $t, Empty)
         }
@@ -72,7 +71,6 @@ macro_rules! connect {
     ( $s:expr => $t:expr, $params:expr ) => {
         {
 			use gdsl::digraph::*;
-			use gdsl::digraph::DiNode;
 
             DiNode::connect($s, $t, $params)
         }
