@@ -17,7 +17,7 @@ struct FlowEdge(Rc<Cell<Flow>>, Weak<Cell<Flow>>);
 impl FlowEdge {
 
 	// Connect two nodes with a flow.
-	fn connect(s: &Node<usize, Empty, FlowEdge>, t: &Node<usize, Empty, FlowEdge>, max: u64) {
+	fn connect(s: &Node<usize, (), FlowEdge>, t: &Node<usize, (), FlowEdge>, max: u64) {
 
 		// Create a forward and a reverse flow.
 		let mut fflow = FlowEdge(Rc::new(Cell::new(Flow(max, 0))), Weak::new());
@@ -53,7 +53,7 @@ impl FlowEdge {
 	fn cur(&self) -> u64 { self.0.get().1 }
 }
 
-fn max_flow(g: Graph<usize, Empty, FlowEdge>) -> u64 {
+fn max_flow(g: Graph<usize, (), FlowEdge>) -> u64 {
 
 	// 1. We loop breadth-first until there is no more paths to explore.
 	let mut max_flow: u64 = 0;
@@ -90,12 +90,12 @@ fn main() {
 	// Generate an example Graph with a max flow of 23 from 0 to 5.
 	let mut g = Graph::new();
 
-	g.insert(dinode!(0));
-	g.insert(dinode!(1));
-	g.insert(dinode!(2));
-	g.insert(dinode!(3));
-	g.insert(dinode!(4));
-	g.insert(dinode!(5));
+	g.insert(node!(0));
+	g.insert(node!(1));
+	g.insert(node!(2));
+	g.insert(node!(3));
+	g.insert(node!(4));
+	g.insert(node!(5));
 
 	FlowEdge::connect(&g[0], &g[1], 16);
 	FlowEdge::connect(&g[0], &g[2], 13);

@@ -7,13 +7,13 @@ use std::cell::Cell;
 use std::cmp::{max, min};
 use std::collections::HashSet;
 // use min_max_heap::MinMaxHeap;
-type Node = DiNode<usize, Empty, Empty>;
-type Graph = DiGraph<usize, Empty, Empty>;
+type Node = DiNode<usize, (), ()>;
+type Graph = DiGraph<usize, (), ()>;
 
 fn create_scc_graph(size: usize, degree: usize) -> Graph {
     let mut g = Graph::new();
     for i in 0..size {
-        g.insert(dinode!(i));
+        g.insert(node!(i));
     }
     for i in 0..size {
         let new_degree = rand_range(0, degree * 2);
@@ -128,7 +128,7 @@ fn rand_range(start: usize, end: usize) -> usize {
 fn create_dijkstra_digraph(size: usize, degree: usize) -> DiGraph<usize, Cell<u64>, u64> {
     let mut g = DiGraph::new();
     for i in 0..size {
-        g.insert(dinode!(i, Cell::new(u64::MAX)));
+        g.insert(node!(i, Cell::new(u64::MAX)));
     }
     for i in 0..size {
         let new_degree = rand_range(0, degree * 2);
@@ -142,7 +142,7 @@ fn create_dijkstra_digraph(size: usize, degree: usize) -> DiGraph<usize, Cell<u6
 fn create_dijkstra_digraph_against_petgraph(size: usize) -> Vec<DiNode<usize, Cell<usize>, usize>> {
     let mut g = Vec::new();
     for i in 0..size {
-        g.push(dinode!(i, Cell::new(usize::MAX)));
+        g.push(node!(i, Cell::new(usize::MAX)));
     }
 
 	for (i, node) in g.iter().enumerate() {

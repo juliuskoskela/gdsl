@@ -1,12 +1,41 @@
-//==== Submodules =============================================================
+//! # Directed Node
+//!
+//! A `DiNode` is a node in a directed graph. DiNodes can be created
+//! individually and they don't depend on a graph container. They are
+//! essentially smart-pointers that contain connections to other similar
+//! smart pointers. For two nodes to be able to connect, they must have the
+//! same type signature.
+//!
+//! A node's type signature is <KeyType, NodeValueType, EdgeValueType>.
+//!
+//! - The `KeyType` is required and is used to identify the node.
+//! - The `NodeValueType` is optional (supply `()` in type signature)
+//!   and is used to store data associated with the node.
+//! - The `EdgeValueType` is optional (supply `()` in type signature)
+//!   and is used to store data associated with the edge.
+//!
+//! It is useful to provide a type signature for the node to avoid type
+//! inference issues.
+//!
+//! ```
+//! use gdsl::digraph::*;
+//!
+//! type Node = DiNode<usize, &str, f64>;
+//!
+//! let n1 = Node::new(1, "Naughty Node");
+//! ```
+//!
+//! For an inner value type to be mutable, it must be wrapped in a mutable
+//! pointer such as a `Cell`, `RefCell`, or `Mutex`.
+//!
+//! Node's are wrapped in a reference counted smart pointer. This means
+//! that a node can be cloned and shared among multiple owners.
 
 pub mod method;
 pub mod order;
 pub mod bfs;
 pub mod dfs;
 pub mod pfs;
-
-//==== Includes ===============================================================
 
 use std::{
     fmt::Display,
@@ -26,19 +55,41 @@ use self::{
 pub use crate::{
 	graph,
 	connect,
-	dinode,
-	Empty
 };
 
 //==== Public =================================================================
 
-/// Edge between directed nodes.
+/// An edge between directed nodes is a tuple (u, v, e) where u is the
+/// source node, v is the target node, and e is the edge's value.
 pub type DiEdge<K, N, E> = (DiNode<K, N, E>, DiNode<K, N, E>, E);
 
 /// A directed node. Node has both outbound and inbound connections. Default
 /// direction when iterating over the node's neighbours is outbound.
+///
+/// # Example
+///
+/// ```
+/// use gdsl::digraph::*;
+///
+/// type Node<'a> = DiNode<usize, &'a str, f64>;
+///
+/// let a = Node::new(0x1, "A");
+/// let b = Node::new(0x2, "B");
+/// let c = Node::new(0x4, "C");
+///
+/// a.connect(&b, 0.42);
+/// a.connect(&c, 1.7);
+/// b.connect(&c, 0.09);
+/// c.connect(&b, 12.9);
+///
+/// let (u, v, e) = a.iter_out().next().unwrap();
+///
+/// assert!(u == a);
+/// assert!(v == b);
+/// assert!(e == 0.42);
+/// ```
 #[derive(Clone)]
-pub struct DiNode<K, N = Empty, E = Empty>
+pub struct DiNode<K, N = (), E = ()>
 where
 	K: Clone + Hash + PartialEq + Eq + Display,
     N: Clone,
@@ -55,8 +106,21 @@ where
 {
 	/// Creates a new node with a given key and value. The key is used to
 	/// identify the node in the graph. Two nodes with the same key are
-	/// considered equal. Value is optional, node use's `Empty` as default
+	/// considered equal. Value is optional, node use's `()` as default
 	/// value type.
+	///
+	/// # Example
+	///
+	/// ```
+	///	use gdsl::digraph::*;
+	///
+	///	type Node = DiNode<usize, char, ()>;
+	///
+	///	let n1 = Node::new(1, 'A');
+	///
+	///	assert!(*n1.key() == 1);
+	///	assert!(*n1.value() == 'A');
+	/// ```
     pub fn new(key: K, value: N) -> Self {
 		DiNode {
 			inner: Rc::new(DiNodeInner {
@@ -68,30 +132,90 @@ where
     }
 
 	/// Returns a reference to the node's key.
+	///
+	/// # Example
+	///
+	/// ```
+	///	use gdsl::digraph::*;
+	///
+	///	type Node = DiNode<usize, (), ()>;
+	///
+	///	let n1 = Node::new(1, ());
+	///
+	///	assert!(*n1.key() == 1);
+	/// ```
     pub fn key(&self) -> &K {
         &self.inner.key
     }
 
 	/// Returns a reference to the node's value.
+	///
+	/// # Example
+	///
+	/// ```
+	///	use gdsl::digraph::*;
+	///
+	///	type Node = DiNode<usize, char, ()>;
+	///
+	///	let n1 = Node::new(1, 'A');
+	///
+	///	assert!(*n1.value() == 'A');
+	/// ```
     pub fn value(&self) -> &N {
         &self.inner.value
     }
 
 	/// Connects this node to another node. The connection is created in both
 	/// directions. The connection is created with the given edge value and
-	/// defaults to `Empty`. This function allows for creating multiple
+	/// defaults to `()`. This function allows for creating multiple
 	/// connections between the same nodes.
-    pub fn connect(&self, other: &DiNode<K, N, E>, value: E) {
-        let edge = DiEdgeInner::new(self, other, value);
-        self.inner.edges.push_outbound(edge.clone());
-        other.inner.edges.push_inbound(edge);
-    }
+	///
+	/// # Example
+	///
+	/// ```
+	/// use gdsl::digraph::*;
+	///
+	///	type Node = DiNode<usize, (), f64>;
+	///
+	///	let n1 = Node::new(1, ());
+	///	let n2 = Node::new(2, ());
+	///
+	///	n1.connect(&n2, 4.20);
+	///
+	///	assert!(n1.is_connected(n2.key()));
+	/// ```
+	pub fn connect(&self, other: &DiNode<K, N, E>, value: E) {
+	    let edge = DiEdgeInner::new(self, other, value);
+	    self.inner.edges.push_outbound(edge.clone());
+	    other.inner.edges.push_inbound(edge);
+	}
 
 	/// Connects this node to another node. The connection is created in both
 	/// directions. The connection is created with the given edge value and
-	/// defaults to `Empty`. This function doesn't allow for creating multiple
+	/// defaults to `()`. This function doesn't allow for creating multiple
 	/// connections between the same nodes. Returns Ok(()) if the connection
 	/// was created, Err(EdgeValue) if the connection already exists.
+	///
+	/// # Example
+	///
+	/// ```
+	///	use gdsl::digraph::*;
+	///
+	///	type Node = DiNode<usize, (), ()>;
+	///
+	///	let n1 = Node::new(1, ());
+	///	let n2 = Node::new(2, ());
+	///
+	///	match n1.try_connect(&n2, ()) {
+	///		Ok(_) => assert!(n1.is_connected(n2.key())),
+	///		Err(_) => panic!("n1 should be connected to n2"),
+	///	}
+	///
+	///	match n1.try_connect(&n2, ()) {
+	///		Ok(_) => panic!("n1 should be connected to n2"),
+	///		Err(_) => assert!(n1.is_connected(n2.key())),
+	///	}
+	/// ```
 	pub fn try_connect(&self, other: &DiNode<K, N, E>, value: E) -> Result<(), E> {
 		if self.is_connected(other.key()) {
 			Err(value)
@@ -104,38 +228,77 @@ where
 	/// Disconnect two nodes from each other. The connection is removed in both
 	/// directions. Returns Ok(EdgeValue) if the connection was removed, Err(())
 	/// if the connection doesn't exist.
-    pub fn disconnect(&self, other: &K) -> Result<E, ()> {
-		if let Some(other) = self.find_outbound(other) {
-			if let Ok(edge) = self.inner.edges
-				.remove_outbound(other.key()) {
-				if other.inner.edges
-					.remove_inbound(self.key())
-					.is_err() {
-					panic!("This should not happen!");
+	///
+	/// # Example
+	///
+	/// ```
+	///	use gdsl::digraph::*;
+	///
+	///	type Node = DiNode<usize, (), ()>;
+	///
+	///	let n1 = Node::new(1, ());
+	///	let n2 = Node::new(2, ());
+	///
+	///	n1.connect(&n2, ());
+	///
+	///	assert!(n1.is_connected(n2.key()));
+	///
+	///	if n1.disconnect(n2.key()).is_err() {
+	///		panic!("n1 should be connected to n2");
+	///	}
+	///
+	///	assert!(!n1.is_connected(n2.key()));
+	/// ```
+	pub fn disconnect(&self, other: &K) -> Result<E, ()> {
+		match self.find_outbound(other) {
+			Some(other) => {
+				match self.inner.edges.remove_outbound(other.key()) {
+					Ok(edge) => {
+						other.inner.edges.remove_inbound(self.key())?;
+						Ok(edge)
+					},
+					Err(_) => Err(()),
 				}
-				Ok(edge)
-			} else {
-				Err(())
-			}
-		} else {
-			Err(())
+			},
+			None => Err(()),
 		}
 	}
 
 	/// Removes all inbound and outbound connections to and from the node.
+	///
+	/// # Example
+	///
+	/// ```
+	///	use gdsl::digraph::*;
+	///
+	///	type Node = DiNode<usize, (), ()>;
+	///
+	///	let n1 = Node::new(1, ());
+	///	let n2 = Node::new(2, ());
+	///	let n3 = Node::new(3, ());
+	///	let n4 = Node::new(4, ());
+	///
+	///	n1.connect(&n2, ());
+	///	n1.connect(&n3, ());
+	///	n1.connect(&n4, ());
+	///	n2.connect(&n1, ());
+	///	n3.connect(&n1, ());
+	///	n4.connect(&n1, ());
+	///
+	///	assert!(n1.is_connected(n2.key()));
+	///	assert!(n1.is_connected(n3.key()));
+	///	assert!(n1.is_connected(n4.key()));
+	///
+	///	n1.isolate();
+	///
+	///	assert!(n1.is_orphan());
+	/// ```
 	pub fn isolate(&self) {
 		for (_, v, _) in self.iter_out() {
 			if v.inner.edges
 				.remove_inbound(self.key())
 				.is_err() {
 				panic!("This should not happen!");
-			}
-		}
-		for (u, _, _) in self.iter_in() {
-			if u.inner.edges
-				.remove_outbound(self.key())
-				.is_err() {
-				panic!("Matching outbound connection not found!");
 			}
 		}
 		self.inner.edges.clear_outbound();
@@ -365,7 +528,7 @@ where
 
 //==== DiNode: Inner ===========================================================
 
-struct DiNodeInner<K, N = Empty, E = Empty>
+struct DiNodeInner<K, N = (), E = ()>
 where
 	K: Clone + Hash + PartialEq + Eq + Display,
     N: Clone,
@@ -408,7 +571,7 @@ where
 //==== DiEdgeInner =================================================================
 
 #[derive(Clone)]
-struct DiEdgeInner<K, N = Empty, E = Empty>
+struct DiEdgeInner<K, N = (), E = ()>
 where
 	K: Clone + Hash + PartialEq + Eq + Display,
 	N: Clone,
@@ -536,27 +699,27 @@ where
 	}
 
 	fn remove_inbound(&self, source: &K) -> Result<E, ()> {
-		let mut index = 0;
-		for edge in self.edges.borrow().inbound.iter() {
-			if edge.source().key() == source {
-				self.edges.borrow_mut().inbound.remove(index);
-				return Ok(edge.value().clone());
-			}
-			index += 1;
+		let mut edges = self.edges.borrow_mut();
+		let idx = edges.inbound.iter().position(|edge| edge.source().key() == source);
+		match idx {
+			Some(idx) => {
+				let edge = edges.inbound.remove(idx);
+				Ok(edge.value().clone())
+			},
+			None => Err(()),
 		}
-		Err(())
 	}
 
 	fn remove_outbound(&self, target: &K) -> Result<E, ()> {
-		let mut index = 0;
-		for edge in self.edges.borrow().outbound.iter() {
-			if edge.target().key() == target {
-				self.edges.borrow_mut().outbound.remove(index);
-				return Ok(edge.value().clone());
-			}
-			index += 1;
+		let mut edges = self.edges.borrow_mut();
+		let idx = edges.outbound.iter().position(|edge| edge.target().key() == target);
+		match idx {
+			Some(idx) => {
+				let edge = edges.outbound.remove(idx);
+				Ok(edge.value().clone())
+			},
+			None => Err(()),
 		}
-		Err(())
 	}
 
 	fn clear_inbound(&self) {

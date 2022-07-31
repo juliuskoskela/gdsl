@@ -5,11 +5,11 @@
 //
 // https://en.wikipedia.org/wiki/Kosaraju%27s_algorithm
 #![allow(unused)]
-use gdsl::digraph::{graph, DiNode, DiGraph, Empty};
+use gdsl::digraph::{graph, DiNode, DiGraph};
 use std::collections::HashSet;
 
-type Node = DiNode<usize, Empty, Empty>;
-type Graph = DiGraph<usize, Empty, Empty>;
+type Node = DiNode<usize, (), ()>;
+type Graph = DiGraph<usize, (), ()>;
 
 fn ordering(graph: &Graph) -> Vec<Node> {
 	let mut visited = HashSet::new();
