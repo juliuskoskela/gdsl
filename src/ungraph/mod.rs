@@ -7,13 +7,13 @@ mod graph_macros;
 
 //==== Includes ===============================================================
 
+pub use crate::ungraph::node::*;
+
 use std::{
-	fmt::Display,
+    fmt::Display,
     hash::Hash,
 	collections::HashMap,
 };
-
-pub use crate::digraph::node::*;
 
 pub struct Graph<K, N, E>
 where
@@ -172,63 +172,6 @@ where
 		self.nodes.values().map(|node| node.clone()).collect()
 	}
 
-	/// Collect roots into a vector
-	///
-	/// # Examples
-	///
-	/// ```
-	/// use gdsl::*;
-	///
-	/// let mut g = Graph::<&str, u64, u64>::new();
-	///
-	/// g.insert(Node::new("A", 0));
-	/// g.insert(Node::new("B", 0));
-	/// g.insert(Node::new("C", 0));
-	///
-	/// g["A"].connect(&g["B"], 0x1);
-	/// g["A"].connect(&g["C"], 0x1);
-	/// g["B"].connect(&g["C"], 0x1);
-	///
-	/// let roots = g.roots();
-	///
-	/// assert!(roots.len() == 1);
-	/// ```
-	pub fn roots(&self) -> Vec<Node<K, N, E>> {
-		self.nodes
-			.values()
-			.filter(|node| node.is_root())
-			.map(|node| node.clone())
-			.collect()
-	}
-
-	/// Collect leaves into a vector
-	///
-	/// # Examples
-	///
-	/// ```
-	/// use gdsl::*;
-	///
-	/// let mut g = Graph::<&str, u64, u64>::new();
-	///
-	/// g.insert(Node::new("A", 0));
-	/// g.insert(Node::new("B", 0));
-	/// g.insert(Node::new("C", 0));
-	///
-	/// g["A"].connect(&g["B"], 0x1);
-	/// g["A"].connect(&g["C"], 0x1);
-	///
-	/// let leaves = g.leaves();
-	///
-	/// assert!(leaves.len() == 2);
-	/// ```
-	pub fn leaves(&self) -> Vec<Node<K, N, E>> {
-		self.nodes
-			.values()
-			.filter(|node| node.is_leaf())
-			.map(|node| node.clone())
-			.collect()
-	}
-
 	/// Collect orpahn nodes into a vector
 	///
 	/// # Examples
@@ -284,11 +227,11 @@ where
 		E: Display,
 	{
 		let mut s = String::new();
-		s.push_str("digraph {\n");
+		s.push_str("graph {\n");
 		for (u_key, node) in self.iter() {
 			s.push_str(&format!("    {}", u_key.clone()));
 			for (_, v, _) in node {
-				s.push_str(&format!("\n    {} -> {}", u_key, v.key()));
+				s.push_str(&format!("\n    {} - {}", u_key, v.key()));
 			}
 			s.push_str("\n");
 		}

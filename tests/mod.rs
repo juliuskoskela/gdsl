@@ -5,8 +5,6 @@ fn doctest_dinode_manual_bfs()
 	use gdsl::digraph::*;
 	use std::collections::{HashSet, VecDeque};
 
-	type Node = DiNode<usize, (), ()>;
-
 	let g = vec![
 		Node::new(0, ()),
 		Node::new(1, ()),
@@ -48,7 +46,7 @@ fn doctest_dinode_manual_bfs()
 fn test_digraph_bfs() {
 	use gdsl::*;
 
-	let g = graph![
+	let g = digraph![
 		(usize) =>
 		(0) => [1, 2, 3]
 		(1) => [3]
@@ -73,8 +71,6 @@ fn doctest_dinode()
 {
 	use gdsl::digraph::*;
 
-	type Node<'a> = DiNode<usize, &'a str, f64>;
-
 	let a = Node::new(0x1, "A");
 	let b = Node::new(0x2, "B");
 	let c = Node::new(0x4, "C");
@@ -96,9 +92,7 @@ fn doctest_dinode_new()
 {
 	use gdsl::digraph::*;
 
-	type Node = DiNode<usize, char, ()>;
-
-	let n1 = Node::new(1, 'A');
+	let n1 = Node::<i32, char, ()>::new(1, 'A');
 
 	assert!(*n1.key() == 1);
 	assert!(*n1.value() == 'A');
@@ -108,8 +102,6 @@ fn doctest_dinode_new()
 fn doctest_dinode_connect()
 {
 	use gdsl::digraph::*;
-
-	type Node = DiNode<usize, (), f64>;
 
 	let n1 = Node::new(1, ());
 	let n2 = Node::new(2, ());
@@ -123,8 +115,6 @@ fn doctest_dinode_connect()
 fn doctest_dinode_try_connect()
 {
 	use gdsl::digraph::*;
-
-	type Node = DiNode<usize, (), ()>;
 
 	let n1 = Node::new(1, ());
 	let n2 = Node::new(2, ());
@@ -145,8 +135,6 @@ fn doctest_dinode_disconnect()
 {
 	use gdsl::digraph::*;
 
-	type Node = DiNode<usize, (), ()>;
-
 	let n1 = Node::new(1, ());
 	let n2 = Node::new(2, ());
 
@@ -161,11 +149,16 @@ fn doctest_dinode_disconnect()
 	assert!(!n1.is_connected(n2.key()));
 }
 
+// fn print_adjacent(n: &gdsl::Node<i32, (), ()>) {
+// 	println!("NODE: {}", n.key());
+// 	for (u, v, _) in n.iter_out() {
+// 		println!("{} => {}", u.key(), v.key());
+// 	}
+// }
+
 #[test]
 fn doctest_dinode_isolate() {
 	use gdsl::digraph::*;
-
-	type Node = DiNode<usize, (), ()>;
 
 	let n1 = Node::new(1, ());
 	let n2 = Node::new(2, ());
@@ -174,16 +167,42 @@ fn doctest_dinode_isolate() {
 
 	n1.connect(&n2, ());
 	n1.connect(&n3, ());
-	n1.connect(&n4, ());
 	n2.connect(&n1, ());
 	n3.connect(&n1, ());
-	n4.connect(&n1, ());
-
-	assert!(n1.is_connected(n2.key()));
-	assert!(n1.is_connected(n3.key()));
-	assert!(n1.is_connected(n4.key()));
+	n4.connect(&n3, ());
+	n3.connect(&n2, ());
 
 	n1.isolate();
 
+	assert!(n3.is_connected(n2.key()));
+	assert!(n4.is_connected(n3.key()));
+	assert!(!n1.is_connected(n2.key()));
+	assert!(!n1.is_connected(n3.key()));
 	assert!(n1.is_orphan());
+}
+
+
+#[test]
+fn utest_dinode_cycle() {
+	use gdsl::*;
+
+	let g = digraph![
+		(usize) =>
+		(0) => [0, 2, 3]
+		(1) => [3]
+		(2) => [4]
+		(3) => [2, 0]
+		(4) => []
+	];
+
+	// let path = g[0]
+	// 	.dfs()
+	// 	.target(&0)
+	// 	.path_nodes();
+
+	let cycle = g[0].dfs().cycle().unwrap();
+
+	for node in cycle {
+		print!("{} ", node.key());
+	}
 }

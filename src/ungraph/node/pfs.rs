@@ -8,8 +8,8 @@ use std::{
 
 use min_max_heap::MinMaxHeap;
 
-use crate::digraph::node::*;
-use self::method::*;
+use crate::ungraph::node::*;
+use crate::ungraph::node::method::*;
 
 enum Priority {
 	Min,
@@ -25,7 +25,6 @@ where
 	root: Node<K, N, E>,
 	target: Option<&'a K>,
 	method: Method<'a, K, N, E>,
-	transpose: IO,
 	priority: Priority,
 }
 
@@ -40,7 +39,6 @@ where
 			root: root.clone(),
 			target: None,
 			method: Method::NullMethod,
-			transpose: IO::Outbound,
 			priority: Priority::Min,
 		}
 	}
@@ -60,11 +58,6 @@ where
 		self
 	}
 
-	pub fn transpose(mut self) -> Self {
-		self.transpose = IO::Inbound;
-		self
-	}
-
 	pub fn map(mut self, f: Map<'a, K, N, E>) -> Self {
 		self.method = Method::Map(f);
 		self
@@ -81,14 +74,14 @@ where
 		self
 	}
 
-	fn forward_min(
+	fn loop_min(
 		&self,
 		result: &mut Vec<Edge<K, N, E>>,
 		visited: &mut HashSet<K>,
 		queue: &mut MinMaxHeap<Node<K, N, E>>,
 	) -> bool {
 		while let Some(node) = queue.pop_min() {
-			for (u, v, e) in node.iter_out() {
+			for (u, v, e) in node.iter_adjacent() {
 				if !visited.contains(v.key()) {
 					if self.method.exec(&u, &v, &e) {
 						visited.insert(v.key().clone());
@@ -104,60 +97,14 @@ where
 		false
 	}
 
-	fn backward_min(
-		&self,
-		result: &mut Vec<Edge<K, N, E>>,
-		visited: &mut HashSet<K>,
-		queue: &mut MinMaxHeap<Node<K, N, E>>,
-	) -> bool {
-		while let Some(node) = queue.pop_min() {
-			for (v, u, e) in node.iter_in() {
-				if !visited.contains(v.key()) {
-					if self.method.exec(&u, &v, &e) {
-						visited.insert(v.key().clone());
-						result.push((u, v.clone(), e));
-						if self.target.is_some() && self.target.unwrap() == v.key() {
-							return true;
-						}
-						queue.push(v.clone());
-					}
-				}
-			}
-		}
-		false
-	}
-
-	fn forward_max(
+	fn loop_max(
 		&self,
 		result: &mut Vec<Edge<K, N, E>>,
 		visited: &mut HashSet<K>,
 		queue: &mut MinMaxHeap<Node<K, N, E>>,
 	) -> bool {
 		while let Some(node) = queue.pop_max() {
-			for (u, v, e) in node.iter_out() {
-				if !visited.contains(v.key()) {
-					if self.method.exec(&u, &v, &e) {
-						visited.insert(v.key().clone());
-						result.push((u, v.clone(), e));
-						if self.target.is_some() && self.target.unwrap() == v.key() {
-							return true;
-						}
-						queue.push(v.clone());
-					}
-				}
-			}
-		}
-		false
-	}
-
-	fn backward_max(
-		&self,
-		result: &mut Vec<Edge<K, N, E>>,
-		visited: &mut HashSet<K>,
-		queue: &mut MinMaxHeap<Node<K, N, E>>,
-	) -> bool {
-		while let Some(node) = queue.pop_max() {
-			for (v, u, e) in node.iter_in() {
+			for (u, v, e) in node.iter_adjacent() {
 				if !visited.contains(v.key()) {
 					if self.method.exec(&u, &v, &e) {
 						visited.insert(v.key().clone());
@@ -191,26 +138,12 @@ where
 		self.target = Some(self.root.key());
 		queue.push(self.root.clone());
 
-		match self.transpose {
-			IO::Outbound => {
-				match self.priority {
-					Priority::Min => {
-						target_found = self.forward_min(&mut edges, &mut visited, &mut queue);
-					}
-					Priority::Max => {
-						target_found = self.forward_max(&mut edges, &mut visited, &mut queue);
-					}
-				}
+		match self.priority {
+			Priority::Min => {
+				target_found = self.loop_min(&mut edges, &mut visited, &mut queue);
 			}
-			IO::Inbound => {
-				match self.priority {
-					Priority::Min => {
-						target_found = self.backward_min(&mut edges, &mut visited, &mut queue);
-					}
-					Priority::Max => {
-						target_found = self.backward_max(&mut edges, &mut visited, &mut queue);
-					}
-				}
+			Priority::Max => {
+				target_found = self.loop_max(&mut edges, &mut visited, &mut queue);
 			}
 		}
 		if target_found {
@@ -230,26 +163,12 @@ where
 		queue.push(self.root.clone());
 		visited.insert(self.root.key().clone());
 
-		match self.transpose {
-			IO::Outbound => {
-				match self.priority {
-					Priority::Min => {
-						target_found = self.forward_min(&mut edges, &mut visited, &mut queue);
-					}
-					Priority::Max => {
-						target_found = self.forward_max(&mut edges, &mut visited, &mut queue);
-					}
-				}
+		match self.priority {
+			Priority::Min => {
+				target_found = self.loop_min(&mut edges, &mut visited, &mut queue);
 			}
-			IO::Inbound => {
-				match self.priority {
-					Priority::Min => {
-						target_found = self.backward_min(&mut edges, &mut visited, &mut queue);
-					}
-					Priority::Max => {
-						target_found = self.backward_max(&mut edges, &mut visited, &mut queue);
-					}
-				}
+			Priority::Max => {
+				target_found = self.loop_max(&mut edges, &mut visited, &mut queue);
 			}
 		}
 		if target_found {

@@ -14,14 +14,14 @@ fn main() {
 	// The macro also specifies if the graph is directed or undirected. In this
 	// case it is directed. If we want to create an undirected graph we have to
 	// use the `:` operator instead of the `=>` operator. The macro returns
-	// either a `DiGraph` or `UnGraph` type respectively.
+	// either a `Graph` or `UnGraph` type respectively.
 	//
 	// In this example the node stores the distance to the source node of the
 	// search. The edge stores the weight of the edge. The distance is wrapped
 	// in a `Cell` to allow for mutable access. We initialize the distance to
 	// `std::u64::MAX` to indicate that the node is not part of the shortest
 	// path.
-	let g = graph![
+	let g = digraph![
 		(char, Cell<u64>) => [u64]
 		('A', Cell::new(u64::MAX)) => [ ('B', 4), ('H', 8) ]
 		('B', Cell::new(u64::MAX)) => [ ('A', 4), ('H', 11), ('C', 8) ]
@@ -57,7 +57,7 @@ fn main() {
 	// is called for each edge in the search. The target is optional, in case
 	// we want to search the whole graph. In this case the target is `None`,
 	// so we will calculate the distance to all nodes.
-	g['A'].pfs().map(&mut |u, v, e| {
+	g['A'].pfs().map(&|u, v, e| {
 
 		// Since we are using a `Cell` to store the distance we use `get()` to
 		// read the distance values.

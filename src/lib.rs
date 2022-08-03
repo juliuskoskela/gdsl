@@ -1,3 +1,2 @@
-//! # Generic Graph Interface
-
 pub mod digraph;
+pub mod ungraph;

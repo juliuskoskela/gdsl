@@ -6,33 +6,33 @@ use std::{
 	collections::{HashSet, VecDeque}
 };
 
-use crate::digraph::*;
-use crate::digraph::node::method::*;
+use crate::digraph::node::*;
+use self::method::*;
 
-pub struct DiBFS<'a, K, N, E>
+pub struct BFS<'a, K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
 	N: Clone,
 	E: Clone,
 {
-	root: DiNode<K, N, E>,
+	root: Node<K, N, E>,
 	target: Option<&'a K>,
 	method: Method<'a, K, N, E>,
-	transpose: Direction,
+	transpose: IO,
 }
 
-impl<'a, K, N, E> DiBFS<'a, K, N, E>
+impl<'a, K, N, E> BFS<'a, K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
 	N: Clone,
 	E: Clone,
 {
-	pub fn new(root: &DiNode<K, N, E>) -> Self {
-		DiBFS {
+	pub fn new(root: &Node<K, N, E>) -> Self {
+		BFS {
 			root: root.clone(),
 			target: None,
 			method: Method::NullMethod,
-			transpose: Direction::Forward,
+			transpose: IO::Outbound,
 		}
 	}
 
@@ -42,7 +42,7 @@ where
 	}
 
 	pub fn transpose(mut self) -> Self {
-		self.transpose = Direction::Backward;
+		self.transpose = IO::Inbound;
 		self
 	}
 
@@ -64,9 +64,9 @@ where
 
 	fn forward(
 		&self,
-		result: &mut Vec<DiEdge<K, N, E>>,
+		result: &mut Vec<Edge<K, N, E>>,
 		visited: &mut HashSet<K>,
-		queue: &mut VecDeque<DiNode<K, N, E>>,
+		queue: &mut VecDeque<Node<K, N, E>>,
 	) -> bool {
 		while let Some(node) = queue.pop_front() {
 			for (u, v, e) in node.iter_out() {
@@ -87,9 +87,9 @@ where
 
 	fn backward(
 		&self,
-		result: &mut Vec<DiEdge<K, N, E>>,
+		result: &mut Vec<Edge<K, N, E>>,
 		visited: &mut HashSet<K>,
-		queue: &mut VecDeque<DiNode<K, N, E>>,
+		queue: &mut VecDeque<Node<K, N, E>>,
 	) -> bool {
 		while let Some(node) = queue.pop_front() {
 			for (v, u, e) in node.iter_in() {
@@ -108,7 +108,7 @@ where
 		false
 	}
 
-	pub fn find(&mut self) -> Option<DiNode<K, N, E>> {
+	pub fn find(&mut self) -> Option<Node<K, N, E>> {
 		let path = self.path_nodes();
 		match path {
 			Some(path) => Some(path.last().unwrap().clone()),
@@ -116,7 +116,7 @@ where
 		}
 	}
 
-	pub fn cycle(&'a mut self) -> Option<Vec<DiNode<K, N, E>>> {
+	pub fn cycle(&'a mut self) -> Option<Vec<Node<K, N, E>>> {
 		let mut result = vec![];
 		let mut edges = vec![];
 		let mut queue = VecDeque::new();
@@ -127,10 +127,10 @@ where
 		queue.push_back(self.root.clone());
 
 		match self.transpose {
-			Direction::Forward => {
+			IO::Outbound => {
 				target_found = self.forward(&mut edges, &mut visited, &mut queue);
 			}
-			Direction::Backward => {
+			IO::Inbound => {
 				target_found = self.backward(&mut edges, &mut visited, &mut queue);
 			}
 		}
@@ -142,11 +142,14 @@ where
 		None
 	}
 
-	fn backtrack_edge_tree(edge_tree: Vec<DiEdge<K, N, E>>) -> Vec<DiEdge<K, N, E>> {
+	fn backtrack_edge_tree(edge_tree: Vec<Edge<K, N, E>>) -> Vec<Edge<K, N, E>> {
 		let mut path = Vec::new();
 
-		let len = edge_tree.len() - 1;
-		let w = edge_tree[len].clone();
+		if edge_tree.len() == 1 {
+			path.push(edge_tree[0].clone());
+			return path;
+		}
+		let w = edge_tree.last().unwrap();
 		path.push(w.clone());
 		let mut i = 0;
 		for (u, v, e) in edge_tree.iter().rev() {
@@ -160,7 +163,7 @@ where
 		path
 	}
 
-	pub fn path_edges(&mut self) -> Option<Vec<DiEdge<K, N, E>>> {
+	pub fn path_edges(&mut self) -> Option<Vec<Edge<K, N, E>>> {
 		let mut edges = vec![];
 		let mut queue = VecDeque::new();
 		let mut visited = HashSet::new();
@@ -170,10 +173,10 @@ where
 		visited.insert(self.root.key().clone());
 
 		match self.transpose {
-			Direction::Forward => {
+			IO::Outbound => {
 				target_found = self.forward(&mut edges, &mut visited, &mut queue);
 			}
-			Direction::Backward => {
+			IO::Inbound => {
 				target_found = self.backward(&mut edges, &mut visited, &mut queue);
 			}
 		}
@@ -183,7 +186,7 @@ where
 		None
 	}
 
-	pub fn path_nodes(&mut self) -> Option<Vec<DiNode<K, N, E>>> {
+	pub fn path_nodes(&mut self) -> Option<Vec<Node<K, N, E>>> {
 		let edges = self.path_edges();
 		match edges {
 			Some(edges) => {

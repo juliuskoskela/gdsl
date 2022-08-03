@@ -39,7 +39,6 @@ mod order;
 mod bfs;
 mod dfs;
 mod pfs;
-mod path;
 
 use std::{
     fmt::Display,
@@ -55,8 +54,6 @@ use self::{
 	bfs::*,
 	order::*,
 };
-
-// pub use self::path::Path;
 
 //==== PUBLIC =================================================================
 
@@ -282,42 +279,27 @@ where
 	///	assert!(n1.is_orphan());
 	/// ```
 	pub fn isolate(&self) {
-		for (_, v, _) in self.iter_out() {
-			v.inner.edges.remove_inbound(self.key()).unwrap();
-		}
-		for (v, _, _) in self.iter_in() {
-			v.inner.edges.remove_outbound(self.key()).unwrap();
+		for (_, _, _) in self.iter_adjacent() {
+			todo!();
+			// v.inner.edges.remove_inbound(self.key()).unwrap();
 		}
 		self.inner.edges.clear_outbound();
 		self.inner.edges.clear_inbound();
 	}
 
-	/// Returns true if the node is a root node. Root nodes are nodes that have
-	/// no incoming connections.
-	pub fn is_root(&self) -> bool {
-		self.inner.edges.len_inbound() == 0
-	}
-
-	/// Returns true if the node is a leaf node. Leaf nodes are nodes that have
-	/// no outgoing connections.
-	pub fn is_leaf(&self) -> bool {
-		self.inner.edges.len_outbound() == 0
-	}
-
 	/// Returns true if the node is an oprhan. Orphan nodes are nodes that have
 	/// no connections.
 	pub fn is_orphan(&self) -> bool {
-		self.is_root() && self.is_leaf()
+		self.inner.edges.len_inbound() == 0
+		&& self.inner.edges.len_outbound() == 0
 	}
 
 	/// Returns true if the node is connected to another node with a given key.
 	pub fn is_connected(&self, other: &K) -> bool {
-		self.find_outbound(other).is_some()
+		self.find_adjacent(other).is_some()
 	}
 
-	/// Get a pointer to an adjacent node with a given key. Returns None if no
-	/// node with the given key is found from the node's adjacency list.
-	pub fn find_outbound(&self, other: &K) -> Option<Node<K, N, E>> {
+	fn find_outbound(&self, other: &K) -> Option<Node<K, N, E>> {
 		let edge = self.inner.edges.find_outbound(other);
 		if let Some(edge) = edge {
 			Some(edge.target().clone())
@@ -326,13 +308,19 @@ where
 		}
 	}
 
-	pub fn find_inbound(&self, other: &K) -> Option<Node<K, N, E>> {
+	fn find_inbound(&self, other: &K) -> Option<Node<K, N, E>> {
 		let edge = self.inner.edges.find_inbound(other);
 		if let Some(edge) = edge {
 			Some(edge.source().clone())
 		} else {
 			None
 		}
+	}
+
+	/// Get a pointer to an adjacent node with a given key. Returns None if no
+	/// node with the given key is found from the node's adjacency list.
+	pub fn find_adjacent(&self, other: &K) -> Option<Node<K, N, E>> {
+		self.find_outbound(other).or_else(|| self.find_inbound(other))
 	}
 
 	/// Returns an iterator-like object that can be used to map, filter and
@@ -364,14 +352,10 @@ where
 		PFS::new(self)
 	}
 
-	/// Returns an iterator over the node's outbound edges.
-	pub fn iter_out(&self) -> NodeOutboundIterator<K, N, E> {
-		NodeOutboundIterator { node: self, position: 0 }
-	}
-
-	/// Returns an iterator over the node's inbound edges.
-	pub fn iter_in(&self) -> NodeInboundIterator<K, N, E> {
-		NodeInboundIterator { node: self, position: 0 }
+	/// Returns an iterator over the node's edges as if they were in a
+	/// an undirected graph.
+	pub fn iter_adjacent(&self) -> NodeUndirIterator<K, N, E> {
+		NodeUndirIterator { node: self, position: 0 }
 	}
 }
 
@@ -429,7 +413,7 @@ where
     }
 }
 
-pub struct NodeOutboundIterator<'a, K, N, E>
+pub struct NodeUndirIterator<'a, K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
 	N: Clone,
@@ -439,40 +423,7 @@ where
 	position: usize,
 }
 
-impl<'a, K, N, E> Iterator for NodeOutboundIterator<'a, K, N, E>
-where
-	K: Clone + Hash + Display + PartialEq + Eq,
-	N: Clone,
-	E: Clone,
-{
-	type Item = (Node<K, N, E>, Node<K, N, E>, E);
-
-	fn next(&mut self) -> Option<Self::Item> {
-		match self.node.inner.edges.get_outbound(self.position) {
-			Some(current) => {
-				self.position += 1;
-				Some((
-					current.source().clone(),
-					current.target().clone(),
-					current.value.clone()
-				))
-			}
-			None => None,
-		}
-	}
-}
-
-pub struct NodeInboundIterator<'a, K, N, E>
-where
-	K: Clone + Hash + Display + PartialEq + Eq,
-	N: Clone,
-	E: Clone,
-{
-	node: &'a Node<K, N, E>,
-	position: usize,
-}
-
-impl<'a, K, N, E> Iterator for NodeInboundIterator<'a, K, N, E>
+impl<'a, K, N, E> Iterator for NodeUndirIterator<'a, K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
 	N: Clone,
@@ -482,15 +433,19 @@ where
 
 	fn next(&mut self) -> Option<Self::Item> {
 		match self.node.inner.edges.get_inbound(self.position) {
-			Some(current) => {
+			Some(edge) => {
 				self.position += 1;
-				Some((
-					current.source().clone(),
-					current.target().clone(),
-					current.value.clone()
-				))
+				Some((edge.source().clone(), edge.target().clone(), edge.value.clone()))
 			}
-			None => None,
+			None => {
+				match self.node.inner.edges.get_outbound(self.position - self.node.inner.edges.len_inbound()) {
+					Some(edge) => {
+						self.position += 1;
+						Some((edge.target().clone(), edge.source().clone(), edge.value.clone()))
+					}
+					None => None,
+				}
+			},
 		}
 	}
 }
@@ -502,10 +457,10 @@ where
 	E: Clone,
 {
 	type Item = (Node<K, N, E>, Node<K, N, E>, E);
-	type IntoIter = NodeOutboundIterator<'a, K, N, E>;
+	type IntoIter = NodeUndirIterator<'a, K, N, E>;
 
 	fn into_iter(self) -> Self::IntoIter {
-		NodeOutboundIterator { node: self, position: 0 }
+		NodeUndirIterator { node: self, position: 0 }
 	}
 }
 

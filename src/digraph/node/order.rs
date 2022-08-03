@@ -11,46 +11,46 @@ use super::method::*;
 
 //==== Ordering ===============================================================
 
-pub struct DiOrder<'a, K, N, E>
+pub struct Order<'a, K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
 	N: Clone,
 	E: Clone,
 {
-	root: &'a DiNode<K, N, E>,
+	root: &'a Node<K, N, E>,
 	method: Method<'a, K, N, E>,
-	order: Order,
-	transpose: Direction,
+	order: Ordering,
+	transpose: IO,
 }
 
 
-impl<'a, K, N, E> DiOrder<'a, K, N, E>
+impl<'a, K, N, E> Order<'a, K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
 	N: Clone,
 	E: Clone,
 {
-	pub fn new(root: &'a DiNode<K, N, E>) -> Self {
+	pub fn new(root: &'a Node<K, N, E>) -> Self {
 		Self {
 			root,
 			method: Method::NullMethod,
-			order: Order::Pre,
-			transpose: Direction::Forward,
+			order: Ordering::Pre,
+			transpose: IO::Outbound,
 		}
 	}
 
 	pub fn pre(mut self) -> Self {
-		self.order = Order::Pre;
+		self.order = Ordering::Pre;
 		self
 	}
 
 	pub fn post(mut self) -> Self {
-		self.order = Order::Post;
+		self.order = Ordering::Post;
 		self
 	}
 
 	pub fn transpose(mut self) -> Self {
-		self.transpose = Direction::Backward;
+		self.transpose = IO::Inbound;
 		self
 	}
 
@@ -70,7 +70,7 @@ where
 		self
 	}
 
-	pub fn collect_nodes(&mut self) -> Vec<DiNode<K, N, E>> {
+	pub fn collect_nodes(&mut self) -> Vec<Node<K, N, E>> {
 		let mut nodes = vec![];
 		let mut edges = vec![];
 		let mut queue = vec![];
@@ -80,15 +80,15 @@ where
 		visited.insert(self.root.key().clone());
 
 		match self.transpose {
-			Direction::Forward => {
+			IO::Outbound => {
 				match self.order {
-					Order::Pre => {
+					Ordering::Pre => {
 						self.preorder_forward(&mut edges, &mut visited, &mut queue);
 						nodes.push(self.root.clone());
 						let mut coll = edges.iter().map(|(_, v, _)| v.clone()).collect();
 						nodes.append(&mut coll);
 					},
-					Order::Post => {
+					Ordering::Post => {
 						self.postorder_forward(&mut edges, &mut visited, &mut queue);
 						let mut coll = edges.iter().map(|(_, v, _)| v.clone()).collect();
 						nodes.append(&mut coll);
@@ -96,15 +96,15 @@ where
 					},
 				}
 			},
-			Direction::Backward => {
+			IO::Inbound => {
 				match self.order {
-					Order::Pre => {
+					Ordering::Pre => {
 						self.preorder_backward(&mut edges, &mut visited, &mut queue);
 						nodes.push(self.root.clone());
 						let mut coll = edges.iter().map(|(_, v, _)| v.clone()).collect();
 						nodes.append(&mut coll);
 					},
-					Order::Post => {
+					Ordering::Post => {
 						self.postorder_backward(&mut edges, &mut visited, &mut queue);
 						let mut coll = edges.iter().map(|(_, v, _)| v.clone()).collect();
 						nodes.append(&mut coll);
@@ -116,7 +116,7 @@ where
 		nodes
 	}
 
-	pub fn collect_edges(&mut self) -> Vec<DiEdge<K, N, E>> {
+	pub fn collect_edges(&mut self) -> Vec<Edge<K, N, E>> {
 		let mut edges = vec![];
 		let mut queue = vec![];
 		let mut visited = HashSet::new();
@@ -125,22 +125,22 @@ where
 		visited.insert(self.root.key().clone());
 
 		match self.transpose {
-			Direction::Forward => {
+			IO::Outbound => {
 				match self.order {
-					Order::Pre => {
+					Ordering::Pre => {
 						self.preorder_forward(&mut edges, &mut visited, &mut queue);
 					},
-					Order::Post => {
+					Ordering::Post => {
 						self.postorder_forward(&mut edges, &mut visited, &mut queue);
 					},
 				}
 			},
-			Direction::Backward => {
+			IO::Inbound => {
 				match self.order {
-					Order::Pre => {
+					Ordering::Pre => {
 						self.preorder_backward(&mut edges, &mut visited, &mut queue);
 					},
-					Order::Post => {
+					Ordering::Post => {
 						self.postorder_backward(&mut edges, &mut visited, &mut queue);
 					},
 				}
@@ -151,9 +151,9 @@ where
 
 	fn preorder_forward(
 		&self,
-		result: &mut Vec<DiEdge<K, N, E>>,
+		result: &mut Vec<Edge<K, N, E>>,
 		visited: &mut HashSet<K>,
-		queue: &mut Vec<DiNode<K, N, E>>,
+		queue: &mut Vec<Node<K, N, E>>,
 	) -> bool {
 		if let Some(node) = queue.pop() {
 			for (u, v, e) in node.iter_out() {
@@ -175,9 +175,9 @@ where
 
 	fn preorder_backward(
 		&self,
-		result: &mut Vec<DiEdge<K, N, E>>,
+		result: &mut Vec<Edge<K, N, E>>,
 		visited: &mut HashSet<K>,
-		queue: &mut Vec<DiNode<K, N, E>>,
+		queue: &mut Vec<Node<K, N, E>>,
 	) -> bool {
 		if let Some(node) = queue.pop() {
 			for (v, u, e) in node.iter_in() {
@@ -199,9 +199,9 @@ where
 
 	fn postorder_forward(
 		&self,
-		result: &mut Vec<DiEdge<K, N, E>>,
+		result: &mut Vec<Edge<K, N, E>>,
 		visited: &mut HashSet<K>,
-		queue: &mut Vec<DiNode<K, N, E>>,
+		queue: &mut Vec<Node<K, N, E>>,
 	) -> bool {
 		if let Some(node) = queue.pop() {
 			for (u, v, e) in node.iter_out() {
@@ -223,9 +223,9 @@ where
 
 	fn postorder_backward(
 		&self,
-		result: &mut Vec<DiEdge<K, N, E>>,
+		result: &mut Vec<Edge<K, N, E>>,
 		visited: &mut HashSet<K>,
-		queue: &mut Vec<DiNode<K, N, E>>,
+		queue: &mut Vec<Node<K, N, E>>,
 	) -> bool {
 		if let Some(node) = queue.pop() {
 			for (v, u, e) in node.iter_in() {

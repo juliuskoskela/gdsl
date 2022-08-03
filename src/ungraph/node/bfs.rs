@@ -3,15 +3,13 @@
 use std::{
     fmt::Display,
     hash::Hash,
-	collections::HashSet
+	collections::{HashSet, VecDeque}
 };
 
-use crate::digraph::node::*;
-use self::{method::*, path::*};
+use crate::ungraph::node::*;
+use crate::ungraph::node::method::*;
 
-//==== DFS ====================================================================
-
-pub struct DFS<'a, K, N, E>
+pub struct BFS<'a, K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
 	N: Clone,
@@ -23,14 +21,14 @@ where
 	transpose: IO,
 }
 
-impl<'a, K, N, E> DFS<'a, K, N, E>
+impl<'a, K, N, E> BFS<'a, K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
 	N: Clone,
 	E: Clone,
 {
 	pub fn new(root: &Node<K, N, E>) -> Self {
-		DFS {
+		BFS {
 			root: root.clone(),
 			target: None,
 			method: Method::NullMethod,
@@ -58,54 +56,28 @@ where
 		self
 	}
 
+
 	pub fn filter_map(mut self, f: FilterMap<'a, K, N, E>) -> Self {
 		self.method = Method::FilterMap(f);
 		self
 	}
 
-	fn recurse_outbound(&self,
+	fn loop_adjacent(
+		&self,
 		result: &mut Vec<Edge<K, N, E>>,
 		visited: &mut HashSet<K>,
-		queue: &mut Vec<Node<K, N, E>>,
+		queue: &mut VecDeque<Node<K, N, E>>,
 	) -> bool {
-		if let Some(node) = queue.pop() {
-			for (u, v, e) in node.iter_out() {
-				if visited.contains(v.key()) == false {
+		while let Some(node) = queue.pop_front() {
+			for (u, v, e) in node.iter_adjacent() {
+				if !visited.contains(v.key()) {
 					if self.method.exec(&u, &v, &e) {
+						visited.insert(v.key().clone());
 						result.push((u, v.clone(), e));
 						if self.target.is_some() && self.target.unwrap() == v.key() {
 							return true;
 						}
-						visited.insert(v.key().clone());
-						queue.push(v.clone());
-						if self.recurse_outbound(result, visited, queue) {
-							return true;
-						}
-					}
-				}
-			}
-		}
-		false
-	}
-
-	fn recurse_inbound(&self,
-		result: &mut Vec<Edge<K, N, E>>,
-		visited: &mut HashSet<K>,
-		queue: &mut Vec<Node<K, N, E>>,
-	) -> bool {
-		if let Some(node) = queue.pop() {
-			for (v, u, e) in node.iter_in() {
-				if visited.contains(v.key()) == false {
-					if self.method.exec(&u, &v, &e) {
-						result.push((u, v.clone(), e));
-						if self.target.is_some() && self.target.unwrap() == v.key() {
-							return true;
-						}
-						visited.insert(v.key().clone());
-						queue.push(v.clone());
-						if self.recurse_inbound(result, visited, queue) {
-							return true;
-						}
+						queue.push_back(v.clone());
 					}
 				}
 			}
@@ -121,49 +93,48 @@ where
 		}
 	}
 
-	pub fn cycle(&'a mut self) -> Option<Vec<Node<K, N, E>>> {
-		let mut edges = vec![];
-		let mut queue = vec![];
-		let mut visited = HashSet::new();
-		let target_found;
+	fn backtrack_edge_tree(edge_tree: Vec<Edge<K, N, E>>) -> Vec<Edge<K, N, E>> {
+		let mut path = Vec::new();
 
-		self.target = Some(self.root.key());
-		queue.push(self.root.clone());
-
-		match self.transpose {
-			IO::Outbound => {
-				target_found = self.recurse_outbound(&mut edges, &mut visited, &mut queue);
-			}
-			IO::Inbound => {
-				target_found = self.recurse_inbound(&mut edges, &mut visited, &mut queue);
+		let len = edge_tree.len() - 1;
+		let w = edge_tree[len].clone();
+		path.push(w.clone());
+		let mut i = 0;
+		for (u, v, e) in edge_tree.iter().rev() {
+			let (s, _, _) = &path[i];
+			if s == v {
+				path.push((u.clone(), v.clone(), e.clone()));
+				i += 1;
 			}
 		}
-		if target_found {
-			let edge_path = backtrack_edge_tree(edges);
-			return Some(edge_path.iter().map(|(_, v, _)| v.clone()).collect());
+		path.reverse();
+		path
+	}
+
+	pub fn cycle(&'a mut self) -> Option<Vec<Node<K, N, E>>> {
+		let mut edges = vec![];
+		let mut queue = VecDeque::new();
+		let mut visited = HashSet::new();
+
+		self.target = Some(self.root.key());
+		queue.push_back(self.root.clone());
+
+		if self.loop_adjacent(&mut edges, &mut visited, &mut queue) {
+			return Some(Self::backtrack_edge_tree(edges).iter().map(|(_, v, _)| v.clone()).collect());
 		}
 		None
 	}
 
 	pub fn path_edges(&mut self) -> Option<Vec<Edge<K, N, E>>> {
 		let mut edges = vec![];
-		let mut queue = vec![];
+		let mut queue = VecDeque::new();
 		let mut visited = HashSet::new();
-		let target_found;
 
-		queue.push(self.root.clone());
+		queue.push_back(self.root.clone());
 		visited.insert(self.root.key().clone());
 
-		match self.transpose {
-			IO::Outbound => {
-				target_found = self.recurse_outbound(&mut edges, &mut visited, &mut queue);
-			}
-			IO::Inbound => {
-				target_found = self.recurse_inbound(&mut edges, &mut visited, &mut queue);
-			}
-		}
-		if target_found {
-			return Some(backtrack_edge_tree(edges));
+		if self.loop_adjacent(&mut edges, &mut visited, &mut queue) {
+			return Some(Self::backtrack_edge_tree(edges));
 		}
 		None
 	}
