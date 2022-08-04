@@ -18,23 +18,23 @@ use test_graphs::*;
 
 // ============================================================================
 
-fn bench_graph_creation(c: &mut Criterion) {
-    let b = 10000;
+fn digraph_creation(c: &mut Criterion) {
+    let b = 1000;
 
-	let mut group = c.benchmark_group("Group 1");
-    for (i, size) in [b, 2 * b, 4 * b, 8 * b, 16 * b]
+	let mut group = c.benchmark_group("digraph creation");
+    for (i, size) in [b]
         .iter()
         .enumerate()
     {
 		group.throughput(Throughput::Elements(*size as u64));
 
-        group.bench_with_input(BenchmarkId::new("create distance graph", size), &i, |b, _| {
+        group.bench_with_input(BenchmarkId::new("graph", size), &i, |b, _| {
 			b.iter(|| {
 				black_box(create_graph_simple_1(*size, size / 10));
             })
         });
 
-		group.bench_with_input(BenchmarkId::new("create distance graph as vec", size), &i, |b, _| {
+		group.bench_with_input(BenchmarkId::new("vec", size), &i, |b, _| {
 			b.iter(|| {
 				black_box(create_graph_vec_distance_1(*size));
             })
@@ -43,33 +43,87 @@ fn bench_graph_creation(c: &mut Criterion) {
     group.finish();
 }
 
-fn bench_ordering(c: &mut Criterion) {
-    let b = 10000;
+fn digraph_dfs(c: &mut Criterion) {
+    let b = 1000;
 
-	let mut group = c.benchmark_group("Group 1");
-    for (i, size) in [b, 2 * b, 4 * b, 8 * b, 16 * b]
+	let mut group = c.benchmark_group("digraph dfs");
+    for (i, size) in [b, 2 * b, 4 * b]
         .iter()
         .enumerate()
     {
 		group.throughput(Throughput::Elements(*size as u64));
 		let g = create_graph_simple_1(*size, size / 10);
-        group.bench_with_input(BenchmarkId::new("create distance graph", size), &i, |b, _| {
+
+        group.bench_with_input(BenchmarkId::new("find", size), &i, |b, _| {
 			b.iter(|| {
-				//
+				let s = &g[rand::random::<usize>() % g.len()];
+				let t = &g[rand::random::<usize>() % g.len()];
+				black_box(s.dfs().target(t.key()).find());
             })
         });
 
-		group.bench_with_input(BenchmarkId::new("create distance graph as vec", size), &i, |b, _| {
+		group.bench_with_input(BenchmarkId::new("path", size), &i, |b, _| {
 			b.iter(|| {
-				//
+				let s = &g[rand::random::<usize>() % g.len()];
+				let t = &g[rand::random::<usize>() % g.len()];
+				black_box(s.dfs().target(t.key()).path());
+            })
+        });
+
+		group.bench_with_input(BenchmarkId::new("cycle", size), &i, |b, _| {
+			b.iter(|| {
+				let s = &g[rand::random::<usize>() % g.len()];
+				black_box(s.dfs().cycle());
             })
         });
     }
+
     group.finish();
 }
 
+fn digraph_bfs(c: &mut Criterion) {
+    let b = 1000;
+
+	let mut group = c.benchmark_group("digraph bfs");
+    for (i, size) in [b, 2 * b, 4 * b]
+        .iter()
+        .enumerate()
+    {
+		group.throughput(Throughput::Elements(*size as u64));
+		let g = create_graph_simple_1(*size, size / 10);
+
+        group.bench_with_input(BenchmarkId::new("find", size), &i, |b, _| {
+			b.iter(|| {
+				let s = &g[rand::random::<usize>() % g.len()];
+				let t = &g[rand::random::<usize>() % g.len()];
+				black_box(s.bfs().target(t.key()).find());
+            })
+        });
+
+		group.bench_with_input(BenchmarkId::new("path", size), &i, |b, _| {
+			b.iter(|| {
+				let s = &g[rand::random::<usize>() % g.len()];
+				let t = &g[rand::random::<usize>() % g.len()];
+				black_box(s.bfs().target(t.key()).path());
+            })
+        });
+
+		group.bench_with_input(BenchmarkId::new("cycle", size), &i, |b, _| {
+			b.iter(|| {
+				let s = &g[rand::random::<usize>() % g.len()];
+				black_box(s.bfs().cycle());
+            })
+        });
+    }
+
+    group.finish();
+}
+
+
 criterion_group!(
     benches,
-	bench_graph_creation,
+	digraph_creation,
+	digraph_dfs,
+	digraph_bfs,
 );
 criterion_main!(benches);

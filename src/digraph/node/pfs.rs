@@ -3,9 +3,9 @@
 use std::{
     fmt::Display,
     hash::Hash,
-	collections::HashSet
 };
 
+use fnv::FnvHashSet as HashSet;
 use min_max_heap::MinMaxHeap;
 
 use crate::digraph::node::*;
@@ -25,7 +25,7 @@ where
 	root: Node<K, N, E>,
 	target: Option<&'a K>,
 	method: Method<'a, K, N, E>,
-	transpose: IO,
+	transpose: Transposition,
 	priority: Priority,
 }
 
@@ -40,7 +40,7 @@ where
 			root: root.clone(),
 			target: None,
 			method: Method::NullMethod,
-			transpose: IO::Outbound,
+			transpose: Transposition::Outbound,
 			priority: Priority::Min,
 		}
 	}
@@ -61,7 +61,7 @@ where
 	}
 
 	pub fn transpose(mut self) -> Self {
-		self.transpose = IO::Inbound;
+		self.transpose = Transposition::Inbound;
 		self
 	}
 
@@ -185,14 +185,14 @@ where
 		let mut result = vec![];
 		let mut edges = vec![];
 		let mut queue = MinMaxHeap::new();
-		let mut visited = HashSet::new();
+		let mut visited = HashSet::default();
 		let target_found;
 
 		self.target = Some(self.root.key());
 		queue.push(self.root.clone());
 
 		match self.transpose {
-			IO::Outbound => {
+			Transposition::Outbound => {
 				match self.priority {
 					Priority::Min => {
 						target_found = self.forward_min(&mut edges, &mut visited, &mut queue);
@@ -202,7 +202,7 @@ where
 					}
 				}
 			}
-			IO::Inbound => {
+			Transposition::Inbound => {
 				match self.priority {
 					Priority::Min => {
 						target_found = self.backward_min(&mut edges, &mut visited, &mut queue);
@@ -224,14 +224,14 @@ where
 	pub fn path_edges(&mut self) -> Option<Vec<Edge<K, N, E>>> {
 		let mut edges = vec![];
 		let mut queue = MinMaxHeap::new();
-		let mut visited = HashSet::new();
+		let mut visited = HashSet::default();
 		let target_found;
 
 		queue.push(self.root.clone());
 		visited.insert(self.root.key().clone());
 
 		match self.transpose {
-			IO::Outbound => {
+			Transposition::Outbound => {
 				match self.priority {
 					Priority::Min => {
 						target_found = self.forward_min(&mut edges, &mut visited, &mut queue);
@@ -241,7 +241,7 @@ where
 					}
 				}
 			}
-			IO::Inbound => {
+			Transposition::Inbound => {
 				match self.priority {
 					Priority::Min => {
 						target_found = self.backward_min(&mut edges, &mut visited, &mut queue);

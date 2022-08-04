@@ -37,8 +37,3 @@ pub enum Ordering {
 	Pre,
 	Post,
 }
-
-pub enum IO {
-	Outbound,
-	Inbound,
-}

@@ -49,8 +49,17 @@ macro_rules! digraph_connect {
 #[macro_export]
 macro_rules! digraph {
 
+	()
+	=> {
+		{
+			use gdsl::digraph::Graph;
+
+			Graph::<usize, (), ()>::new()
+		}
+	};
+
 	// Graph<K, _, _>
-	( ($K:ty) => $(($NODE:expr) => $( [ $( $EDGE:expr),*] )? )* )
+	( ($K:ty) $(($NODE:expr) => $( [ $( $EDGE:expr),*] )? )* )
 	=> {
 		{
 			use gdsl::digraph::*;
@@ -85,7 +94,7 @@ macro_rules! digraph {
 	};
 
 	// Graph<K, N, _>
-	( ($K:ty, $N:ty) => $(($NODE:expr, $NPARAM:expr) => $( [$(  $EDGE:expr) ,*] )? )* )
+	( ($K:ty, $N:ty) $(($NODE:expr, $NPARAM:expr) => $( [$(  $EDGE:expr) ,*] )? )* )
 	=> {
 		{
 			use gdsl::digraph::*;

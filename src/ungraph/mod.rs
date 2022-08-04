@@ -7,13 +7,14 @@ mod graph_macros;
 
 //==== Includes ===============================================================
 
-pub use crate::ungraph::node::*;
-
 use std::{
-    fmt::Display,
+	fmt::Display,
     hash::Hash,
-	collections::HashMap,
 };
+
+use fnv::FnvHashMap as HashMap;
+
+pub use crate::ungraph::node::*;
 
 pub struct Graph<K, N, E>
 where
@@ -39,7 +40,7 @@ where
 	///
 	/// let mut g = Graph::<&str, u64, u64>::new();
 	/// ```
-	pub fn new() -> Self { Self { nodes: HashMap::new() } }
+	pub fn new() -> Self { Self { nodes: HashMap::default() } }
 
 	/// Check if a node with the given key exists in the Graph
 	///
@@ -227,11 +228,11 @@ where
 		E: Display,
 	{
 		let mut s = String::new();
-		s.push_str("graph {\n");
+		s.push_str("digraph {\n");
 		for (u_key, node) in self.iter() {
 			s.push_str(&format!("    {}", u_key.clone()));
 			for (_, v, _) in node {
-				s.push_str(&format!("\n    {} - {}", u_key, v.key()));
+				s.push_str(&format!("\n    {} -> {}", u_key, v.key()));
 			}
 			s.push_str("\n");
 		}

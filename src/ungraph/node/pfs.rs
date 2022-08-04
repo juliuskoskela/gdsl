@@ -3,13 +3,13 @@
 use std::{
     fmt::Display,
     hash::Hash,
-	collections::HashSet
 };
 
+use fnv::FnvHashSet as HashSet;
 use min_max_heap::MinMaxHeap;
 
 use crate::ungraph::node::*;
-use crate::ungraph::node::method::*;
+use self::method::*;
 
 enum Priority {
 	Min,
@@ -74,14 +74,14 @@ where
 		self
 	}
 
-	fn loop_min(
+	fn recurse_min(
 		&self,
 		result: &mut Vec<Edge<K, N, E>>,
 		visited: &mut HashSet<K>,
 		queue: &mut MinMaxHeap<Node<K, N, E>>,
 	) -> bool {
 		while let Some(node) = queue.pop_min() {
-			for (u, v, e) in node.iter_adjacent() {
+			for (u, v, e) in node.iter() {
 				if !visited.contains(v.key()) {
 					if self.method.exec(&u, &v, &e) {
 						visited.insert(v.key().clone());
@@ -97,14 +97,14 @@ where
 		false
 	}
 
-	fn loop_max(
+	fn recurse_max(
 		&self,
 		result: &mut Vec<Edge<K, N, E>>,
 		visited: &mut HashSet<K>,
 		queue: &mut MinMaxHeap<Node<K, N, E>>,
 	) -> bool {
 		while let Some(node) = queue.pop_max() {
-			for (u, v, e) in node.iter_adjacent() {
+			for (u, v, e) in node.iter() {
 				if !visited.contains(v.key()) {
 					if self.method.exec(&u, &v, &e) {
 						visited.insert(v.key().clone());
@@ -132,7 +132,7 @@ where
 		let mut result = vec![];
 		let mut edges = vec![];
 		let mut queue = MinMaxHeap::new();
-		let mut visited = HashSet::new();
+		let mut visited = HashSet::default();
 		let target_found;
 
 		self.target = Some(self.root.key());
@@ -140,10 +140,10 @@ where
 
 		match self.priority {
 			Priority::Min => {
-				target_found = self.loop_min(&mut edges, &mut visited, &mut queue);
+				target_found = self.recurse_min(&mut edges, &mut visited, &mut queue);
 			}
 			Priority::Max => {
-				target_found = self.loop_max(&mut edges, &mut visited, &mut queue);
+				target_found = self.recurse_max(&mut edges, &mut visited, &mut queue);
 			}
 		}
 		if target_found {
@@ -157,7 +157,7 @@ where
 	pub fn path_edges(&mut self) -> Option<Vec<Edge<K, N, E>>> {
 		let mut edges = vec![];
 		let mut queue = MinMaxHeap::new();
-		let mut visited = HashSet::new();
+		let mut visited = HashSet::default();
 		let target_found;
 
 		queue.push(self.root.clone());
@@ -165,10 +165,10 @@ where
 
 		match self.priority {
 			Priority::Min => {
-				target_found = self.loop_min(&mut edges, &mut visited, &mut queue);
+				target_found = self.recurse_min(&mut edges, &mut visited, &mut queue);
 			}
 			Priority::Max => {
-				target_found = self.loop_max(&mut edges, &mut visited, &mut queue);
+				target_found = self.recurse_max(&mut edges, &mut visited, &mut queue);
 			}
 		}
 		if target_found {

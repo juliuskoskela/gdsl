@@ -47,7 +47,7 @@ fn test_digraph_bfs() {
 	use gdsl::*;
 
 	let g = digraph![
-		(usize) =>
+		(usize)
 		(0) => [1, 2, 3]
 		(1) => [3]
 		(2) => [4]
@@ -58,8 +58,9 @@ fn test_digraph_bfs() {
 	let path = g[0]
 		.bfs()
 		.target(&4)
-		.path_nodes()
-		.unwrap();
+		.path()
+		.unwrap()
+		.to_vec_nodes();
 
 	assert!(path[0] == g[0]);
 	assert!(path[1] == g[2]);
@@ -149,13 +150,6 @@ fn doctest_dinode_disconnect()
 	assert!(!n1.is_connected(n2.key()));
 }
 
-// fn print_adjacent(n: &gdsl::Node<i32, (), ()>) {
-// 	println!("NODE: {}", n.key());
-// 	for (u, v, _) in n.iter_out() {
-// 		println!("{} => {}", u.key(), v.key());
-// 	}
-// }
-
 #[test]
 fn doctest_dinode_isolate() {
 	use gdsl::digraph::*;
@@ -181,13 +175,44 @@ fn doctest_dinode_isolate() {
 	assert!(n1.is_orphan());
 }
 
+// TEST DFS
 
 #[test]
-fn utest_dinode_cycle() {
+fn ut_dinode_dfs_find_1() {
 	use gdsl::*;
 
 	let g = digraph![
-		(usize) =>
+		(usize)
+		(0) => [1, 2, 3]
+		(1) => [3]
+		(2) => [4]
+		(3) => [2, 0]
+		(4) => []
+	];
+
+	let target = g[0]
+		.dfs()
+		.target(&4)
+		.find()
+		.unwrap();
+
+	let source = g[4]
+		.dfs()
+		.target(&0)
+		.transpose()
+		.find()
+		.unwrap();
+
+	assert!(target == g[4]);
+	assert!(source == g[0]);
+}
+
+#[test]
+fn ut_dinode_dfs_cycle_1() {
+	use gdsl::*;
+
+	let g = digraph![
+		(usize)
 		(0) => [0, 2, 3]
 		(1) => [3]
 		(2) => [4]
@@ -195,14 +220,145 @@ fn utest_dinode_cycle() {
 		(4) => []
 	];
 
-	// let path = g[0]
-	// 	.dfs()
-	// 	.target(&0)
-	// 	.path_nodes();
+	let cycle = g[0]
+		.dfs()
+		.cycle()
+		.unwrap()
+		.to_vec_nodes();
 
-	let cycle = g[0].dfs().cycle().unwrap();
+	assert!(cycle[0] == g[0]);
+	assert!(cycle[1] == g[0]);
+}
 
-	for node in cycle {
-		print!("{} ", node.key());
-	}
+#[test]
+fn ut_dinode_dfs_cycle_2() {
+	use gdsl::*;
+
+	let g = digraph![
+		(usize)
+		(0) => [1, 2, 3]
+		(1) => [3]
+		(2) => [4]
+		(3) => [2, 0]
+		(4) => []
+	];
+
+	let cycle = g[0]
+		.dfs()
+		.cycle()
+		.unwrap()
+		.to_vec_nodes();
+
+	assert!(cycle[0] == g[0]);
+	assert!(cycle.last().unwrap() == &g[0]);
+}
+
+// TEST BFS
+
+#[test]
+fn ut_dinode_bfs_find_1() {
+	use gdsl::*;
+
+	let g = digraph![
+		(usize)
+		(0) => [1, 2, 3]
+		(1) => [3]
+		(2) => [4]
+		(3) => [2, 0]
+		(4) => []
+	];
+
+	let target = g[0]
+		.bfs()
+		.target(&4)
+		.find()
+		.unwrap();
+
+	let source = g[4]
+		.bfs()
+		.target(&0)
+		.transpose()
+		.find()
+		.unwrap();
+
+	assert!(target == g[4]);
+	assert!(source == g[0]);
+}
+
+#[test]
+fn ut_dinode_bfs_cycle_1() {
+	use gdsl::*;
+
+	let g = digraph![
+		(usize)
+		(0) => [0, 2, 3]
+		(1) => [3]
+		(2) => [4]
+		(3) => [2, 0]
+		(4) => []
+	];
+
+	let cycle = g[0]
+		.bfs()
+		.cycle()
+		.unwrap()
+		.to_vec_nodes();
+
+	assert!(cycle[0] == g[0]);
+	assert!(cycle[1] == g[0]);
+}
+
+#[test]
+fn ut_dinode_bfs_cycle_2() {
+	use gdsl::*;
+
+	let g = digraph![
+		(usize)
+		(0) => [1, 2, 3]
+		(1) => [3]
+		(2) => [4]
+		(3) => [2, 0]
+		(4) => []
+	];
+
+	let cycle = g[0]
+		.bfs()
+		.cycle()
+		.unwrap()
+		.to_vec_nodes();
+
+	assert!(cycle[0] == g[0]);
+	assert!(cycle.last().unwrap() == &g[0]);
+}
+
+
+#[test]
+fn ut_dinode_sizes() {
+	use gdsl::digraph::*;
+
+	type N1 = Node;
+	type N2 = Node<usize>;
+	type N3 = Node<usize, usize>;
+	type N4 = Node<usize, usize, usize>;
+
+	let n1 = N1::new(1, ());
+	let n2 = N2::new(2, ());
+	let n3 = N3::new(3, 42);
+	let n4 = N4::new(4, 42);
+
+	assert!(n1.sizeof() == 72);
+	assert!(n2.sizeof() == 72);
+	assert!(n3.sizeof() == 80);
+	assert!(n4.sizeof() == 80);
+
+	let n1t1 = N1::new(1, ());
+	let n1t2 = N1::new(1, ());
+	let n1t3 = N1::new(1, ());
+
+	n1.connect(&n1t1, ());
+	n1.connect(&n1t2, ());
+	n1.connect(&n1t3, ());
+
+	assert!(n1.sizeof() == 120);
+	assert!(n1t1.sizeof() == 88);
 }

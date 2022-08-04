@@ -3,8 +3,9 @@
 use std::{
     fmt::Display,
     hash::Hash,
-	collections::HashSet,
 };
+
+use fnv::FnvHashSet as HashSet;
 
 use super::*;
 use super::method::*;
@@ -20,7 +21,7 @@ where
 	root: &'a Node<K, N, E>,
 	method: Method<'a, K, N, E>,
 	order: Ordering,
-	transpose: IO,
+	transpose: Transposition,
 }
 
 
@@ -35,7 +36,7 @@ where
 			root,
 			method: Method::NullMethod,
 			order: Ordering::Pre,
-			transpose: IO::Outbound,
+			transpose: Transposition::Outbound,
 		}
 	}
 
@@ -50,7 +51,7 @@ where
 	}
 
 	pub fn transpose(mut self) -> Self {
-		self.transpose = IO::Inbound;
+		self.transpose = Transposition::Inbound;
 		self
 	}
 
@@ -74,13 +75,13 @@ where
 		let mut nodes = vec![];
 		let mut edges = vec![];
 		let mut queue = vec![];
-		let mut visited = HashSet::new();
+		let mut visited = HashSet::default();
 
 		queue.push(self.root.clone());
 		visited.insert(self.root.key().clone());
 
 		match self.transpose {
-			IO::Outbound => {
+			Transposition::Outbound => {
 				match self.order {
 					Ordering::Pre => {
 						self.preorder_forward(&mut edges, &mut visited, &mut queue);
@@ -96,7 +97,7 @@ where
 					},
 				}
 			},
-			IO::Inbound => {
+			Transposition::Inbound => {
 				match self.order {
 					Ordering::Pre => {
 						self.preorder_backward(&mut edges, &mut visited, &mut queue);
@@ -119,13 +120,13 @@ where
 	pub fn collect_edges(&mut self) -> Vec<Edge<K, N, E>> {
 		let mut edges = vec![];
 		let mut queue = vec![];
-		let mut visited = HashSet::new();
+		let mut visited = HashSet::default();
 
 		queue.push(self.root.clone());
 		visited.insert(self.root.key().clone());
 
 		match self.transpose {
-			IO::Outbound => {
+			Transposition::Outbound => {
 				match self.order {
 					Ordering::Pre => {
 						self.preorder_forward(&mut edges, &mut visited, &mut queue);
@@ -135,7 +136,7 @@ where
 					},
 				}
 			},
-			IO::Inbound => {
+			Transposition::Inbound => {
 				match self.order {
 					Ordering::Pre => {
 						self.preorder_backward(&mut edges, &mut visited, &mut queue);

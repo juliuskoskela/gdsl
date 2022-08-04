@@ -47,13 +47,23 @@ macro_rules! ungraph_connect {
 
 /// Macro for creating a graph.
 #[macro_export]
-macro_rules! ungraph_graph {
+macro_rules! ungraph {
+
+	()
+	=> {
+		{
+			use gdsl::ungraph::Graph;
+
+			Graph::<usize, (), ()>::new()
+		}
+	};
 
 	// Graph<K, _, _>
-	( ($K:ty) => $(($NODE:expr) => $( [ $( $EDGE:expr),*] )? )* )
+	( ($K:ty) $(($NODE:expr) => $( [ $( $EDGE:expr),*] )? )* )
 	=> {
 		{
 			use gdsl::ungraph::*;
+			use gdsl::*;
 
 			let mut edges = Vec::<($K, $K)>::new();
 			edges.clear();
@@ -84,10 +94,11 @@ macro_rules! ungraph_graph {
 	};
 
 	// Graph<K, N, _>
-	( ($K:ty, $N:ty) => $(($NODE:expr, $NPARAM:expr) => $( [$(  $EDGE:expr) ,*] )? )* )
+	( ($K:ty, $N:ty) $(($NODE:expr, $NPARAM:expr) => $( [$(  $EDGE:expr) ,*] )? )* )
 	=> {
 		{
 			use gdsl::ungraph::*;
+			use gdsl::*;
 
 			let mut edges = Vec::<($K, $K)>::new();
 			edges.clear();
@@ -122,6 +133,7 @@ macro_rules! ungraph_graph {
 	=> {
 		{
 			use gdsl::ungraph::*;
+			use gdsl::*;
 
 			let mut edges = Vec::<($K, $K, $E)>::new();
 			edges.clear();
@@ -156,6 +168,7 @@ macro_rules! ungraph_graph {
 	=> {
 		{
 			use gdsl::ungraph::*;
+			use gdsl::*;
 
 			let mut edges = Vec::<($K, $K, $E)>::new();
 			edges.clear();

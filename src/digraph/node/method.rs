@@ -38,7 +38,7 @@ pub enum Ordering {
 	Post,
 }
 
-pub enum IO {
+pub enum Transposition {
 	Outbound,
 	Inbound,
 }

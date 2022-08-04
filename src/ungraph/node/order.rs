@@ -3,8 +3,9 @@
 use std::{
     fmt::Display,
     hash::Hash,
-	collections::HashSet,
 };
+
+use fnv::FnvHashSet as HashSet;
 
 use super::*;
 use super::method::*;
@@ -67,7 +68,7 @@ where
 		let mut nodes = vec![];
 		let mut edges = vec![];
 		let mut queue = vec![];
-		let mut visited = HashSet::new();
+		let mut visited = HashSet::default();
 
 		queue.push(self.root.clone());
 		visited.insert(self.root.key().clone());
@@ -92,7 +93,7 @@ where
 	pub fn collect_edges(&mut self) -> Vec<Edge<K, N, E>> {
 		let mut edges = vec![];
 		let mut queue = vec![];
-		let mut visited = HashSet::new();
+		let mut visited = HashSet::default();
 
 		queue.push(self.root.clone());
 		visited.insert(self.root.key().clone());
@@ -115,7 +116,7 @@ where
 		queue: &mut Vec<Node<K, N, E>>,
 	) -> bool {
 		if let Some(node) = queue.pop() {
-			for (u, v, e) in node.iter_adjacent() {
+			for (u, v, e) in node.iter() {
 				if visited.contains(v.key()) == false {
 					if self.method.exec(&u, &v, &e) {
 						visited.insert(v.key().clone());
@@ -139,7 +140,7 @@ where
 		queue: &mut Vec<Node<K, N, E>>,
 	) -> bool {
 		if let Some(node) = queue.pop() {
-			for (u, v, e) in node.iter_adjacent() {
+			for (u, v, e) in node.iter() {
 				if visited.contains(v.key()) == false {
 					if self.method.exec(&u, &v, &e) {
 						visited.insert(v.key().clone());

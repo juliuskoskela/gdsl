@@ -4,7 +4,7 @@
 // connected components of a graph.
 //
 // https://en.wikipedia.org/wiki/Kosaraju%27s_algorithm
-#![allow(unused)]
+
 use gdsl::{
 	digraph as graph,
 	digraph::*
@@ -49,6 +49,8 @@ fn kojarasu(graph: &G) -> Vec<G> {
 				.cycle();
 			match cycle {
 				Some(cycle) => {
+					let mut cycle = cycle.to_vec_nodes();
+					cycle.pop();
 					for node in &cycle {
 						invariant.insert(node.key().clone());
 					}
@@ -75,7 +77,7 @@ fn kojarasu(graph: &G) -> Vec<G> {
 // 2: [ 7 ]
 fn ex1() {
 	let g = graph![
-		(usize) =>
+		(usize)
 		(0) => [1]
 		(1) => [2]
 		(2) => [3, 4]
@@ -115,7 +117,7 @@ fn ex1() {
 // 3: [ 1 2 3 ]
 fn ex2() {
 	let g = graph![
-		(usize) =>
+		(usize)
 		(1) => [2]
 		(2) => [3]
 		(3) => [1]
@@ -140,9 +142,7 @@ fn ex2() {
 	for (i, component) in components.iter_mut().enumerate() {
 		component.sort_by(|a, b| a.key().cmp(&b.key()));
 		let keys = component.iter().map(|node| node.key().clone()).collect::<Vec<_>>();
-		println!();
-		println!("{:?}", keys);
-		// assert_eq!(keys, expect[i]);
+		assert_eq!(keys, expect[i]);
 	}
 }
 
@@ -157,7 +157,7 @@ fn ex2() {
 // 2: [ 5 6 7 8 ]
 fn ex3() {
 	let g = graph![
-		(usize) =>
+		(usize)
 		(1) => [3]
 		(2) => [1]
 		(3) => [2, 4]
@@ -196,7 +196,7 @@ fn ex3() {
 // 2: [ 0 1 2 ]
 fn ex4() {
 	let g = graph![
-		(usize) =>
+		(usize)
 		(0) => [1]
 		(1) => [2]
 		(2) => [0]
@@ -225,8 +225,8 @@ fn ex4() {
 }
 
 fn main() {
-	// ex1();
+	ex1();
 	ex2();
-	// ex3();
-	// ex4();
+	ex3();
+	ex4();
 }

@@ -3,7 +3,7 @@ use std::{
     hash::Hash, ops::Index,
 };
 
-use crate::digraph::node::*;
+use crate::ungraph::node::*;
 
 pub fn backtrack_edge_tree<K, N, E>(edge_tree: Vec<Edge<K, N, E>>) -> Vec<Edge<K, N, E>>
 where

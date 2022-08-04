@@ -15,9 +15,6 @@
 //! - The `EdgeValueType` is optional (supply `()` in type signature)
 //!   and is used to store data associated with the edge.
 //!
-//! It is useful to provide a type signature for the node to avoid type
-//! inference issues.
-//!
 //! ```
 //! use gdsl::*;
 //!
@@ -372,6 +369,14 @@ where
 	/// Returns an iterator over the node's inbound edges.
 	pub fn iter_in(&self) -> NodeInboundIterator<K, N, E> {
 		NodeInboundIterator { node: self, position: 0 }
+	}
+
+	pub fn sizeof(&self) -> usize {
+		let len_in = self.inner.edges.len_inbound();
+		let len_out = self.inner.edges.len_outbound();
+		let size_edges = (len_in + len_out) * std::mem::size_of::<Edge<K, N, E>>();
+		let size_node_inner = std::mem::size_of::<NodeInner<K, N, E>>();
+		size_edges + size_node_inner + 8
 	}
 }
 

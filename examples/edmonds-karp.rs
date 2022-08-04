@@ -69,22 +69,21 @@ fn max_flow(g: &G) -> u64 {
 	while let Some(path) = g[0]
 		.dfs()
 		.target(&5)
-
 		// 2. We exclude saturated edges from the search.
 		.filter(&|_, _, e| e.cur() < e.max())
-		.path_edges()
+		.path()
 	{
 		let mut aug_flow = std::u64::MAX;
 
 		// 3. We find the minimum augmenting flow along the path.
-		for (_, _, flow) in &path {
+		for (_, _, flow) in path.iter_edges() {
 			if flow.max() - flow.cur() < aug_flow {
 				aug_flow = flow.max() - flow.cur();
 			}
 		}
 
 		// 4. We update the flow along the path.
-		for (_, _, flow) in &path {
+		for (_, _, flow) in path.iter_edges() {
 			flow.update(aug_flow);
 		}
 
@@ -119,5 +118,4 @@ fn main() {
 
 	// For this Graph we expect the maximum flow from 0 -> 5 to be 23
 	assert!(max_flow(&g) == 23);
-	// println!("Max flow: {}", max_flow(&g));
 }

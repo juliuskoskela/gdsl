@@ -10,8 +10,9 @@ mod graph_macros;
 use std::{
 	fmt::Display,
     hash::Hash,
-	collections::HashMap,
 };
+
+use fnv::FnvHashMap as HashMap;
 
 pub use crate::digraph::node::*;
 
@@ -39,7 +40,7 @@ where
 	///
 	/// let mut g = Graph::<&str, u64, u64>::new();
 	/// ```
-	pub fn new() -> Self { Self { nodes: HashMap::new() } }
+	pub fn new() -> Self { Self { nodes: HashMap::default() } }
 
 	/// Check if a node with the given key exists in the Graph
 	///

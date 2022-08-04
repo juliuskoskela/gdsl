@@ -15,9 +15,6 @@
 //! - The `EdgeValueType` is optional (supply `()` in type signature)
 //!   and is used to store data associated with the edge.
 //!
-//! It is useful to provide a type signature for the node to avoid type
-//! inference issues.
-//!
 //! ```
 //! use gdsl::*;
 //!
@@ -39,6 +36,7 @@ mod order;
 mod bfs;
 mod dfs;
 mod pfs;
+mod path;
 
 use std::{
     fmt::Display,
@@ -54,6 +52,8 @@ use self::{
 	bfs::*,
 	order::*,
 };
+
+// pub use self::path::Path;
 
 //==== PUBLIC =================================================================
 
@@ -237,7 +237,7 @@ where
 	///	assert!(!n1.is_connected(n2.key()));
 	/// ```
 	pub fn disconnect(&self, other: &K) -> Result<E, ()> {
-		match self.find_outbound(other) {
+		match self.find_adjacent(other) {
 			Some(other) => {
 				match self.inner.edges.remove_outbound(other.key()) {
 					Ok(edge) => {
@@ -279,9 +279,8 @@ where
 	///	assert!(n1.is_orphan());
 	/// ```
 	pub fn isolate(&self) {
-		for (_, _, _) in self.iter_adjacent() {
-			todo!();
-			// v.inner.edges.remove_inbound(self.key()).unwrap();
+		for (_, v, _) in self.iter() {
+			v.inner.edges.remove_inbound(self.key()).unwrap();
 		}
 		self.inner.edges.clear_outbound();
 		self.inner.edges.clear_inbound();
@@ -290,8 +289,7 @@ where
 	/// Returns true if the node is an oprhan. Orphan nodes are nodes that have
 	/// no connections.
 	pub fn is_orphan(&self) -> bool {
-		self.inner.edges.len_inbound() == 0
-		&& self.inner.edges.len_outbound() == 0
+		self.inner.edges.len_outbound() == 0 && self.inner.edges.len_inbound() == 0
 	}
 
 	/// Returns true if the node is connected to another node with a given key.
@@ -299,28 +297,20 @@ where
 		self.find_adjacent(other).is_some()
 	}
 
-	fn find_outbound(&self, other: &K) -> Option<Node<K, N, E>> {
+	/// Get a pointer to an adjacent node with a given key. Returns None if no
+	/// node with the given key is found from the node's adjacency list.
+	pub fn find_adjacent(&self, other: &K) -> Option<Node<K, N, E>> {
 		let edge = self.inner.edges.find_outbound(other);
 		if let Some(edge) = edge {
 			Some(edge.target().clone())
 		} else {
-			None
+			let edge = self.inner.edges.find_inbound(other);
+			if let Some(edge) = edge {
+				Some(edge.source().clone())
+			} else {
+				None
+			}
 		}
-	}
-
-	fn find_inbound(&self, other: &K) -> Option<Node<K, N, E>> {
-		let edge = self.inner.edges.find_inbound(other);
-		if let Some(edge) = edge {
-			Some(edge.source().clone())
-		} else {
-			None
-		}
-	}
-
-	/// Get a pointer to an adjacent node with a given key. Returns None if no
-	/// node with the given key is found from the node's adjacency list.
-	pub fn find_adjacent(&self, other: &K) -> Option<Node<K, N, E>> {
-		self.find_outbound(other).or_else(|| self.find_inbound(other))
 	}
 
 	/// Returns an iterator-like object that can be used to map, filter and
@@ -352,10 +342,17 @@ where
 		PFS::new(self)
 	}
 
-	/// Returns an iterator over the node's edges as if they were in a
-	/// an undirected graph.
-	pub fn iter_adjacent(&self) -> NodeUndirIterator<K, N, E> {
-		NodeUndirIterator { node: self, position: 0 }
+	/// Returns an iterator over the node's adjacent edges.
+	pub fn iter(&self) -> NodeIterator<K, N, E> {
+		NodeIterator { node: self, position: 0 }
+	}
+
+	pub fn sizeof(&self) -> usize {
+		let len_in = self.inner.edges.len_inbound();
+		let len_out = self.inner.edges.len_outbound();
+		let size_edges = (len_in + len_out) * std::mem::size_of::<Edge<K, N, E>>();
+		let size_node_inner = std::mem::size_of::<NodeInner<K, N, E>>();
+		size_edges + size_node_inner + 8
 	}
 }
 
@@ -413,7 +410,7 @@ where
     }
 }
 
-pub struct NodeUndirIterator<'a, K, N, E>
+pub struct NodeIterator<'a, K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
 	N: Clone,
@@ -423,7 +420,7 @@ where
 	position: usize,
 }
 
-impl<'a, K, N, E> Iterator for NodeUndirIterator<'a, K, N, E>
+impl<'a, K, N, E> Iterator for NodeIterator<'a, K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
 	N: Clone,
@@ -432,18 +429,26 @@ where
 	type Item = (Node<K, N, E>, Node<K, N, E>, E);
 
 	fn next(&mut self) -> Option<Self::Item> {
-		match self.node.inner.edges.get_inbound(self.position) {
-			Some(edge) => {
+		match self.node.inner.edges.get_outbound(self.position) {
+			Some(current) => {
 				self.position += 1;
-				Some((edge.source().clone(), edge.target().clone(), edge.value.clone()))
+				Some((
+					current.source().clone(),
+					current.target().clone(),
+					current.value.clone()
+				))
 			}
 			None => {
-				match self.node.inner.edges.get_outbound(self.position - self.node.inner.edges.len_inbound()) {
-					Some(edge) => {
+				match self.node.inner.edges.get_inbound(self.position) {
+					Some(current) => {
 						self.position += 1;
-						Some((edge.target().clone(), edge.source().clone(), edge.value.clone()))
+						Some((
+							current.source().clone(),
+							current.target().clone(),
+							current.value.clone()
+						))
 					}
-					None => None,
+					None => None
 				}
 			},
 		}
@@ -457,10 +462,10 @@ where
 	E: Clone,
 {
 	type Item = (Node<K, N, E>, Node<K, N, E>, E);
-	type IntoIter = NodeUndirIterator<'a, K, N, E>;
+	type IntoIter = NodeIterator<'a, K, N, E>;
 
 	fn into_iter(self) -> Self::IntoIter {
-		NodeUndirIterator { node: self, position: 0 }
+		NodeIterator { node: self, position: 0 }
 	}
 }
 
