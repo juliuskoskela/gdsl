@@ -71,7 +71,7 @@ fn max_flow(g: &G) -> u64 {
 		.target(&5)
 		// 2. We exclude saturated edges from the search.
 		.filter(&|_, _, e| e.cur() < e.max())
-		.path()
+		.search_path()
 	{
 		let mut aug_flow = std::u64::MAX;
 

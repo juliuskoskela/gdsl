@@ -57,7 +57,7 @@ fn ut_digraph_bfs() {
 	let path = g[0]
 		.bfs()
 		.target(&4)
-		.path()
+		.search_path()
 		.unwrap()
 		.to_vec_nodes();
 
@@ -192,14 +192,14 @@ fn ut_digraph_dfs_find_1() {
 	let target = g[0]
 		.dfs()
 		.target(&4)
-		.find()
+		.search()
 		.unwrap();
 
 	let source = g[4]
 		.dfs()
 		.target(&0)
 		.transpose()
-		.find()
+		.search()
 		.unwrap();
 
 	assert!(target == g[4]);
@@ -221,7 +221,7 @@ fn ut_digraph_dfs_cycle_1() {
 
 	let cycle = g[0]
 		.dfs()
-		.cycle()
+		.search_cycle()
 		.unwrap()
 		.to_vec_nodes();
 
@@ -244,7 +244,7 @@ fn ut_digraph_dfs_cycle_2() {
 
 	let cycle = g[0]
 		.dfs()
-		.cycle()
+		.search_cycle()
 		.unwrap()
 		.to_vec_nodes();
 
@@ -270,14 +270,14 @@ fn ut_digraph_bfs_find_1() {
 	let target = g[0]
 		.bfs()
 		.target(&4)
-		.find()
+		.search()
 		.unwrap();
 
 	let source = g[4]
 		.bfs()
 		.target(&0)
 		.transpose()
-		.find()
+		.search()
 		.unwrap();
 
 	assert!(target == g[4]);
@@ -299,7 +299,7 @@ fn ut_digraph_bfs_cycle_1() {
 
 	let cycle = g[0]
 		.bfs()
-		.cycle()
+		.search_cycle()
 		.unwrap()
 		.to_vec_nodes();
 
@@ -322,7 +322,7 @@ fn ut_digraph_bfs_cycle_2() {
 
 	let cycle = g[0]
 		.bfs()
-		.cycle()
+		.search_cycle()
 		.unwrap()
 		.to_vec_nodes();
 

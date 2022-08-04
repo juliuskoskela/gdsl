@@ -58,7 +58,7 @@ fn digraph_dfs(c: &mut Criterion) {
 			b.iter(|| {
 				let s = &g[rand::random::<usize>() % g.len()];
 				let t = &g[rand::random::<usize>() % g.len()];
-				black_box(s.dfs().target(t.key()).find());
+				black_box(s.dfs().target(t.key()).search());
             })
         });
 
@@ -66,14 +66,14 @@ fn digraph_dfs(c: &mut Criterion) {
 			b.iter(|| {
 				let s = &g[rand::random::<usize>() % g.len()];
 				let t = &g[rand::random::<usize>() % g.len()];
-				black_box(s.dfs().target(t.key()).path());
+				black_box(s.dfs().target(t.key()).search_path());
             })
         });
 
 		group.bench_with_input(BenchmarkId::new("cycle", size), &i, |b, _| {
 			b.iter(|| {
 				let s = &g[rand::random::<usize>() % g.len()];
-				black_box(s.dfs().cycle());
+				black_box(s.dfs().search_cycle());
             })
         });
     }
@@ -96,7 +96,7 @@ fn digraph_bfs(c: &mut Criterion) {
 			b.iter(|| {
 				let s = &g[rand::random::<usize>() % g.len()];
 				let t = &g[rand::random::<usize>() % g.len()];
-				black_box(s.bfs().target(t.key()).find());
+				black_box(s.bfs().target(t.key()).search());
             })
         });
 
@@ -104,14 +104,14 @@ fn digraph_bfs(c: &mut Criterion) {
 			b.iter(|| {
 				let s = &g[rand::random::<usize>() % g.len()];
 				let t = &g[rand::random::<usize>() % g.len()];
-				black_box(s.bfs().target(t.key()).path());
+				black_box(s.bfs().target(t.key()).search_path());
             })
         });
 
 		group.bench_with_input(BenchmarkId::new("cycle", size), &i, |b, _| {
 			b.iter(|| {
 				let s = &g[rand::random::<usize>() % g.len()];
-				black_box(s.bfs().cycle());
+				black_box(s.bfs().search_cycle());
             })
         });
     }

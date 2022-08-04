@@ -71,7 +71,7 @@ where
 		self
 	}
 
-	pub fn collect_nodes(&mut self) -> Vec<Node<K, N, E>> {
+	pub fn search_nodes(&mut self) -> Vec<Node<K, N, E>> {
 		let mut nodes = vec![];
 		let mut edges = vec![];
 		let mut queue = vec![];
@@ -117,7 +117,7 @@ where
 		nodes
 	}
 
-	pub fn collect_edges(&mut self) -> Vec<Edge<K, N, E>> {
+	pub fn search_edges(&mut self) -> Vec<Edge<K, N, E>> {
 		let mut edges = vec![];
 		let mut queue = vec![];
 		let mut visited = HashSet::default();
