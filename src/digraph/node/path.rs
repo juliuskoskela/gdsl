@@ -64,6 +64,22 @@ where
 		}
 	}
 
+	pub fn first_edge(&self) -> Option<&Edge<K, N, E>> {
+		self.edges.first()
+	}
+
+	pub fn first_node(&self) -> Option<&Node<K, N, E>> {
+		self.edges.first().map(|e| &e.1)
+	}
+
+	pub fn last_edge(&self) -> Option<&Edge<K, N, E>> {
+		self.edges.last()
+	}
+
+	pub fn last_node(&self) -> Option<&Node<K, N, E>> {
+		self.edges.last().map(|e| &e.1)
+	}
+
 	pub fn to_vec_nodes(&self) -> Vec<Node<K, N, E>> {
 		self.iter_nodes().map(|v| v).collect()
 	}

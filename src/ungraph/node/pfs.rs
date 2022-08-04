@@ -9,6 +9,7 @@ use fnv::FnvHashSet as HashSet;
 use min_max_heap::MinMaxHeap;
 
 use crate::ungraph::node::*;
+use crate::ungraph::node::path::*;
 use self::method::*;
 
 enum Priority {
@@ -120,16 +121,15 @@ where
 		false
 	}
 
-	pub fn find(&mut self) -> Option<Node<K, N, E>> {
-		let path = self.path_nodes();
+	pub fn search(&mut self) -> Option<Node<K, N, E>> {
+		let path = self.search_path();
 		match path {
-			Some(path) => Some(path.last().unwrap().clone()),
+			Some(path) => Some(path.last_node().unwrap().clone()),
 			None => None,
 		}
 	}
 
-	pub fn cycle(&'a mut self) -> Option<Vec<Node<K, N, E>>> {
-		let mut result = vec![];
+	pub fn search_cycle(&'a mut self) -> Option<Path<K, N, E>> {
 		let mut edges = vec![];
 		let mut queue = MinMaxHeap::new();
 		let mut visited = HashSet::default();
@@ -147,14 +147,12 @@ where
 			}
 		}
 		if target_found {
-			let mut nodes = edges.iter().map(|(_, v, _)| v.clone()).collect();
-			result.append(&mut nodes);
-			return Some(result);
+			return Some(Path::from_edge_tree(edges));
 		}
 		None
 	}
 
-	pub fn path_edges(&mut self) -> Option<Vec<Edge<K, N, E>>> {
+	pub fn search_path(&mut self) -> Option<Path<K, N, E>> {
 		let mut edges = vec![];
 		let mut queue = MinMaxHeap::new();
 		let mut visited = HashSet::default();
@@ -172,24 +170,8 @@ where
 			}
 		}
 		if target_found {
-			return Some(edges);
+			return Some(Path::from_edge_tree(edges));
 		}
 		None
-	}
-
-	pub fn path_nodes(&mut self) -> Option<Vec<Node<K, N, E>>> {
-		let edges = self.path_edges();
-		match edges {
-			Some(edges) => {
-				let mut nodes = vec![self.root.clone()];
-				for (_, v, _) in edges {
-					nodes.push(v.clone());
-				}
-				return Some(nodes);
-			}
-			None => {
-				return None;
-			}
-		}
 	}
 }

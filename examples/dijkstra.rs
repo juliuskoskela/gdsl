@@ -68,7 +68,7 @@ fn main() {
 		// edge `e`. If this is the case we update the distance stored in the
 		// node `v`.
 		if v_dist > u_dist + e { v.set(u_dist + e); }
-	}).find();
+	}).search();
 
 	// We expect that the distance to the node `E` is 21.
 	// println!("max flow: {}", g['E'].take());
