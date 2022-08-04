@@ -4,7 +4,7 @@
 changes.**
 
 GDSL is a graph data structure library providing efficient and easy-to-use
-abstractions for working with connected nodes and graphs. Opposed to many other
+abstractions for working with connected nodes and graphs. Contrary to many other
 graph implementations, in GDSL a graph is mostly just a container and the
 functionality is in the `Node<K, N, E>` structure which can then be used to
 create different graph representations or be used more freely as a part of
@@ -13,16 +13,16 @@ some other data structure.
 The library provides both directed and undirected graphs and nodes.
 
 Motivation for creating this library has been to explore the idea of graphs and
-connected nodes as more generic data-structures that store data and doesn't
-depend on a central data-container which in turn implements the graph-logic.
+connected nodes as more generic data-structures that store data without
+depending on a central data-container which in turn implements the graph-logic.
 
-Commented examples can be found from the `examples` folder.
+Commented examples of algorithms implemented with GDSL can be found from the `examples` folder.
 
 ## Overview
 
 Node types don't need to be part of a graph container. They are self-contained
-connected "smart pointers" and can be connected to other nodes and dereferenced
-using pointer syntax. Node uniqueness is determined by a generic key-type.
+"connected smart pointers" and can be connected to other nodes and dereferenced
+using pointer syntax. Node uniqueness is determined by a generic key of type `K`.
 
 ```rust
 let n1 = Node::<char, i32, f64>::new('A', 42);
