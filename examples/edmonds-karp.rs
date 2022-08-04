@@ -1,8 +1,20 @@
-use gdsl::digraph::graph::DiGraph as Graph;
-use gdsl::digraph::node::DiNode as Node;
-use gdsl::*;
+// # Edmonds–Karp algorithm for maximum flow.
+//
+// https://en.wikipedia.org/wiki/Edmonds%E2%80%93Karp_algorithm
+//
+// An algorithm for finding a maximum flow in a flow network.
+
+use gdsl::{
+	digraph_node as node,
+	digraph_connect as connect,
+	digraph::*,
+};
+
 use std::rc::{Weak, Rc};
 use std::cell::Cell;
+
+type N = Node<usize, (), FlowEdge>;
+type G = Graph<usize, (), FlowEdge>;
 
 #[derive(Clone, Copy)]
 struct Flow(u64, u64);
@@ -13,7 +25,7 @@ struct FlowEdge(Rc<Cell<Flow>>, Weak<Cell<Flow>>);
 impl FlowEdge {
 
 	// Connect two nodes with a flow.
-	fn connect(s: &Node<usize, Empty, FlowEdge>, t: &Node<usize, Empty, FlowEdge>, max: u64) {
+	fn connect(s: &N, t: &N, max: u64) {
 
 		// Create a forward and a reverse flow.
 		let mut fflow = FlowEdge(Rc::new(Cell::new(Flow(max, 0))), Weak::new());
@@ -28,7 +40,7 @@ impl FlowEdge {
 		connect!(t => s, rflow);
 	}
 
-	// Update the flow with the agmenting flow.
+	// Update flow with the augmenting flow.
 	fn update(&self, aug_flow: u64) {
 
 		// Decompose the flow parameters.
@@ -49,28 +61,30 @@ impl FlowEdge {
 	fn cur(&self) -> u64 { self.0.get().1 }
 }
 
-fn max_flow(g: Graph<usize, Empty, FlowEdge>) -> u64 {
+fn max_flow(g: &G) -> u64 {
 
 	// 1. We loop breadth-first until there is no more paths to explore.
 	let mut max_flow: u64 = 0;
-	while let Some(bfs) = g[0].bfs_path().search_filter(Some(&g[5]), &|_, _, edge| {
 
+	while let Some(path) = g[0]
+		.dfs()
+		.target(&5)
 		// 2. We exclude saturated edges from the search.
-		edge.cur() < edge.max()
-	}) {
-		let path = bfs.edge_path();
+		.filter(&|_, _, e| e.cur() < e.max())
+		.path()
+	{
 		let mut aug_flow = std::u64::MAX;
 
 		// 3. We find the minimum augmenting flow along the path.
-		for edge in &path {
-			if edge.max() - edge.cur() < aug_flow {
-				aug_flow = edge.max() - edge.cur();
+		for (_, _, flow) in path.iter_edges() {
+			if flow.max() - flow.cur() < aug_flow {
+				aug_flow = flow.max() - flow.cur();
 			}
 		}
 
 		// 4. We update the flow along the path.
-		for edge in &path {
-			edge.update(aug_flow);
+		for (_, _, flow) in path.iter_edges() {
+			flow.update(aug_flow);
 		}
 
 		// 5. We update the maximum flow.
@@ -80,15 +94,16 @@ fn max_flow(g: Graph<usize, Empty, FlowEdge>) -> u64 {
 }
 
 fn main() {
+
 	// Generate an example Graph with a max flow of 23 from 0 to 5.
 	let mut g = Graph::new();
 
-	g.insert(dinode!(0));
-	g.insert(dinode!(1));
-	g.insert(dinode!(2));
-	g.insert(dinode!(3));
-	g.insert(dinode!(4));
-	g.insert(dinode!(5));
+	g.insert(node!(0));
+	g.insert(node!(1));
+	g.insert(node!(2));
+	g.insert(node!(3));
+	g.insert(node!(4));
+	g.insert(node!(5));
 
 	FlowEdge::connect(&g[0], &g[1], 16);
 	FlowEdge::connect(&g[0], &g[2], 13);
@@ -102,5 +117,5 @@ fn main() {
 	FlowEdge::connect(&g[4], &g[5], 4);
 
 	// For this Graph we expect the maximum flow from 0 -> 5 to be 23
-	assert!(max_flow(g) == 23);
+	assert!(max_flow(&g) == 23);
 }

@@ -1,146 +1,129 @@
+#![allow(unused)]
 use criterion::Throughput;
-use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
-use gdsl::digraph::graph::*;
-use gdsl::digraph::node::DiNode;
+use criterion::{criterion_group, criterion_main, black_box, BenchmarkId, Criterion};
 use gdsl::*;
 use rand::*;
 use std::cell::Cell;
 use std::cmp::{max, min};
-// use min_max_heap::MinMaxHeap;
+use std::collections::HashSet;
 
-fn rand_range(start: usize, end: usize) -> usize {
-    let mut rng = rand::thread_rng();
-    rng.gen_range(start..end)
-}
+mod test_graphs;
+use test_graphs::*;
 
-fn create_dijkstra_digraph(size: usize, degree: usize) -> DiGraph<usize, Cell<u64>, u64> {
-    let mut g = DiGraph::new();
-    for i in 0..size {
-        g.insert(dinode!(i, Cell::new(u64::MAX)));
-    }
-    for i in 0..size {
-        let new_degree = rand_range(0, degree * 2);
-        for _ in 0..new_degree {
-            connect!(&g[i] => &g[rand_range(0, size)], rand_range(1, 100) as u64);
-        }
-    }
-    g
-}
-
-fn create_dijkstra_digraph_against_petgraph(size: usize) -> Vec<DiNode<usize, Cell<usize>, usize>> {
-    let mut g = Vec::new();
-    for i in 0..size {
-        g.push(dinode!(i, Cell::new(usize::MAX)));
-    }
-
-	for (i, node) in g.iter().enumerate() {
-		let neighbour_count = i % 8 + 3;
-		let j_from = max(0, i as i32 - neighbour_count as i32 / 2) as usize;
-		let j_to = min(size, j_from + neighbour_count);
-		for j in j_from..j_to {
-			connect!(&node => &g[j], (i + 3) % 10);
-		}
-	}
-    g
-}
+// use gdsl::digraph::{
+// 	Node,
+// 	Graph
+// };
 
 
 // ============================================================================
 
-fn bench_search(c: &mut Criterion) {
-    static B: usize = 1000;
+fn digraph_creation(c: &mut Criterion) {
+    let b = 1000;
 
-    let mut group = c.benchmark_group("Depth First Search");
-    for (i, size) in [B, 2 * B, 4 * B, 8 * B, 16 * B]
+	let mut group = c.benchmark_group("digraph creation");
+    for (i, size) in [b]
         .iter()
         .enumerate()
     {
-
 		group.throughput(Throughput::Elements(*size as u64));
-		let g = create_dijkstra_digraph(*size, 10);
 
-        group.bench_with_input(BenchmarkId::new("unbound", size), &i, |b, _| {
+        group.bench_with_input(BenchmarkId::new("graph", size), &i, |b, _| {
 			b.iter(|| {
-				g[0].dfs().search(None);
+				black_box(create_graph_simple_1(*size, size / 10));
             })
         });
 
-		group.bench_with_input(BenchmarkId::new("unbound path", size), &i, |b, _| {
+		group.bench_with_input(BenchmarkId::new("vec", size), &i, |b, _| {
 			b.iter(|| {
-				g[0].dfs_path().search(None);
+				black_box(create_graph_vec_distance_1(*size));
             })
         });
     }
     group.finish();
 }
 
-// ============================================================================
+fn digraph_dfs(c: &mut Criterion) {
+    let b = 1000;
 
-fn bench_dijkstra(c: &mut Criterion) {
-    static B: usize = 10000;
-
-    let mut group = c.benchmark_group("Dijkstra");
-    for (i, size) in [B]
+	let mut group = c.benchmark_group("digraph dfs");
+    for (i, size) in [b, 2 * b, 4 * b]
         .iter()
         .enumerate()
     {
-
 		group.throughput(Throughput::Elements(*size as u64));
+		let g = create_graph_simple_1(*size, size / 10);
 
-		let g = create_dijkstra_digraph(*size, 100);
-
-		group.bench_with_input(BenchmarkId::new("With PFS", size), &i, |b, _| {
+        group.bench_with_input(BenchmarkId::new("find", size), &i, |b, _| {
 			b.iter(|| {
-				let source = &g[rand_range(0, g.len())];
-				let target = &g[rand_range(0, g.len())];
-
-				source.replace(0);
-
-				source.pfs_min().search_filter_map(Some(&target), &|s, t, delta| {
-					let (s_dist, t_dist) = (s.get(), t.get());
-					match t_dist > s_dist + delta {
-						true => {
-							t.set(s_dist + delta);
-							true
-						},
-						false => false,
-					}
-				});
-				g.iter().for_each(|(_, n)| n.set(u64::MAX));
+				let s = &g[rand::random::<usize>() % g.len()];
+				let t = &g[rand::random::<usize>() % g.len()];
+				black_box(s.dfs().target(t.key()).find());
             })
         });
 
-		let g = create_dijkstra_digraph_against_petgraph(*size);
-		group.bench_with_input(BenchmarkId::new("Petgraph Test", size), &i, |b, _| {
+		group.bench_with_input(BenchmarkId::new("path", size), &i, |b, _| {
 			b.iter(|| {
-				let source = &g[0];
-
-				source.replace(0);
-
-				source.pfs_min().search_filter_map(None, &|s, t, delta| {
-					let (s_dist, t_dist) = (s.get(), t.get());
-					match t_dist > s_dist + delta {
-						true => {
-							t.set(s_dist + delta);
-							true
-						},
-						false => false,
-					}
-				});
-
-				for n in &g {
-					n.set(usize::MAX);
-				}
+				let s = &g[rand::random::<usize>() % g.len()];
+				let t = &g[rand::random::<usize>() % g.len()];
+				black_box(s.dfs().target(t.key()).path());
             })
         });
 
+		group.bench_with_input(BenchmarkId::new("cycle", size), &i, |b, _| {
+			b.iter(|| {
+				let s = &g[rand::random::<usize>() % g.len()];
+				black_box(s.dfs().cycle());
+            })
+        });
     }
+
     group.finish();
 }
+
+fn digraph_bfs(c: &mut Criterion) {
+    let b = 1000;
+
+	let mut group = c.benchmark_group("digraph bfs");
+    for (i, size) in [b, 2 * b, 4 * b]
+        .iter()
+        .enumerate()
+    {
+		group.throughput(Throughput::Elements(*size as u64));
+		let g = create_graph_simple_1(*size, size / 10);
+
+        group.bench_with_input(BenchmarkId::new("find", size), &i, |b, _| {
+			b.iter(|| {
+				let s = &g[rand::random::<usize>() % g.len()];
+				let t = &g[rand::random::<usize>() % g.len()];
+				black_box(s.bfs().target(t.key()).find());
+            })
+        });
+
+		group.bench_with_input(BenchmarkId::new("path", size), &i, |b, _| {
+			b.iter(|| {
+				let s = &g[rand::random::<usize>() % g.len()];
+				let t = &g[rand::random::<usize>() % g.len()];
+				black_box(s.bfs().target(t.key()).path());
+            })
+        });
+
+		group.bench_with_input(BenchmarkId::new("cycle", size), &i, |b, _| {
+			b.iter(|| {
+				let s = &g[rand::random::<usize>() % g.len()];
+				black_box(s.bfs().cycle());
+            })
+        });
+    }
+
+    group.finish();
+}
+
 
 criterion_group!(
     benches,
-	bench_search,
-    bench_dijkstra,
+	digraph_creation,
+	digraph_dfs,
+	digraph_bfs,
 );
 criterion_main!(benches);

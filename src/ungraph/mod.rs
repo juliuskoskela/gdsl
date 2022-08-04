@@ -1,82 +1,255 @@
-//! # Generic Graph Interface
-//!
-//! author: Julius Koskela
-//!
-//! license: MIT
-//!
-//! This is a generic graph interface.
-//!
-//! # Examples
-//!
-//! Create a directed graph with nodes and edges
-//!
-//! ```
-//! use ::digraph::*;
-//! use gdsl::ungraph::*;
-//!
-//! let mut g = Graph::<usize, Empty, Empty>::new();
-//!
-//! g.insert(node!(0));
-//! g.insert(node!(1));
-//!
-//! connect!(&g[0] => &g[1]);
-//! ```
-//!
-//! Breadth-first Search
-//!
-//! Djikstra's Algorithm
-//!
-//! ```
-//! use gdsl::ungraph::*;
-//! use std::cell::Cell;
-//!
-//! // Create with the `graph!` macro. Since we want to mutate the distance
-//! // of the nodes, we use a `Cell` to wrap it. Edges contains it's length.
-//! let g = graph![
-//! 	(&str, Cell<u64>) => [u64]
-//! 	("A", Cell::new(u64::MAX)) => [ ("B", 4), ("H", 8) ]
-//! 	("B", Cell::new(u64::MAX)) => [ ("A", 4), ("H", 11), ("C", 8) ]
-//! 	("C", Cell::new(u64::MAX)) => [ ("B", 8), ("C", 2), ("F", 4), ("D", 7) ]
-//! 	("D", Cell::new(u64::MAX)) => [ ("C", 7), ("F", 14), ("E", 9) ]
-//! 	("E", Cell::new(u64::MAX)) => [ ("D", 9), ("F", 10) ]
-//! 	("F", Cell::new(u64::MAX)) => [ ("G", 2), ("C", 4), ("D", 14), ("E", 10) ]
-//! 	("G", Cell::new(u64::MAX)) => [ ("H", 1), ("I", 6), ("F", 2) ]
-//! 	("H", Cell::new(u64::MAX)) => [ ("A", 8), ("B", 11), ("I", 7), ("G", 1) ]
-//! 	("I", Cell::new(u64::MAX)) => [ ("H", 7), ("C", 2), ("G", 6) ]
-//! ];
-//!
-//! // We set the distance of the start node to 0.
-//! g["A"].set(0);
-//!
-//! // We run the algorithm using `search` "iterator" and `pfs_min_map` in order to
-//! // traverse nodes in minimum priority order.
-//! g["A"].search().pfs_min_map(&g["E"], &|u, v, edge_len| {
-//!
-//! 	// The distances are stored in the nodes inside a `Cell` type so we use `get()`
-//! 	// to get the inner value.
-//! 	let (dist_u, dist_v) = (u.get(), v.get());
-//!
-//! 	// We if the distance stored in v is greater than the distance stored
-//! 	// in u + edge_len we update the distance stored in v.
-//! 	match dist_v > dist_u + edge_len {
-//! 		true => {v.set(dist_u + edge_len); true},
-//! 		false => false,
-//! 	}
-//! });
-//!
-//! // We expect the minimum distance of A -> E to be 21.
-//! assert!(g["E"].take() == 21);
-//! ```
+//! Directed Graph
 
-pub mod graph;
-pub mod graph_search;
-pub mod node;
+//==== Submodules =============================================================
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct Empty;
+mod node;
+mod graph_macros;
 
-impl std::fmt::Display for Empty {
-    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(fmt, "_")
-    }
+//==== Includes ===============================================================
+
+use std::{
+	fmt::Display,
+    hash::Hash,
+};
+
+use fnv::FnvHashMap as HashMap;
+
+pub use crate::ungraph::node::*;
+
+pub struct Graph<K, N, E>
+where
+	K: Clone + Hash + Display + PartialEq + Eq,
+	N: Clone,
+	E: Clone,
+{
+	nodes: HashMap<K, Node<K, N, E>>,
+}
+
+impl<'a, K, N, E> Graph<K, N, E>
+where
+	K: Clone + Hash + Display + PartialEq + Eq,
+	N: Clone,
+	E: Clone,
+{
+	/// Create a new Graph
+	///
+	/// # Examples
+	///
+	/// ```
+	/// use gdsl::*;
+	///
+	/// let mut g = Graph::<&str, u64, u64>::new();
+	/// ```
+	pub fn new() -> Self { Self { nodes: HashMap::default() } }
+
+	/// Check if a node with the given key exists in the Graph
+	///
+	/// # Examples
+	///
+	/// ```
+	/// use gdsl::*;
+	///
+	/// let mut g = Graph::<&str, u64, u64>::new();
+	///
+	/// g.insert(Node::new("A", 0));
+	///
+	/// assert!(g.contains(&"A"));
+	/// ```
+	pub fn contains(&self, key: &K) -> bool { self.nodes.contains_key(key) }
+
+	/// Get the length of the Graph (amount of nodes)
+	///
+	/// # Examples
+	///
+	/// ```
+	/// use gdsl::*;
+	///
+	/// let mut g = Graph::<&str, u64, u64>::new();
+	///
+	/// g.insert(Node::new("A", 0));
+	/// g.insert(Node::new("B", 0));
+	///
+	/// let len = g.len();
+	///
+	/// assert!(len == 2);
+	/// ```
+	pub fn len(&self) -> usize { self.nodes.len() }
+
+	/// Get a node by key
+	///
+	/// # Examples
+	///
+	/// ```
+	/// use gdsl::*;
+	///
+	/// let mut g = Graph::<&str, u64, u64>::new();
+	///
+	/// g.insert(Node::new("A", 0));
+	/// g.insert(Node::new("B", 0));
+	/// g.insert(Node::new("C", 0));
+	///
+	/// let node = g.get(&"A").unwrap();
+	///
+	/// assert!(node.key() == &"A");
+	/// ```
+	pub fn get(&self, key: &K) -> Option<Node<K, N, E>> { self.nodes.get(key).map(|node| node.clone()) }
+
+	/// Check if Graph is empty
+	///
+	/// # Examples
+	///
+	/// ```
+	/// use gdsl::*;
+	///
+	/// let mut g = Graph::<&str, u64, u64>::new();
+	///
+	/// assert!(g.is_empty());
+	/// ```
+	pub fn is_empty(&self) -> bool { self.nodes.is_empty() }
+
+	/// Insert a node into the Graph
+	///
+	/// # Examples
+	///
+	/// ```
+	/// use gdsl::*;
+	///
+	/// let mut g = Graph::<&str, u64, u64>::new();
+	///
+	/// g.insert(Node::new("A", 0));
+	///
+	/// assert!(g.contains(&"A"));
+	/// assert!(g.insert(Node::new("A", 0)) == false);
+	/// ```
+	pub fn insert(&mut self, node: Node<K, N, E>) -> bool {
+		if self.nodes.contains_key(node.key()) {
+			false
+		} else {
+			self.nodes.insert(node.key().clone(), node.clone());
+			true
+		}
+	}
+
+	/// Remove a node from the Graph
+	///
+	/// # Examples
+	///
+	/// ```
+	/// use gdsl::*;
+	///
+	/// let mut g = Graph::<&str, u64, u64>::new();
+	///
+	/// g.insert(Node::new("A", 0));
+	/// g.insert(Node::new("B", 0));
+	///
+	/// assert!(g.contains(&"A"));
+	///
+	/// g.remove(&"A");
+	///
+	/// assert!(g.contains(&"A") == false);
+	/// ```
+	pub fn remove(&mut self, node: &K) -> Option<Node<K, N, E>> {
+		self.nodes.remove(node)
+	}
+
+	/// Collect nodes into a vector
+	///
+	/// # Examples
+	///
+	/// ```
+	/// use gdsl::*;
+	///
+	/// let mut g = Graph::<&str, u64, u64>::new();
+	///
+	/// g.insert(Node::new("A", 0));
+	/// g.insert(Node::new("B", 0));
+	/// g.insert(Node::new("C", 0));
+	///
+	/// let nodes = g.to_vec();
+	///
+	/// assert!(nodes.len() == 3);
+	/// ```
+	pub fn to_vec(&self) -> Vec<Node<K, N, E>> {
+		self.nodes.values().map(|node| node.clone()).collect()
+	}
+
+	/// Collect orpahn nodes into a vector
+	///
+	/// # Examples
+	///
+	/// ```
+	/// use gdsl::*;
+	///
+	/// let mut g = Graph::<&str, u64, u64>::new();
+	///
+	/// g.insert(Node::new("A", 0));
+	/// g.insert(Node::new("B", 0));
+	/// g.insert(Node::new("C", 0));
+	/// g.insert(Node::new("D", 0));
+	///
+	/// g["A"].connect(&g["B"], 0x1);
+	///
+	/// let orphans = g.orphans();
+	///
+	/// assert!(orphans.len() == 2);
+	/// ```
+	pub fn orphans(&self) -> Vec<Node<K, N, E>> {
+		self.nodes
+			.values()
+			.filter(|node| node.is_orphan())
+			.map(|node| node.clone())
+			.collect()
+	}
+
+	/// Iterate over nodes in the graph in random order
+	///
+	/// # Examples
+	///
+	/// ```
+	/// use gdsl::*;
+	///
+	/// let mut g = Graph::<&str, u64, u64>::new();
+	///
+	/// g.insert(Node::new("A", 0));
+	/// g.insert(Node::new("B", 0));
+	/// g.insert(Node::new("C", 0));
+	///
+	/// for (key, _)in g.iter() {
+	///    println!("{}", key);
+	/// }
+	/// ```
+	pub fn iter(&self) -> std::collections::hash_map::Iter<'_, K, Node<K, N, E>> {
+		self.nodes.iter()
+	}
+
+	pub fn to_dot(&self) -> String
+	where
+		N: Display,
+		E: Display,
+	{
+		let mut s = String::new();
+		s.push_str("digraph {\n");
+		for (u_key, node) in self.iter() {
+			s.push_str(&format!("    {}", u_key.clone()));
+			for (_, v, _) in node {
+				s.push_str(&format!("\n    {} -> {}", u_key, v.key()));
+			}
+			s.push_str("\n");
+		}
+		s.push_str("}");
+		s
+	}
+}
+
+impl<'a, K, N, E> std::ops::Index<K> for Graph<K, N, E>
+where
+	K: Clone + Hash + Display + Eq,
+	N: Clone,
+	E: Clone,
+{
+	type Output = Node<K, N, E>;
+
+	fn index(&self, key: K) -> &Self::Output {
+		&self.nodes[&key]
+	}
 }
