@@ -16,11 +16,11 @@
 //!   and is used to store data associated with the edge.
 //!
 //! ```
-//! use gdsl::*;
+//! use gdsl::digraph::*;
 //!
-//! type Node = Node<usize, &str, f64>;
+//! type N<'a> = Node<usize, &'a str, f64>;
 //!
-//! let n1 = Node::new(1, "Naughty Node");
+//! let n1 = N::new(1, "Naughty Node");
 //! ```
 //!
 //! For an inner value type to be mutable, it must be wrapped in a mutable
@@ -70,7 +70,7 @@ pub type Edge<K, N, E> = (Node<K, N, E>, Node<K, N, E>, E);
 /// # Example
 ///
 /// ```
-/// use gdsl::*;
+/// use gdsl::digraph::*;
 ///
 /// let a = Node::new(0x1, "A");
 /// let b = Node::new(0x2, "B");
@@ -111,7 +111,7 @@ where
 	/// # Example
 	///
 	/// ```
-	///	use gdsl::*;
+	///	use gdsl::digraph::*;
 	///
 	///	let n1 = Node::<i32, char, ()>::new(1, 'A');
 	///
@@ -133,7 +133,7 @@ where
 	/// # Example
 	///
 	/// ```
-	///	use gdsl::*;
+	///	use gdsl::digraph::*;
 	///
 	///	let n1 = Node::<i32, (), ()>::new(1, ());
 	///
@@ -148,7 +148,7 @@ where
 	/// # Example
 	///
 	/// ```
-	///	use gdsl::*;
+	///	use gdsl::digraph::*;
 	///
 	///	let n1 = Node::<i32, char, ()>::new(1, 'A');
 	///
@@ -166,7 +166,7 @@ where
 	/// # Example
 	///
 	/// ```
-	/// use gdsl::*;
+	/// use gdsl::digraph::*;
 	///
 	///	let n1 = Node::new(1, ());
 	///	let n2 = Node::new(2, ());
@@ -190,7 +190,7 @@ where
 	/// # Example
 	///
 	/// ```
-	///	use gdsl::*;
+	///	use gdsl::digraph::*;
 	///
 	///	let n1 = Node::new(1, ());
 	///	let n2 = Node::new(2, ());
@@ -221,7 +221,7 @@ where
 	/// # Example
 	///
 	/// ```
-	///	use gdsl::*;
+	///	use gdsl::digraph::*;
 	///
 	///	let n1 = Node::new(1, ());
 	///	let n2 = Node::new(2, ());
@@ -256,7 +256,7 @@ where
 	/// # Example
 	///
 	/// ```
-	///	use gdsl::*;
+	///	use gdsl::digraph::*;
 	///
 	///	let n1 = Node::new(1, ());
 	///	let n2 = Node::new(2, ());

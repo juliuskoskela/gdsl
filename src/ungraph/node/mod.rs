@@ -16,11 +16,11 @@
 //!   and is used to store data associated with the edge.
 //!
 //! ```
-//! use gdsl::*;
+//! use gdsl::ungraph::*;
 //!
-//! type Node = Node<usize, &str, f64>;
+//! type N<'a> = Node<usize, &'a str, f64>;
 //!
-//! let n1 = Node::new(1, "Naughty Node");
+//! let n1 = N::new(1, "Naughty Node");
 //! ```
 //!
 //! For an inner value type to be mutable, it must be wrapped in a mutable
@@ -70,7 +70,7 @@ pub type Edge<K, N, E> = (Node<K, N, E>, Node<K, N, E>, E);
 /// # Example
 ///
 /// ```
-/// use gdsl::*;
+/// use gdsl::ungraph::*;
 ///
 /// let a = Node::new(0x1, "A");
 /// let b = Node::new(0x2, "B");
@@ -81,7 +81,7 @@ pub type Edge<K, N, E> = (Node<K, N, E>, Node<K, N, E>, E);
 /// b.connect(&c, 0.09);
 /// c.connect(&b, 12.9);
 ///
-/// let (u, v, e) = a.iter_out().next().unwrap();
+/// let (u, v, e) = a.iter().next().unwrap();
 ///
 /// assert!(u == a);
 /// assert!(v == b);
@@ -111,7 +111,7 @@ where
 	/// # Example
 	///
 	/// ```
-	///	use gdsl::*;
+	///	use gdsl::ungraph::*;
 	///
 	///	let n1 = Node::<i32, char, ()>::new(1, 'A');
 	///
@@ -133,7 +133,7 @@ where
 	/// # Example
 	///
 	/// ```
-	///	use gdsl::*;
+	///	use gdsl::ungraph::*;
 	///
 	///	let n1 = Node::<i32, (), ()>::new(1, ());
 	///
@@ -148,7 +148,7 @@ where
 	/// # Example
 	///
 	/// ```
-	///	use gdsl::*;
+	///	use gdsl::ungraph::*;
 	///
 	///	let n1 = Node::<i32, char, ()>::new(1, 'A');
 	///
@@ -166,7 +166,7 @@ where
 	/// # Example
 	///
 	/// ```
-	/// use gdsl::*;
+	/// use gdsl::ungraph::*;
 	///
 	///	let n1 = Node::new(1, ());
 	///	let n2 = Node::new(2, ());
@@ -190,7 +190,7 @@ where
 	/// # Example
 	///
 	/// ```
-	///	use gdsl::*;
+	///	use gdsl::ungraph::*;
 	///
 	///	let n1 = Node::new(1, ());
 	///	let n2 = Node::new(2, ());
@@ -221,7 +221,7 @@ where
 	/// # Example
 	///
 	/// ```
-	///	use gdsl::*;
+	///	use gdsl::ungraph::*;
 	///
 	///	let n1 = Node::new(1, ());
 	///	let n2 = Node::new(2, ());
@@ -256,7 +256,7 @@ where
 	/// # Example
 	///
 	/// ```
-	///	use gdsl::*;
+	///	use gdsl::ungraph::*;
 	///
 	///	let n1 = Node::new(1, ());
 	///	let n2 = Node::new(2, ());
@@ -280,7 +280,9 @@ where
 	/// ```
 	pub fn isolate(&self) {
 		for (_, v, _) in self.iter() {
-			v.inner.edges.remove_inbound(self.key()).unwrap();
+			if v.inner.edges.remove_inbound(self.key()).is_err() {
+				v.inner.edges.remove_outbound(self.key()).unwrap();
+			}
 		}
 		self.inner.edges.clear_outbound();
 		self.inner.edges.clear_inbound();
@@ -429,7 +431,8 @@ where
 	type Item = (Node<K, N, E>, Node<K, N, E>, E);
 
 	fn next(&mut self) -> Option<Self::Item> {
-		match self.node.inner.edges.get_outbound(self.position) {
+		let adjacent = &self.node.inner.edges;
+		match adjacent.get_outbound(self.position) {
 			Some(current) => {
 				self.position += 1;
 				Some((
@@ -439,12 +442,12 @@ where
 				))
 			}
 			None => {
-				match self.node.inner.edges.get_inbound(self.position) {
+				match adjacent.get_inbound(self.position - adjacent.len_outbound()) {
 					Some(current) => {
 						self.position += 1;
 						Some((
-							current.source().clone(),
 							current.target().clone(),
+							current.source().clone(),
 							current.value.clone()
 						))
 					}

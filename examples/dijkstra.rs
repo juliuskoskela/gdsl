@@ -67,9 +67,7 @@ fn main() {
 		// the distance stored in the node `u` + the length (weight) of the
 		// edge `e`. If this is the case we update the distance stored in the
 		// node `v`.
-		if v_dist > u_dist + e {
-			v.set(u_dist + e);
-		}
+		if v_dist > u_dist + e { v.set(u_dist + e); }
 	}).find();
 
 	// We expect that the distance to the node `E` is 21.

@@ -36,7 +36,7 @@ where
 	/// # Examples
 	///
 	/// ```
-	/// use gdsl::*;
+	/// use gdsl::digraph::*;
 	///
 	/// let mut g = Graph::<&str, u64, u64>::new();
 	/// ```
@@ -47,7 +47,7 @@ where
 	/// # Examples
 	///
 	/// ```
-	/// use gdsl::*;
+	/// use gdsl::digraph::*;
 	///
 	/// let mut g = Graph::<&str, u64, u64>::new();
 	///
@@ -62,7 +62,7 @@ where
 	/// # Examples
 	///
 	/// ```
-	/// use gdsl::*;
+	/// use gdsl::digraph::*;
 	///
 	/// let mut g = Graph::<&str, u64, u64>::new();
 	///
@@ -80,7 +80,7 @@ where
 	/// # Examples
 	///
 	/// ```
-	/// use gdsl::*;
+	/// use gdsl::digraph::*;
 	///
 	/// let mut g = Graph::<&str, u64, u64>::new();
 	///
@@ -99,7 +99,7 @@ where
 	/// # Examples
 	///
 	/// ```
-	/// use gdsl::*;
+	/// use gdsl::digraph::*;
 	///
 	/// let mut g = Graph::<&str, u64, u64>::new();
 	///
@@ -112,7 +112,7 @@ where
 	/// # Examples
 	///
 	/// ```
-	/// use gdsl::*;
+	/// use gdsl::digraph::*;
 	///
 	/// let mut g = Graph::<&str, u64, u64>::new();
 	///
@@ -135,7 +135,7 @@ where
 	/// # Examples
 	///
 	/// ```
-	/// use gdsl::*;
+	/// use gdsl::digraph::*;
 	///
 	/// let mut g = Graph::<&str, u64, u64>::new();
 	///
@@ -157,7 +157,7 @@ where
 	/// # Examples
 	///
 	/// ```
-	/// use gdsl::*;
+	/// use gdsl::digraph::*;
 	///
 	/// let mut g = Graph::<&str, u64, u64>::new();
 	///
@@ -178,7 +178,7 @@ where
 	/// # Examples
 	///
 	/// ```
-	/// use gdsl::*;
+	/// use gdsl::digraph::*;
 	///
 	/// let mut g = Graph::<&str, u64, u64>::new();
 	///
@@ -207,7 +207,7 @@ where
 	/// # Examples
 	///
 	/// ```
-	/// use gdsl::*;
+	/// use gdsl::digraph::*;
 	///
 	/// let mut g = Graph::<&str, u64, u64>::new();
 	///
@@ -235,7 +235,7 @@ where
 	/// # Examples
 	///
 	/// ```
-	/// use gdsl::*;
+	/// use gdsl::digraph::*;
 	///
 	/// let mut g = Graph::<&str, u64, u64>::new();
 	///
@@ -263,7 +263,7 @@ where
 	/// # Examples
 	///
 	/// ```
-	/// use gdsl::*;
+	/// use gdsl::digraph::*;
 	///
 	/// let mut g = Graph::<&str, u64, u64>::new();
 	///

@@ -17,6 +17,9 @@ a node from another.
 - The library provides a `graph![]` macro that can be used to create both
 directed and undirected graphs by writing out an edge-list representation of the graph.
 
+**This library is still in early development and the API might experience breaking
+changes.**
+
 ## Example: Simple Graph
 
 A simple example on how to create a graph without a container or using any
@@ -67,7 +70,7 @@ use gdsl::*;
 fn main() {
 
 	// Graph<&str, _, _>
-	let g1 = graph![
+	let g1 = digraph![
 		(&str)
 		("A") => ["B", "C"]
 		("B") => ["C"]
@@ -76,7 +79,7 @@ fn main() {
 	];
 
 	// Graph<&str, i32, _>
-	let g2 = graph![
+	let g2 = digraph![
 		(&str, i32)
 		("A", 42) => ["B", "C"]
 		("B", 42) => ["C"]
@@ -85,7 +88,7 @@ fn main() {
 	];
 
 	// Graph<&str, _, i32>
-	let g3 = graph![
+	let g3 = digraph![
 		(&str) => [i32]
 		("A") => [("B", 42), ("C", 42)]
 		("B") => [("C", 42)]
@@ -94,7 +97,7 @@ fn main() {
 	];
 
 	// Graph<&str, i32, f64>
-	let g4 = graph![
+	let g4 = digraph![
 		(&str, i32) => [f64]
 		("A", 42) => [("B", 3.14), ("C", 3.14), ("D", 3.14)]
 		("B", 42) => [("C", 3.14), ("D", 3.14)]
