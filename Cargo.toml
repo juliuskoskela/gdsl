@@ -7,7 +7,6 @@ license = "MIT/Apache-2.0"
 authors = [ "juliuskoskela" ]
 
 description = "Graph Data Structure Library"
-documentation = "https://docs.rs/gdsl/"
 repository = "https://github.com/juliuskoskela/gdsl"
 
 keywords = ["data structure", "graph", "graph algorithms", "algorithms", "containers", "graph-theory"]
