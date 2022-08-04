@@ -8,14 +8,45 @@ a building block for graphs and/or connected nodes for more specific use-cases.
 - Node types don't need to be part of any graph container. They are self-contained
 "smart pointers".
 
+```rust
+let node = Node::<usize, i32, ()>::new(1, 42);
+assert!(*node == 42);
+```
+
 - Node contain both their inbound and outbound edges also in case of a directed graph.
 This is so that the graph would be "dynamic" ie. easily modifiable during run-time. If
 we want to efficiently remove a node from a graph for example, it is more efficient if
 we know the inbound connections of the node as well so that we can easily disconnect
-a node from another.
+a node from another. Iterators are implemented to iterate over either outbound or
+inbound edges in case of a directed graph or adjacent edges in the case of a undirected
+graph.
 
-- The library provides a `graph![]` macro that can be used to create both
-directed and undirected graphs by writing out an edge-list representation of the graph.
+```rust
+for (u, v, e) in &node {
+	println("{} -> {} : {}", u.key(), v.key(), e);
+}
+```
+
+- Nodes contain interfaces for searching and ordering nodes. These are implemented
+as `search objects` which work a bit like iterators.
+
+```rust
+let partition = next.order()
+	.post()
+	.filter(&|_, v, _| !visited.contains(v.key()))
+	.search_nodes();
+```
+
+- The library provides macros for creating graphs such as `digraph![]` and `ungraph![]`.
+
+```rust
+let g = digraph![
+	(usize)
+	(0) => [1, 2]
+	(1) => [1]
+	(2) => [0]
+];
+```
 
 **This library is still in early development and the API might experience breaking
 changes.**

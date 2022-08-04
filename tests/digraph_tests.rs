@@ -361,3 +361,11 @@ fn ut_digraph_sizes() {
 	assert!(n1.sizeof() == 120);
 	assert!(n1t1.sizeof() == 88);
 }
+
+#[test]
+fn ut_digraph_deref_node() {
+	use gdsl::digraph::*;
+
+	let node = Node::<usize, i32, ()>::new(1, 42);
+	assert!(*node == 42);
+}
