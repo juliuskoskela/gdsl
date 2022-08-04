@@ -9,7 +9,7 @@ authors = [ "juliuskoskela" ]
 description = "Graph Data Structure Library"
 repository = "https://github.com/juliuskoskela/gdsl"
 
-keywords = ["data-structure", "graph", "graph-algorithms", "algorithms", "containers", "graph-theory"]
+keywords = ["data-structure", "graph", "algorithms", "containers", "graph-theory"]
 categories = ["Data structures"]
 
 [dependencies]
