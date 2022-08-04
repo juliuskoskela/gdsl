@@ -1,20 +1,22 @@
+// # Dijkstra's Shortest Path Algorithm
+//
+// This example demonstrates how to implement dijkstra's shortest path algorithm
+// using `gdsl`.
+//
+// https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm
+
 use gdsl::*;
 use std::cell::Cell;
 
 fn main() {
 
-	// We create a directed graph using the `graph!` macro. In the macro
+	// We create a directed graph using the `digraph![]` macro. In the macro
 	// invocation we specify the type of the nodes and the type of the edges
 	// by specifying the type-signature `(NodeKey, NodeValue) => [EdgeValue]`.
 	//
 	// The `NodeKey` type is used to identify the nodes in the graph. The
 	// `NodeValue` type is used to store the value of the node. The `EdgeValue`
 	// type is used to store the value of the edge.
-	//
-	// The macro also specifies if the graph is directed or undirected. In this
-	// case it is directed. If we want to create an undirected graph we have to
-	// use the `:` operator instead of the `=>` operator. The macro returns
-	// either a `Graph` or `UnGraph` type respectively.
 	//
 	// In this example the node stores the distance to the source node of the
 	// search. The edge stores the weight of the edge. The distance is wrapped
@@ -38,25 +40,18 @@ fn main() {
 	// set its distance to 0.
 	g['A'].set(0);
 
-	// In order to perform a dijkstra search we take the source node and call the
-	// `pfs_min()` function which returns a search object. A search object is
-	// like an iterator. From the search object we call the `search_map()`
-	// function which let's us read each edge in the search and to manipulate
-	// the corresponding nodes.
+	// In order to perform a dijkstra's we can use the priority first search or
+	// `pfs` for short. We determine a  source node create a `PFS` search-object
+	// by calling the `pfs()` method on the node.
 	//
-	// The `pfs_min()` function is a "priority first search". As opposed to a
-	// breadth-first search. Priority first
-	// search traverses the nodes in the graph in a priority order. The priority
-	// of a node is determined by the node's value and thus has to implement
-	// the `Ord` trait. Since `u64` implements the `Ord` trait we can use the
-	// distance stored in the node as the priority.
+	// If we find a shorter distance to a node we are traversing, we need to
+	// update the distance of the node. We do this by using the `map()` method
+	// on the PFS search object. The `map()` method takes a closure as argument
+	// and calls it for each edge that is traversed. This way we can manipulate
+	// the distance of the node. based on the edge that is traversed.
 	//
-	// UPDATE!!!
-	//
-	// The `search_map()` function takes a `target` node and a closure which
-	// is called for each edge in the search. The target is optional, in case
-	// we want to search the whole graph. In this case the target is `None`,
-	// so we will calculate the distance to all nodes.
+	// The search-object evaluates lazily. This means that the search is only
+	// executed when calling either `search()` or `search_path()`.
 	g['A'].pfs().map(&|u, v, e| {
 
 		// Since we are using a `Cell` to store the distance we use `get()` to
@@ -68,9 +63,8 @@ fn main() {
 		// edge `e`. If this is the case we update the distance stored in the
 		// node `v`.
 		if v_dist > u_dist + e { v.set(u_dist + e); }
-	}).find();
+	}).search();
 
 	// We expect that the distance to the node `E` is 21.
-	// println!("max flow: {}", g['E'].take());
 	assert!(g['E'].take() == 21);
 }

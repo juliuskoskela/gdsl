@@ -100,7 +100,7 @@ where
 		None
 	}
 
-	pub fn find(&'a mut self) -> Option<Node<K, N, E>> {
+	pub fn search(&'a mut self) -> Option<Node<K, N, E>> {
 		let mut queue = VecDeque::new();
 		let mut visited = HashSet::default();
 
@@ -110,7 +110,7 @@ where
 		return self.loop_adjacent_find(&mut visited, &mut queue);
 	}
 
-	pub fn cycle(&'a mut self) -> Option<Path<K, N, E>> {
+	pub fn search_cycle(&'a mut self) -> Option<Path<K, N, E>> {
 		let mut edges = vec![];
 		let mut queue = VecDeque::new();
 		let mut visited = HashSet::default();
@@ -125,7 +125,7 @@ where
 		}
 	}
 
-	pub fn path(&mut self) -> Option<Path<K, N, E>> {
+	pub fn search_path(&mut self) -> Option<Path<K, N, E>> {
 		let mut edges = vec![];
 		let mut queue = VecDeque::new();
 		let mut visited = HashSet::default();

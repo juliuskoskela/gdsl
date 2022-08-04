@@ -40,15 +40,15 @@ fn main() {
 	// but the types could be completely inferred. Note that in order to infer
 	// the type for the edge, `connect()` or `connect!()` must be used.
 
-	let node_a = Node::<char, i32, Empty>::new('A', 1);
+	let node_a = Node::<char, i32, ()>::new('A', 1);
 	let node_b = Node::new('B', 2);
 	let node_c = Node::new('C', 3);
 
-	// We connect nodes a -> b and b -> c. The Empty struct is used to denote
+	// We connect nodes a -> b and b -> c. The () empty tuple is used to denote
 	// that the edge has no value associated with it.
 
-	node_a.connect(&node_b, Empty);
-	node_b.connect(&node_c, Empty);
+	node_a.connect(&node_b, ());
+	node_b.connect(&node_c, ());
 
 	// Check that a -> b && b -> c && !(a -> c)
 
@@ -69,7 +69,7 @@ use gdsl::*;
 
 fn main() {
 
-	// Graph<&str, _, _>
+	// <&str, _, _>
 	let g1 = digraph![
 		(&str)
 		("A") => ["B", "C"]
@@ -78,7 +78,7 @@ fn main() {
 		("D") => []
 	];
 
-	// Graph<&str, i32, _>
+	// <&str, i32, _>
 	let g2 = digraph![
 		(&str, i32)
 		("A", 42) => ["B", "C"]
@@ -87,7 +87,7 @@ fn main() {
 		("D", 42) => []
 	];
 
-	// Graph<&str, _, i32>
+	// <&str, _, i32>
 	let g3 = digraph![
 		(&str) => [i32]
 		("A") => [("B", 42), ("C", 42)]
@@ -96,7 +96,7 @@ fn main() {
 		("D") => []
 	];
 
-	// Graph<&str, i32, f64>
+	// <&str, i32, f64>
 	let g4 = digraph![
 		(&str, i32) => [f64]
 		("A", 42) => [("B", 3.14), ("C", 3.14), ("D", 3.14)]
@@ -120,7 +120,7 @@ use std::cell::Cell;
 
 fn main() {
 
-	// We create a directed graph using the `graph!` macro. In the macro
+	// We create a directed graph using the `digraph![]` macro. In the macro
 	// invocation we specify the type of the nodes and the type of the edges
 	// by specifying the type-signature `(NodeKey, NodeValue) => [EdgeValue]`.
 	//
@@ -128,17 +128,12 @@ fn main() {
 	// `NodeValue` type is used to store the value of the node. The `EdgeValue`
 	// type is used to store the value of the edge.
 	//
-	// The macro also specifies if the graph is directed or undirected. In this
-	// case it is directed. If we want to create an undirected graph we have to
-	// use the `:` operator instead of the `=>` operator. The macro returns
-	// either a `Graph` or `UnGraph` type respectively.
-	//
 	// In this example the node stores the distance to the source node of the
 	// search. The edge stores the weight of the edge. The distance is wrapped
 	// in a `Cell` to allow for mutable access. We initialize the distance to
 	// `std::u64::MAX` to indicate that the node is not part of the shortest
 	// path.
-	let g = graph![
+	let g = digraph![
 		(char, Cell<u64>) => [u64]
 		('A', Cell::new(u64::MAX)) => [ ('B', 4), ('H', 8) ]
 		('B', Cell::new(u64::MAX)) => [ ('A', 4), ('H', 11), ('C', 8) ]
@@ -155,26 +150,19 @@ fn main() {
 	// set its distance to 0.
 	g['A'].set(0);
 
-	// In order to perform a dijkstra search we take the source node and call the
-	// `pfs_min()` function which returns a search object. A search object is
-	// like an iterator. From the search object we call the `search_map()`
-	// function which let's us read each edge in the search and to manipulate
-	// the corresponding nodes.
+	// In order to perform a dijkstra's we can use the priority first search or
+	// `pfs` for short. We determine a  source node create a `PFS` search-object
+	// by calling the `pfs()` method on the node.
 	//
-	// The `pfs_min()` function is a "priority first search". As opposed to a
-	// breadth-first search. Priority first
-	// search traverses the nodes in the graph in a priority order. The priority
-	// of a node is determined by the node's value and thus has to implement
-	// the `Ord` trait. Since `u64` implements the `Ord` trait we can use the
-	// distance stored in the node as the priority.
+	// If we find a shorter distance to a node we are traversing, we need to
+	// update the distance of the node. We do this by using the `map()` method
+	// on the PFS search object. The `map()` method takes a closure as argument
+	// and calls it for each edge that is traversed. This way we can manipulate
+	// the distance of the node. based on the edge that is traversed.
 	//
-	// UPDATE!!!
-	//
-	// The `search_map()` function takes a `target` node and a closure which
-	// is called for each edge in the search. The target is optional, in case
-	// we want to search the whole graph. In this case the target is `None`,
-	// so we will calculate the distance to all nodes.
-	g['A'].pfs().map(&mut |u, v, e| {
+	// The search-object evaluates lazily. This means that the search is only
+	// executed when calling either `search()` or `search_path()`.
+	g['A'].pfs().map(&|u, v, e| {
 
 		// Since we are using a `Cell` to store the distance we use `get()` to
 		// read the distance values.
@@ -184,13 +172,10 @@ fn main() {
 		// the distance stored in the node `u` + the length (weight) of the
 		// edge `e`. If this is the case we update the distance stored in the
 		// node `v`.
-		if v_dist > u_dist + e {
-			v.set(u_dist + e);
-		}
-	}).find();
+		if v_dist > u_dist + e { v.set(u_dist + e); }
+	}).search();
 
 	// We expect that the distance to the node `E` is 21.
-	// println!("max flow: {}", g['E'].take());
 	assert!(g['E'].take() == 21);
 }
 
