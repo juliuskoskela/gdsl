@@ -20,7 +20,7 @@ Commented examples can be found from the `examples` folder.
 
 ## Overview
 
-Node types don't need to be part of any graph container. They are self-contained
+Node types don't need to be part of a graph container. They are self-contained
 connected "smart pointers" and can be connected to other nodes and dereferenced
 using pointer syntax. Node uniqueness is determined by a generic key-type.
 

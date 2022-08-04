@@ -10,8 +10,8 @@ description = "Graph Data Structure Library"
 documentation = "https://docs.rs/gdsl/"
 repository = "https://github.com/juliuskoskela/gdsl"
 
-keywords = ["data-structure", "Graph", "Graph-algorithms"]
-categories = ["data-structures"]
+keywords = ["data structure", "graph", "graph algorithms", "algorithms", "containers", "graph-theory"]
+categories = ["Data structures"]
 
 [dependencies]
 min-max-heap = "1.3.0"
