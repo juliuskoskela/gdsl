@@ -41,10 +41,10 @@ let partition = next.order()
 
 ```rust
 let g = digraph![
-  (usize)
-  (0) => [1, 2]
-  (1) => [1]
-  (2) => [0]
+    (usize)
+    (0) => [1, 2]
+    (1) => [1]
+    (2) => [0]
 ];
 ```
 
@@ -70,19 +70,16 @@ fn main() {
     // The turbofish type-signature is included in the first line for clarity,
     // but the types could be completely inferred. Note that in order to infer
     // the type for the edge, `connect()` or `connect!()` must be used.
-
     let node_a = Node::<char, i32, ()>::new('A', 1);
     let node_b = Node::new('B', 2);
     let node_c = Node::new('C', 3);
 
     // We connect nodes a -> b and b -> c. The () empty tuple is used to denote
     // that the edge has no value associated with it.
-
     node_a.connect(&node_b, ());
     node_b.connect(&node_c, ());
 
     // Check that a -> b && b -> c && !(a -> c)
-
     assert!(node_a.is_connected(&node_b));
     assert!(node_b.is_connected(&node_c));
     assert!(!node_a.is_connected(&node_c));
