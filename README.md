@@ -1,43 +1,85 @@
 # Graph Data Structure Library
 
-GDSL is a graph data structure library providing efficient and easy-to-use
-abstractions for working with either directed or undirected graphs. The aim of
-this library is not to implement specific graph algorithms, but rather work as
-a building block for graphs and/or connected nodes for more specific use-cases.
+**This library is still in early development and the API might experience breaking
+changes.**
 
-- Node types don't need to be part of any graph container. They are self-contained
-"smart pointers".
+GDSL is a graph data structure library providing efficient and easy-to-use
+abstractions for working with connected nodes and graphs. Opposed to many other
+graph implementations, in GDSL a graph is mostly just a container and the
+functionality is in the `Node<K, N, E>` structure which can then be used to
+create different graph representations or be used more freely as a part of
+some other data structure.
+
+The library provides both directed and undirected graphs and nodes.
+
+Motivation for creating this library has been to explore the idea of graphs and
+connected nodes as more generic data-structures that store data and doesn't
+depend on a central data-container which in turn implements the graph-logic.
+
+Commented examples can be found from the `examples` folder.
+
+## Overview
+
+Node types don't need to be part of any graph container. They are self-contained
+connected "smart pointers" and can be connected to other nodes and dereferenced
+using pointer syntax. Node uniqueness is determined by a generic key-type.
 
 ```rust
-let node = Node::<usize, i32, ()>::new(1, 42);
-assert!(*node == 42);
+let n1 = Node::<char, i32, f64>::new('A', 42);
+let n2 = Node::<char, i32, f64>::new('B', 6);
+
+n1.connect(&n2, 0.5);
+
+assert!(*n1 == 42);
+assert!(n2.key() == &'B');
+
+// Get the next edge from the outbound iterator.
+let (u, v, e) = n1.iter_out().next().unwrap();
+
+assert!(u.key() == &'A');
+assert!(v == n2);
+assert!(e == 0.5);
 ```
 
-- Node contain both their inbound and outbound edges also in case of a directed graph.
-This is so that the graph would be "dynamic" ie. easily modifiable during run-time. If
+Node contain both their inbound and outbound edges also in case of a directed graph.
+This is so that the graph would be "dynamic" i.e. easily modifiable during run-time. If
 we want to efficiently remove a node from a graph for example, it is more efficient if
 we know the inbound connections of the node as well so that we can easily disconnect
 a node from another. Iterators are implemented to iterate over either outbound or
-inbound edges in case of a directed graph or adjacent edges in the case of a undirected
+inbound edges in case of a directed graph or adjacent edges in the case of an undirected
 graph.
 
 ```rust
 for (u, v, e) in &node {
     println("{} -> {} : {}", u.key(), v.key(), e);
 }
+
+// Transposed iteration i.e. iterating the inbound edges of a node.
+for (u, v, e) in node.iter_in() {
+    println("{} <- {} : {}", u.key(), v.key(), e);
+}
 ```
 
-- Nodes contain interfaces for searching and ordering nodes. These are implemented
+As seen in the above example, an edge is represented as a tuple `(u, v, e)` in the
+iterator and in other structures or as parameters `|u, v, e|` in closures. The
+inner representation of the edge is not exposed to the user.
+
+Nodes contain interfaces for searching and ordering nodes. These are implemented
 as `search objects` which work a bit like iterators.
 
 ```rust
-let partition = next.order()
+let path = node.dfs()
+    .target(&'A')
+    .search_path();
+
+let ordering = node.order()
     .post()
-    .filter(&|_, v, _| !visited.contains(v.key()))
+    .filter(&|u, v, v| /* filter search */)
     .search_nodes();
 ```
 
-- The library provides macros for creating graphs such as `digraph![]` and `ungraph![]`.
+The library provides macros for creating graphs such as `digraph![]` and `ungraph![]`
+with a special syntax and with differing type signatures.
 
 ```rust
 let g = digraph![
@@ -48,14 +90,11 @@ let g = digraph![
 ];
 ```
 
-**This library is still in early development and the API might experience breaking
-changes.**
-
 ## Example: Simple Graph
 
 A simple example on how to create a graph without a container or using any
-macros for convenience. Most of the functionality which actually resides in
-the `Node`. The nodes contains methods for connecting (adding edges), disconnecting,
+macros for convenience. Most of the functionality actually resides in
+the `Node`. The nodes contain methods for connecting (adding edges), disconnecting,
 searching etc. They also behave as "smart pointers" and implement `Deref` so that they
 can be dereferenced into their inner values.
 

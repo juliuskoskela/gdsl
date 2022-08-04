@@ -366,6 +366,17 @@ fn ut_digraph_sizes() {
 fn ut_digraph_deref_node() {
 	use gdsl::digraph::*;
 
-	let node = Node::<usize, i32, ()>::new(1, 42);
-	assert!(*node == 42);
+	let n1 = Node::<char, i32, f64>::new('A', 42);
+	let n2 = Node::<char, i32, f64>::new('B', 6);
+
+	n1.connect(&n2, 0.5);
+
+	assert!(*n1 == 42);
+	assert!(n2.key() == &'B');
+
+	let (u, v, e) = n1.iter_out().next().unwrap();
+
+	assert!(u.key() == &'A');
+	assert!(v == n2);
+	assert!(e == 0.5);
 }
