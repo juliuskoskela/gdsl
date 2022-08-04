@@ -68,7 +68,7 @@ fn main() {
 
 	// Graph<&str, _, _>
 	let g1 = graph![
-		(&str) =>
+		(&str)
 		("A") => ["B", "C"]
 		("B") => ["C"]
 		("C") => ["D"]
@@ -77,7 +77,7 @@ fn main() {
 
 	// Graph<&str, i32, _>
 	let g2 = graph![
-		(&str, i32) =>
+		(&str, i32)
 		("A", 42) => ["B", "C"]
 		("B", 42) => ["C"]
 		("C", 42) => ["D"]
