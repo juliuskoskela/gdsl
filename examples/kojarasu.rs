@@ -70,7 +70,7 @@ fn kojarasu(graph: &G) -> Vec<G> {
 //
 // https://www.programiz.com/dsa/strongly-connected-components
 //
-// Exapected SCC's:
+// Expected SCC's:
 //
 // 0: [ 0 1 2 3 ]
 // 1: [ 4 5 6 ]
@@ -109,7 +109,7 @@ fn ex1() {
 //
 // https://en.wikipedia.org/wiki/Tarjan%27s_strongly_connected_components_algorithm
 //
-// Exapected SCC's:
+// Expected SCC's:
 //
 // 0: [ 8 ]
 // 1: [ 4 5 ]
@@ -150,7 +150,7 @@ fn ex2() {
 //
 // https://iq.opengenus.org/tarjans-algorithm/
 //
-// Exapected SCC's:
+// Expected SCC's:
 //
 // 0: [ 1 2 3 ]
 // 1: [ 4 ]
@@ -189,7 +189,7 @@ fn ex3() {
 //
 // https://www.youtube.com/watch?v=TyWtx7q2D7Y
 //
-// Exapected SCC's:
+// Expected SCC's:
 //
 // 0: [ 3 7 ]
 // 1: [ 4 5 6 ]
