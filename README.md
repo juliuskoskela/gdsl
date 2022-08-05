@@ -229,17 +229,17 @@ g['A'].set(0);
 // executed when calling either `search()` or `search_path()`.
 g['A'].pfs().map(&|u, v, e| {
 
-// Since we are using a `Cell` to store the distance we use `get()` to
-// read the distance values.
-let (u_dist, v_dist) = (u.get(), v.get());
+	// Since we are using a `Cell` to store the distance we use `get()` to
+	// read the distance values.
+	let (u_dist, v_dist) = (u.get(), v.get());
 
-// Now we check if the distance stored in the node `v` is smaller than
-// the distance stored in the node `u` + the length (weight) of the
-// edge `e`. If this is the case we update the distance stored in the
-// node `v`.
-if v_dist > u_dist + e {
-	v.set(u_dist + e);
-}
+	// Now we check if the distance stored in the node `v` is smaller than
+	// the distance stored in the node `u` + the length (weight) of the
+	// edge `e`. If this is the case we update the distance stored in the
+	// node `v`.
+	if v_dist > u_dist + e {
+		v.set(u_dist + e);
+	}
 }).search();
 
 // We expect that the distance to the node `E` is 21.

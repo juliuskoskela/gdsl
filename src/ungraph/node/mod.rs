@@ -5,7 +5,7 @@
 //! individually and they don't depend on any graph container. They are
 //! essentially smart-pointers that contain connections to other similar
 //! smart pointers. For two nodes to be able to connect, they must have the
-//! same type signature.
+//! same type signature. Uniqueness is determined by the node's key.
 //!
 //! A node's type signature is <KeyType, NodeValueType, EdgeValueType>.
 //!

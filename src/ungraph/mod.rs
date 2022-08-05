@@ -1,4 +1,4 @@
-//! Directed Graph
+//! Undirected Graph
 
 //==== Submodules =============================================================
 
