@@ -237,9 +237,9 @@ g['A'].pfs().map(&|u, v, e| {
     // Now we check if the distance stored in the node `v` is smaller than
     // edge `e`. If this is the case we update the distance stored in the
     // node `v`.
-	if v_dist > u_dist + e {
-		v.set(u_dist + e);
-	}
+    if v_dist > u_dist + e {
+        v.set(u_dist + e);
+    }
 }).search();
 
 // We expect that the distance to the node `E` is 21.
