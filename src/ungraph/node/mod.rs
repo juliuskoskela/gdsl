@@ -176,9 +176,10 @@ where
 	///	assert!(n1.is_connected(n2.key()));
 	/// ```
 	pub fn connect(&self, other: &Node<K, N, E>, value: E) {
-	    let edge = EdgeInner::new(self, other, value);
-	    self.inner.edges.push_outbound(edge.clone());
-	    other.inner.edges.push_inbound(edge);
+	    let edge = EdgeInner::new(other, value.clone());
+		let rev_edge = EdgeInner::new(&self, value);
+	    self.inner.edges.push_outbound(edge);
+	    other.inner.edges.push_inbound(rev_edge);
 	}
 
 	/// Connects this node to another node. The connection is created in both
@@ -308,7 +309,7 @@ where
 		} else {
 			let edge = self.inner.edges.find_inbound(other);
 			if let Some(edge) = edge {
-				Some(edge.source().clone())
+				Some(edge.target().clone())
 			} else {
 				None
 			}
@@ -436,7 +437,7 @@ where
 			Some(current) => {
 				self.position += 1;
 				Some((
-					current.source().clone(),
+					self.node.clone(),
 					current.target().clone(),
 					current.value.clone()
 				))
@@ -446,8 +447,8 @@ where
 					Some(current) => {
 						self.position += 1;
 						Some((
+							self.node.clone(),
 							current.target().clone(),
-							current.source().clone(),
 							current.value.clone()
 						))
 					}
@@ -519,7 +520,6 @@ where
 	N: Clone,
 	E: Clone,
 {
-    source: WeakNode<K, N, E>,
     target: WeakNode<K, N, E>,
     value: E,
 }
@@ -530,17 +530,12 @@ where
 	N: Clone,
 	E: Clone,
 {
-    fn new(source: &Node<K, N, E>, target: &Node<K, N, E>, value: E) -> Self {
+    fn new(target: &Node<K, N, E>, value: E) -> Self {
 		Self {
 			value,
-			source: WeakNode::downgrade(source),
 			target: WeakNode::downgrade(target),
 		}
     }
-
-	fn source(&self) -> Node<K, N, E> {
-		self.source.upgrade().unwrap()
-	}
 
 	fn target(&self) -> Node<K, N, E> {
 		self.target.upgrade().unwrap()
@@ -617,7 +612,7 @@ where
 
 	fn find_inbound(&self, node: &K) -> Option<EdgeInner<K, N, E>> {
 		let edges = self.edges.borrow();
-		edges.inbound.iter().find(|edge| edge.source().key() == node).cloned()
+		edges.inbound.iter().find(|edge| edge.target().key() == node).cloned()
 	}
 
 	fn len_outbound(&self) -> usize {
@@ -640,7 +635,7 @@ where
 
 	fn remove_inbound(&self, source: &K) -> Result<E, ()> {
 		let mut edges = self.edges.borrow_mut();
-		let idx = edges.inbound.iter().position(|edge| edge.source().key() == source);
+		let idx = edges.inbound.iter().position(|edge| edge.target().key() == source);
 		match idx {
 			Some(idx) => {
 				let edge = edges.inbound.remove(idx);
