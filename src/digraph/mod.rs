@@ -12,8 +12,7 @@ use std::{
     hash::Hash,
 };
 
-use fnv::FnvHashMap as HashMap;
-
+use ahash::AHashMap as HashMap;
 pub use crate::digraph::node::*;
 
 pub struct Graph<K, N, E>

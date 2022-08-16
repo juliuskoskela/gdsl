@@ -500,6 +500,29 @@ where
 	}
 }
 
+// pub struct NodeOutboundLevelIterator<'a, K, N, E>
+// where
+// 	K: Clone + Hash + Display + PartialEq + Eq,
+// 	N: Clone,
+// 	E: Clone,
+// {
+// 	node: &'a Node<K, N, E>,
+// 	edge_list: Vec<Edge<K, N, E>>,
+// 	position: usize,
+// }
+
+// impl<'a, K, N, E> Iterator for NodeOutboundLevelIterator<'a, K, N, E>
+// where
+// 	K: Clone + Hash + Display + PartialEq + Eq,
+// 	N: Clone,
+// 	E: Clone,
+// {
+// 	type Item = Vec<Edge<K, N, E>>;
+
+// 	fn next(&mut self) -> Option<Self::Item> {
+// 	}
+// }
+
 impl<'a, K, N, E> IntoIterator for &'a Node<K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,

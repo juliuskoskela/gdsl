@@ -6,7 +6,7 @@ use std::{
 	collections::VecDeque
 };
 
-use fnv::FnvHashSet as HashSet;
+use ahash::AHashSet as HashSet;
 
 use crate::digraph::node::*;
 use self::{method::*, path::*};
@@ -61,6 +61,69 @@ where
 	pub fn filter_map(mut self, f: FilterMap<'a, K, N, E>) -> Self {
 		self.method = Method::FilterMap(f);
 		self
+	}
+
+	pub fn search(&'a mut self) -> Option<Node<K, N, E>> {
+		let mut queue = VecDeque::new();
+		let mut visited = HashSet::default();
+
+		queue.push_back(self.root.clone());
+		visited.insert(self.root.key().clone());
+
+		match self.transpose {
+			Transposition::Outbound => {
+				return self.loop_outbound_find(&mut visited, &mut queue);
+			}
+			Transposition::Inbound => {
+				return self.loop_inbound_find(&mut visited, &mut queue);
+			}
+		}
+	}
+
+	pub fn search_cycle(&'a mut self) -> Option<Path<K, N, E>> {
+		let mut edges = vec![];
+		let mut queue = VecDeque::new();
+		let mut visited = HashSet::default();
+		let target_found;
+
+		self.target = Some(self.root.key());
+		queue.push_back(self.root.clone());
+
+		match self.transpose {
+			Transposition::Outbound => {
+				target_found = self.loop_outbound(&mut edges, &mut visited, &mut queue);
+			}
+			Transposition::Inbound => {
+				target_found = self.loop_inbound(&mut edges, &mut visited, &mut queue);
+			}
+		}
+		if target_found {
+			return Some(Path::from_edge_tree(edges));
+		}
+		None
+	}
+
+	pub fn search_path(&mut self) -> Option<Path<K, N, E>> {
+		let mut edges = vec![];
+		let mut queue = VecDeque::new();
+		let mut visited = HashSet::default();
+		let target_found;
+
+		queue.push_back(self.root.clone());
+		visited.insert(self.root.key().clone());
+
+		match self.transpose {
+			Transposition::Outbound => {
+				target_found = self.loop_outbound(&mut edges, &mut visited, &mut queue);
+			}
+			Transposition::Inbound => {
+				target_found = self.loop_inbound(&mut edges, &mut visited, &mut queue);
+			}
+		}
+		if target_found {
+			return Some(Path::from_edge_tree(edges));
+		}
+		None
 	}
 
 	fn loop_outbound(
@@ -147,69 +210,6 @@ where
 					}
 				}
 			}
-		}
-		None
-	}
-
-	pub fn search(&'a mut self) -> Option<Node<K, N, E>> {
-		let mut queue = VecDeque::new();
-		let mut visited = HashSet::default();
-
-		queue.push_back(self.root.clone());
-		visited.insert(self.root.key().clone());
-
-		match self.transpose {
-			Transposition::Outbound => {
-				return self.loop_outbound_find(&mut visited, &mut queue);
-			}
-			Transposition::Inbound => {
-				return self.loop_inbound_find(&mut visited, &mut queue);
-			}
-		}
-	}
-
-	pub fn search_cycle(&'a mut self) -> Option<Path<K, N, E>> {
-		let mut edges = vec![];
-		let mut queue = VecDeque::new();
-		let mut visited = HashSet::default();
-		let target_found;
-
-		self.target = Some(self.root.key());
-		queue.push_back(self.root.clone());
-
-		match self.transpose {
-			Transposition::Outbound => {
-				target_found = self.loop_outbound(&mut edges, &mut visited, &mut queue);
-			}
-			Transposition::Inbound => {
-				target_found = self.loop_inbound(&mut edges, &mut visited, &mut queue);
-			}
-		}
-		if target_found {
-			return Some(Path::from_edge_tree(edges));
-		}
-		None
-	}
-
-	pub fn search_path(&mut self) -> Option<Path<K, N, E>> {
-		let mut edges = vec![];
-		let mut queue = VecDeque::new();
-		let mut visited = HashSet::default();
-		let target_found;
-
-		queue.push_back(self.root.clone());
-		visited.insert(self.root.key().clone());
-
-		match self.transpose {
-			Transposition::Outbound => {
-				target_found = self.loop_outbound(&mut edges, &mut visited, &mut queue);
-			}
-			Transposition::Inbound => {
-				target_found = self.loop_inbound(&mut edges, &mut visited, &mut queue);
-			}
-		}
-		if target_found {
-			return Some(Path::from_edge_tree(edges));
 		}
 		None
 	}
