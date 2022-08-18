@@ -13,6 +13,7 @@ use std::{
 };
 
 use ahash::AHashMap as HashMap;
+use ahash::AHashSet as HashSet;
 pub use crate::digraph::node::*;
 
 pub struct Graph<K, N, E>
@@ -278,10 +279,58 @@ where
 		self.nodes.iter()
 	}
 
+	fn scc_ordering(&self) -> Vec<Node<K, N, E>> {
+		let mut visited = HashSet::new();
+		let mut ordering = Vec::new();
+
+		for (_, next) in self.iter() {
+			if !visited.contains(next.key()) {
+				let partition = next
+					.order()
+					.post()
+					.filter(&|_, v, _| !visited.contains(v.key()))
+					.search_nodes();
+				for node in &partition {
+					visited.insert(node.key().clone());
+					ordering.push(node.clone());
+				}
+			}
+		}
+		ordering
+	}
+
+	pub fn scc(&self) -> Vec<Vec<Node<K, N, E>>> {
+		let mut invariant = HashSet::new();
+		let mut components = Vec::new();
+		let mut ordering = self.scc_ordering();
+
+		while let Some(node) = ordering.pop() {
+			if !invariant.contains(node.key()) {
+				let cycle = node
+					.dfs()
+					.transpose()
+					.filter(&|_, v, _| !invariant.contains(v.key()))
+					.search_cycle();
+				match cycle {
+					Some(cycle) => {
+						let mut cycle = cycle.to_vec_nodes();
+						cycle.pop();
+						for node in &cycle {
+							invariant.insert(node.key().clone());
+						}
+						components.push(cycle);
+					},
+					None => {
+						invariant.insert(node.key().clone());
+						components.push(vec![node.clone()]);
+					},
+				}
+			}
+		}
+		components
+	}
+
 	pub fn to_dot(&self) -> String
-	where
-		N: Display,
-		E: Display,
 	{
 		let mut s = String::new();
 		s.push_str("digraph {\n");
@@ -294,6 +343,54 @@ where
 		}
 		s.push_str("}");
 		s
+	}
+
+	fn fmt_attr(attrs: Vec<(String, String)>) -> String {
+		let mut s = String::new();
+		for (k, v) in attrs {
+			s.push_str(&format!("[{}=\"{}\"]", k, v));
+		}
+		s
+	}
+
+	pub fn to_dot_with_attr(&self,
+		gattr: &dyn Fn(&Self) -> Option<Vec<(String, String)>>,
+		nattr: &dyn Fn(&Node<K, N, E>) -> Option<Vec<(String, String)>>,
+		eattr: &dyn Fn(&E) -> Option<Vec<(String, String)>>
+	) -> String {
+		let mut s = String::new();
+		s.push_str("digraph {\n");
+		if let Some(gattrs) = gattr(self) {
+			for (k, v) in gattrs {
+				s.push_str(&format!("\t{}=\"{}\"\n", k, v));
+			}
+		}
+		for (u_key, node) in self.iter() {
+			s.push_str(&format!("\t{}", u_key.clone()));
+			if let Some(nattr) = nattr(node) {
+				s.push_str(&format!(" {}", Self::fmt_attr(nattr)));
+			}
+			s.push_str("\n");
+		}
+		for (_, node) in self.iter() {
+			for (u, v, edge) in node {
+				s.push_str(&format!("\t{} -> {}", u.key(), v.key()));
+				if let Some(eattrs) = eattr(&edge) {
+					s.push_str(&format!(" {}", Self::fmt_attr(eattrs)));
+				}
+				s.push_str("\n");
+			}
+		}
+		s.push_str("}");
+		s
+	}
+
+	pub fn sizeof(&self) -> usize {
+		let mut size = 0;
+		for (_, node) in self.iter() {
+			size += node.sizeof();
+		}
+		size
 	}
 }
 

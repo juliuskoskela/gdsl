@@ -375,7 +375,7 @@ where
 	pub fn sizeof(&self) -> usize {
 		let len_in = self.inner.edges.len_inbound();
 		let len_out = self.inner.edges.len_outbound();
-		let size_edges = (len_in + len_out) * std::mem::size_of::<Edge<K, N, E>>();
+		let size_edges = (len_in + len_out) * std::mem::size_of::<EdgeInner<K, N, E>>();
 		let size_node_inner = std::mem::size_of::<NodeInner<K, N, E>>();
 		size_edges + size_node_inner + 8
 	}

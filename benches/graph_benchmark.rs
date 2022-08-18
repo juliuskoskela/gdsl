@@ -119,11 +119,33 @@ fn digraph_bfs(c: &mut Criterion) {
     group.finish();
 }
 
+fn digraph_scc(c: &mut Criterion) {
+    let b = 100;
+
+	let mut group = c.benchmark_group("digraph scc");
+    for (i, size) in [b, 2 * b, 4 * b, 8 * b, 16 * b]
+        .iter()
+        .enumerate()
+    {
+		group.throughput(Throughput::Elements(*size as u64));
+		let g = create_graph_simple_1(*size, size / 10);
+
+        group.bench_with_input(BenchmarkId::new("find scc's", size), &i, |b, _| {
+			b.iter(|| {
+				black_box(g.scc());
+            })
+        });
+    }
+
+    group.finish();
+}
+
 
 criterion_group!(
     benches,
-	digraph_creation,
-	digraph_dfs,
-	digraph_bfs,
+	// digraph_creation,
+	// digraph_dfs,
+	// digraph_bfs,
+	digraph_scc
 );
 criterion_main!(benches);
