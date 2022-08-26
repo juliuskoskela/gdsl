@@ -356,7 +356,7 @@ where
 	pub fn to_dot_with_attr(&self,
 		gattr: &dyn Fn(&Self) -> Option<Vec<(String, String)>>,
 		nattr: &dyn Fn(&Node<K, N, E>) -> Option<Vec<(String, String)>>,
-		eattr: &dyn Fn(&E) -> Option<Vec<(String, String)>>
+		eattr: &dyn Fn(&Node<K, N, E>, &Node<K, N, E>, &E) -> Option<Vec<(String, String)>>
 	) -> String {
 		let mut s = String::new();
 		s.push_str("digraph {\n");
@@ -375,7 +375,7 @@ where
 		for (_, node) in self.iter() {
 			for (u, v, edge) in node {
 				s.push_str(&format!("\t{} -> {}", u.key(), v.key()));
-				if let Some(eattrs) = eattr(&edge) {
+				if let Some(eattrs) = eattr(&u, &v, &edge) {
 					s.push_str(&format!(" {}", Self::fmt_attr(eattrs)));
 				}
 				s.push_str("\n");
