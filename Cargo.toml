@@ -16,6 +16,8 @@ categories = ["Data structures"]
 min-max-heap = "1.3.0"
 fnv = "1.0.3"
 ahash = "0.8.0"
+rudac = "0.8.3"
+rayon = "1.5.3"
 
 [dev-dependencies]
 rand = "0.8.4"

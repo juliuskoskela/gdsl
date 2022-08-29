@@ -9,7 +9,7 @@ use ahash::AHashSet as HashSet;
 // use min_max_heap::BinaryHeap;
 use std::collections::BinaryHeap;
 use std::cmp::Reverse;
-use crate::digraph::node::*;
+use crate::async_digraph::node::*;
 use self::method::*;
 use self::path::*;
 

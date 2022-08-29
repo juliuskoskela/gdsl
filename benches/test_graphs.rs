@@ -1,11 +1,17 @@
 use std::cell::Cell;
 use std::cmp::{max, min};
-
 use gdsl::digraph::*;
+
+use gdsl::async_digraph:: {
+	Node as AsyncNode,
+	Edge as AsyncEdge,
+};
 
 use gdsl::{
 	digraph_node as node,
-	digraph_connect as connect
+	digraph_connect as connect,
+	async_digraph_connect as async_connect,
+	async_digraph_node as async_node,
 };
 
 pub fn create_graph_vec_distance_1(size: usize) -> Vec<Node<usize, Cell<usize>, usize>> {
@@ -25,6 +31,38 @@ pub fn create_graph_vec_distance_1(size: usize) -> Vec<Node<usize, Cell<usize>, 
 	}
     g
 }
+
+pub fn create_graph_vec_distance_2(size: usize, avg_dgr: usize) -> Vec<Node<usize, Cell<u64>, u64>> {
+	let mut g = Vec::new();
+
+    for i in 0..size {
+        g.push(node!(i, Cell::new(u64::MAX)));
+    }
+
+	for node in g.iter() {
+		let cur_dgr = rand::random::<usize>() % avg_dgr + 1;
+		for _ in 0..cur_dgr {
+			connect!(&node => &g[rand::random::<usize>() % size], rand::random::<u64>() % 10 + 1);
+		}
+	}
+	g
+}
+
+// pub fn create_graph_vec_distance_async(size: usize, avg_dgr: usize) -> Vec<AsyncNode<usize, Cell<u64>, u64>> {
+// 	let mut g = Vec::new();
+
+//     for i in 0..size {
+//         g.push(async_node!(i, Cell::new(u64::MAX)));
+//     }
+
+// 	for node in g.iter() {
+// 		let cur_dgr = rand::random::<usize>() % avg_dgr + 1;
+// 		for _ in 0..cur_dgr {
+// 			async_connect!(&node => &g[rand::random::<usize>() % size], rand::random::<u64>() % 10 + 1);
+// 		}
+// 	}
+// 	g
+// }
 
 pub fn create_graph_simple_1(size: usize, avg_dgr: usize) -> Graph<usize, (), ()> {
 	let mut g = Graph::new();
