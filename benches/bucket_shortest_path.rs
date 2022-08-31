@@ -20,11 +20,6 @@ fn attr(field: &str, value: &str) -> (String, String) {
 
 const DELTA: usize = 100;
 
-enum EdgeKind {
-	Light,
-	Heavy,
-}
-
 struct Buckets {
 	buckets: Vec<Vec<Option<N>>>,
 	delta: usize,

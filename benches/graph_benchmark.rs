@@ -21,11 +21,13 @@ use gdsl::{
 
 mod test_graphs;
 mod bucket_shortest_path;
-mod par_bucket_shortest_path;
+// mod par_bucket_shortest_path;
+mod parallel_delta_step_sssp;
 
 use test_graphs::*;
 use bucket_shortest_path::*;
-use par_bucket_shortest_path::*;
+// use par_bucket_shortest_path::*;
+use parallel_delta_step_sssp::*;
 
 // use gdsl::digraph::{
 // 	Node,
@@ -216,20 +218,21 @@ fn digraph_dijkstra(c: &mut Criterion) {
     let b = 10000;
 
 	let mut group = c.benchmark_group("digraph dijkstra");
-    for (i, size) in [b, 2 * b, 4 * b]
+    for (i, size) in [b]
         .iter()
         .enumerate()
     {
 		group.throughput(Throughput::Elements(*size as u64));
-		let g = create_graph_vec_distance_2(*size, 3);
-		let gp = create_graph_vec_distance_async(*size, 3);
+		let g = create_graph_vec_distance_2(*size, 100);
+		let gp = create_graph_vec_distance_async(*size, 100);
 
         group.bench_with_input(BenchmarkId::new("dijkstra", size), &i, |b, _| {
 			b.iter(|| {
 				for node in g.iter() {
 					node.set(u64::MAX);
 				}
-				dijkstra(&g[0]);
+				let s = &g[rand::random::<usize>() % g.len()];
+				dijkstra(s);
             })
         });
 
@@ -238,76 +241,245 @@ fn digraph_dijkstra(c: &mut Criterion) {
 				for node in g.iter() {
 					node.set(u64::MAX);
 				}
-				g[0].set(0);
-				black_box(g[0].pfs().map(&|u, v, e| {
+				let s = &g[rand::random::<usize>() % g.len()];
+				s.set(0);
+				black_box(s.pfs().map(&|u, v, e| {
 					let (u_dist, v_dist) = (u.get(), v.get());
 					if v_dist > u_dist + e { v.set(u_dist + e); }
 				}).search());
             })
         });
 
-		group.bench_with_input(BenchmarkId::new("delta_stepping: D = 1", size), &i, |b, _| {
+		// T1
+
+		group.bench_with_input(BenchmarkId::new("parallel delta stepping: T = 1, D = 3", size), &i, |b, _| {
 			b.iter(|| {
-				for node in g.iter() {
+				for node in gp.iter() {
 					node.set(u64::MAX);
 				}
-				black_box(seq_dstep_sd(&g[0], 1))
+				let s = &gp[rand::random::<usize>() % g.len()];
+				black_box(parallel_delta_step_sssp(s, 3, 1));
             })
         });
 
-		group.bench_with_input(BenchmarkId::new("delta_stepping: D = 3", size), &i, |b, _| {
+		group.bench_with_input(BenchmarkId::new("parallel delta stepping: T = 1, D = 5", size), &i, |b, _| {
 			b.iter(|| {
-				for node in g.iter() {
+				for node in gp.iter() {
 					node.set(u64::MAX);
 				}
-				black_box(seq_dstep_sd(&g[0], 3))
+				let s = &gp[rand::random::<usize>() % g.len()];
+				black_box(parallel_delta_step_sssp(s, 5, 1));
             })
         });
 
-		group.bench_with_input(BenchmarkId::new("delta_stepping: D = 6", size), &i, |b, _| {
+		group.bench_with_input(BenchmarkId::new("parallel delta stepping: T = 1, D = 10", size), &i, |b, _| {
 			b.iter(|| {
-				for node in g.iter() {
+				for node in gp.iter() {
 					node.set(u64::MAX);
 				}
-				black_box(seq_dstep_sd(&g[0], 6))
+				let s = &gp[rand::random::<usize>() % g.len()];
+				black_box(parallel_delta_step_sssp(s, 10, 1));
             })
         });
 
-		group.bench_with_input(BenchmarkId::new("delta_stepping: D = 10", size), &i, |b, _| {
+		group.bench_with_input(BenchmarkId::new("parallel delta stepping: T = 1, D = 20", size), &i, |b, _| {
 			b.iter(|| {
-				for node in g.iter() {
+				for node in gp.iter() {
 					node.set(u64::MAX);
 				}
-				black_box(seq_dstep_sd(&g[0], 10))
+				let s = &gp[rand::random::<usize>() % g.len()];
+				black_box(parallel_delta_step_sssp(s, 20, 1));
             })
         });
 
-		group.bench_with_input(BenchmarkId::new("delta_stepping: D = 20", size), &i, |b, _| {
+		// T2
+
+		group.bench_with_input(BenchmarkId::new("parallel delta stepping: T = 2, D = 3", size), &i, |b, _| {
 			b.iter(|| {
-				for node in g.iter() {
+				for node in gp.iter() {
 					node.set(u64::MAX);
 				}
-				black_box(seq_dstep_sd(&g[0], 20))
+				let s = &gp[rand::random::<usize>() % g.len()];
+				black_box(parallel_delta_step_sssp(s, 3, 2));
             })
         });
 
-		group.bench_with_input(BenchmarkId::new("delta_stepping: D = 30", size), &i, |b, _| {
+		group.bench_with_input(BenchmarkId::new("parallel delta stepping: T = 2, D = 5", size), &i, |b, _| {
 			b.iter(|| {
-				for node in g.iter() {
+				for node in gp.iter() {
 					node.set(u64::MAX);
 				}
-				black_box(seq_dstep_sd(&g[0], 30))
+				let s = &gp[rand::random::<usize>() % g.len()];
+				black_box(parallel_delta_step_sssp(s, 5, 2));
             })
         });
 
-		group.bench_with_input(BenchmarkId::new("delta_stepping: D = 50", size), &i, |b, _| {
+		group.bench_with_input(BenchmarkId::new("parallel delta stepping: T = 2, D = 10", size), &i, |b, _| {
 			b.iter(|| {
-				for node in g.iter() {
+				for node in gp.iter() {
 					node.set(u64::MAX);
 				}
-				black_box(seq_dstep_sd(&g[0], 50))
+				let s = &gp[rand::random::<usize>() % g.len()];
+				black_box(parallel_delta_step_sssp(s, 10, 2));
             })
         });
+
+		group.bench_with_input(BenchmarkId::new("parallel delta stepping: T = 2, D = 20", size), &i, |b, _| {
+			b.iter(|| {
+				for node in gp.iter() {
+					node.set(u64::MAX);
+				}
+				let s = &gp[rand::random::<usize>() % g.len()];
+				black_box(parallel_delta_step_sssp(s, 20, 2));
+            })
+        });
+
+		// T4
+
+		group.bench_with_input(BenchmarkId::new("parallel delta stepping: T = 4, D = 3", size), &i, |b, _| {
+			b.iter(|| {
+				for node in gp.iter() {
+					node.set(u64::MAX);
+				}
+				let s = &gp[rand::random::<usize>() % g.len()];
+				black_box(parallel_delta_step_sssp(s, 3, 4));
+            })
+        });
+
+		group.bench_with_input(BenchmarkId::new("parallel delta stepping: T = 4, D = 5", size), &i, |b, _| {
+			b.iter(|| {
+				for node in gp.iter() {
+					node.set(u64::MAX);
+				}
+				let s = &gp[rand::random::<usize>() % g.len()];
+				black_box(parallel_delta_step_sssp(s, 5, 4));
+            })
+        });
+
+		group.bench_with_input(BenchmarkId::new("parallel delta stepping: T = 4, D = 10", size), &i, |b, _| {
+			b.iter(|| {
+				for node in gp.iter() {
+					node.set(u64::MAX);
+				}
+				let s = &gp[rand::random::<usize>() % g.len()];
+				black_box(parallel_delta_step_sssp(s, 10, 4));
+            })
+        });
+
+		group.bench_with_input(BenchmarkId::new("parallel delta stepping: T = 4, D = 20", size), &i, |b, _| {
+			b.iter(|| {
+				for node in gp.iter() {
+					node.set(u64::MAX);
+				}
+				let s = &gp[rand::random::<usize>() % g.len()];
+				black_box(parallel_delta_step_sssp(s, 20, 8));
+            })
+        });
+
+		// T8
+
+		group.bench_with_input(BenchmarkId::new("parallel delta stepping: T = 8, D = 3", size), &i, |b, _| {
+			b.iter(|| {
+				for node in gp.iter() {
+					node.set(u64::MAX);
+				}
+				let s = &gp[rand::random::<usize>() % g.len()];
+				black_box(parallel_delta_step_sssp(s, 3, 8));
+            })
+        });
+
+		group.bench_with_input(BenchmarkId::new("parallel delta stepping: T = 8, D = 5", size), &i, |b, _| {
+			b.iter(|| {
+				for node in gp.iter() {
+					node.set(u64::MAX);
+				}
+				let s = &gp[rand::random::<usize>() % g.len()];
+				black_box(parallel_delta_step_sssp(s, 5, 8));
+            })
+        });
+
+		group.bench_with_input(BenchmarkId::new("parallel delta stepping: T = 8, D = 10", size), &i, |b, _| {
+			b.iter(|| {
+				for node in gp.iter() {
+					node.set(u64::MAX);
+				}
+				let s = &gp[rand::random::<usize>() % g.len()];
+				black_box(parallel_delta_step_sssp(s, 10, 8));
+            })
+        });
+
+		group.bench_with_input(BenchmarkId::new("parallel delta stepping: T = 8, D = 20", size), &i, |b, _| {
+			b.iter(|| {
+				for node in gp.iter() {
+					node.set(u64::MAX);
+				}
+				let s = &gp[rand::random::<usize>() % g.len()];
+				black_box(parallel_delta_step_sssp(s, 20, 8));
+            })
+        });
+
+		// group.bench_with_input(BenchmarkId::new("delta_stepping: D = 1", size), &i, |b, _| {
+		// 	b.iter(|| {
+		// 		for node in g.iter() {
+		// 			node.set(u64::MAX);
+		// 		}
+		// 		black_box(seq_dstep_sd(&g[0], 1))
+        //     })
+        // });
+
+		// group.bench_with_input(BenchmarkId::new("delta_stepping: D = 3", size), &i, |b, _| {
+		// 	b.iter(|| {
+		// 		for node in g.iter() {
+		// 			node.set(u64::MAX);
+		// 		}
+		// 		black_box(seq_dstep_sd(&g[0], 3))
+        //     })
+        // });
+
+		// group.bench_with_input(BenchmarkId::new("delta_stepping: D = 6", size), &i, |b, _| {
+		// 	b.iter(|| {
+		// 		for node in g.iter() {
+		// 			node.set(u64::MAX);
+		// 		}
+		// 		black_box(seq_dstep_sd(&g[0], 6))
+        //     })
+        // });
+
+		// group.bench_with_input(BenchmarkId::new("delta_stepping: D = 10", size), &i, |b, _| {
+		// 	b.iter(|| {
+		// 		for node in g.iter() {
+		// 			node.set(u64::MAX);
+		// 		}
+		// 		black_box(seq_dstep_sd(&g[0], 10))
+        //     })
+        // });
+
+		// group.bench_with_input(BenchmarkId::new("delta_stepping: D = 20", size), &i, |b, _| {
+		// 	b.iter(|| {
+		// 		for node in g.iter() {
+		// 			node.set(u64::MAX);
+		// 		}
+		// 		black_box(seq_dstep_sd(&g[0], 20))
+        //     })
+        // });
+
+		// group.bench_with_input(BenchmarkId::new("delta_stepping: D = 30", size), &i, |b, _| {
+		// 	b.iter(|| {
+		// 		for node in g.iter() {
+		// 			node.set(u64::MAX);
+		// 		}
+		// 		black_box(seq_dstep_sd(&g[0], 30))
+        //     })
+        // });
+
+		// group.bench_with_input(BenchmarkId::new("delta_stepping: D = 50", size), &i, |b, _| {
+		// 	b.iter(|| {
+		// 		for node in g.iter() {
+		// 			node.set(u64::MAX);
+		// 		}
+		// 		black_box(seq_dstep_sd(&g[0], 50))
+        //     })
+        // });
 
 		// group.bench_with_input(BenchmarkId::new("delta_stepping_async: D = 1", size), &i, |b, _| {
 		// 	b.iter(|| {

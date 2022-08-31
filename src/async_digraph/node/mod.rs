@@ -575,7 +575,7 @@ where
 	N: Clone,
 	E: Clone,
 {
-    target: WeakNode<K, N, E>,
+    target: Node<K, N, E>,
     value: E,
 }
 
@@ -588,12 +588,12 @@ where
     fn new(target: &Node<K, N, E>, value: E) -> Self {
 		Self {
 			value,
-			target: WeakNode::downgrade(target),
+			target: target.clone(),
 		}
     }
 
 	fn target(&self) -> Node<K, N, E> {
-		self.target.upgrade().unwrap()
+		self.target.clone()
 	}
 
 	fn value(&self) -> &E {

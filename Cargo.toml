@@ -21,7 +21,7 @@ rayon = "1.5.3"
 
 [dev-dependencies]
 rand = "0.8.4"
-criterion = "0.3"
+criterion = "0.3.6"
 
 [[bench]]
 name = "graph_benchmark"
