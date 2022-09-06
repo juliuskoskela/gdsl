@@ -708,24 +708,4 @@ where
 	}
 }
 
-trait NodeAdjacencyList<K, N, E>
-where
-	K: Clone + Hash + PartialEq + Eq + Display,
-	N: Clone,
-	E: Clone,
-{
-	fn get_outbound(&self, idx: usize) -> Option<EdgeInner<K, N, E>>;
-	fn get_inbound(&self, idx: usize) -> Option<EdgeInner<K, N, E>>;
-	fn find_outbound(&self, node: &K) -> Option<EdgeInner<K, N, E>>;
-	fn find_inbound(&self, node: &K) -> Option<EdgeInner<K, N, E>>;
-	fn len_outbound(&self) -> usize;
-	fn len_inbound(&self) -> usize;
-	fn push_inbound(&self, edge: EdgeInner<K, N, E>);
-	fn push_outbound(&self, edge: EdgeInner<K, N, E>);
-	fn remove_inbound(&self, source: &K) -> Result<E, ()>;
-	fn remove_outbound(&self, target: &K) -> Result<E, ()>;
-	fn clear_inbound(&self);
-	fn clear_outbound(&self);
-}
-
 //==== EOF ====================================================================
