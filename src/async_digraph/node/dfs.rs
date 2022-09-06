@@ -72,8 +72,8 @@ where
 	) -> bool {
 		if let Some(node) = queue.pop() {
 			for (u, v, e) in node.iter_out() {
-				if visited.contains(v.key()) == false {
-					if self.method.exec(&u, &v, &e) {
+				if self.method.exec(&u, &v, &e) {
+					if visited.contains(v.key()) == false {
 						result.push((u, v.clone(), e));
 						if self.target.is_some() && self.target.unwrap() == v.key() {
 							return true;
@@ -97,8 +97,8 @@ where
 	) -> bool {
 		if let Some(node) = queue.pop() {
 			for (v, u, e) in node.iter_in() {
-				if visited.contains(v.key()) == false {
-					if self.method.exec(&u, &v, &e) {
+				if self.method.exec(&u, &v, &e) {
+					if visited.contains(v.key()) == false {
 						result.push((u, v.clone(), e));
 						if self.target.is_some() && self.target.unwrap() == v.key() {
 							return true;
@@ -121,8 +121,8 @@ where
 	) -> Option<Node<K, N, E>> {
 		if let Some(node) = queue.pop() {
 			for (u, v, e) in node.iter_out() {
-				if visited.contains(v.key()) == false {
-					if self.method.exec(&u, &v, &e) {
+				if self.method.exec(&u, &v, &e) {
+					if visited.contains(v.key()) == false {
 						if self.target.is_some() && self.target.unwrap() == v.key() {
 							return Some(v);
 						}
@@ -145,8 +145,8 @@ where
 	) -> Option<Node<K, N, E>> {
 		if let Some(node) = queue.pop() {
 			for (v, u, e) in node.iter_in() {
-				if visited.contains(v.key()) == false {
-					if self.method.exec(&u, &v, &e) {
+				if self.method.exec(&u, &v, &e) {
+					if visited.contains(v.key()) == false {
 						if self.target.is_some() && self.target.unwrap() == v.key() {
 							return Some(v);
 						}

@@ -29,7 +29,7 @@
 //! Node's are wrapped in a reference counted smart pointer. This means
 //! that a node can be cloned and shared among multiple owners.
 //!
-//! This node uses `Arc` for reference counting, thus it is not thread-safe.
+//! This node uses `Arc` for reference counting, thus it is thread-safe.
 
 mod method;
 mod order;
@@ -42,7 +42,7 @@ use std::{
     fmt::Display,
     hash::Hash,
     ops::Deref,
-    sync::{Arc, Weak, RwLock},
+    sync::{Arc, RwLock},
 };
 
 use self::{
@@ -539,33 +539,6 @@ where
     key: K,
     value: N,
     edges: Adjacent<K, N, E>,
-}
-
-#[derive(Clone)]
-struct WeakNode<K = usize, N = (), E = ()>
-where
-	K: Clone + Hash + Display + PartialEq + Eq,
-	N: Clone,
-	E: Clone,
-{
-	inner: Weak<NodeInner<K, N, E>>,
-}
-
-impl<K, N, E> WeakNode<K, N, E>
-where
-	K: Clone + Hash + Display + PartialEq + Eq,
-	N: Clone,
-	E: Clone,
-{
-	fn upgrade(&self) -> Option<Node<K, N, E>> {
-		self.inner.upgrade().map(|inner| Node { inner })
-	}
-
-	fn downgrade(node: &Node<K, N, E>) -> Self {
-		WeakNode {
-			inner: Arc::downgrade(&node.inner)
-		}
-	}
 }
 
 #[derive(Clone)]

@@ -92,8 +92,8 @@ where
 		while let Some(node) = queue.pop() {
 			let node = node.0;
 			for (u, v, e) in node.iter_out() {
-				if self.method.exec(&u, &v, &e) {
-					if !visited.contains(v.key()) {
+				if !visited.contains(v.key()) {
+					if self.method.exec(&u, &v, &e) {
 						visited.insert(v.key().clone());
 						result.push((u, v.clone(), e));
 						if self.target.is_some() && self.target.unwrap() == v.key() {
@@ -116,8 +116,8 @@ where
 		while let Some(node) = queue.pop() {
 			let node = node.0;
 			for (v, u, e) in node.iter_in() {
-				if !visited.contains(v.key()) {
-					if self.method.exec(&u, &v, &e) {
+				if self.method.exec(&u, &v, &e) {
+					if !visited.contains(v.key()) {
 						visited.insert(v.key().clone());
 						result.push((u, v.clone(), e));
 						if self.target.is_some() && self.target.unwrap() == v.key() {
@@ -139,8 +139,8 @@ where
 	) -> bool {
 		while let Some(node) = queue.pop() {
 			for (u, v, e) in node.iter_out() {
-				if !visited.contains(v.key()) {
-					if self.method.exec(&u, &v, &e) {
+				if self.method.exec(&u, &v, &e) {
+					if !visited.contains(v.key()) {
 						visited.insert(v.key().clone());
 						result.push((u, v.clone(), e));
 						if self.target.is_some() && self.target.unwrap() == v.key() {
@@ -162,8 +162,8 @@ where
 	) -> bool {
 		while let Some(node) = queue.pop() {
 			for (v, u, e) in node.iter_in() {
-				if !visited.contains(v.key()) {
-					if self.method.exec(&u, &v, &e) {
+				if self.method.exec(&u, &v, &e) {
+					if !visited.contains(v.key()) {
 						visited.insert(v.key().clone());
 						result.push((u, v.clone(), e));
 						if self.target.is_some() && self.target.unwrap() == v.key() {
