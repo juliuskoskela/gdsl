@@ -3,15 +3,21 @@
 use std::{
     fmt::Display,
     hash::Hash,
-	collections::VecDeque
 };
 
 use ahash::HashSet as HashSet;
+use min_max_heap::MinMaxHeap;
 
-use crate::ungraph::node::*;
-use self::{method::*, path::*};
+use crate::sync_ungraph::node::*;
+use crate::sync_ungraph::node::path::*;
+use self::method::*;
 
-pub struct BFS<'a, K, N, E>
+enum Priority {
+	Min,
+	Max
+}
+
+pub struct PFS<'a, K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
 	N: Clone,
@@ -20,20 +26,32 @@ where
 	root: Node<K, N, E>,
 	target: Option<&'a K>,
 	method: Method<'a, K, N, E>,
+	priority: Priority,
 }
 
-impl<'a, K, N, E> BFS<'a, K, N, E>
+impl<'a, K, N, E> PFS<'a, K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
-	N: Clone,
+	N: Clone + Ord,
 	E: Clone,
 {
 	pub fn new(root: &Node<K, N, E>) -> Self {
-		BFS {
+		PFS {
 			root: root.clone(),
 			target: None,
 			method: Method::NullMethod,
+			priority: Priority::Min,
 		}
+	}
+
+	pub fn min(mut self) -> Self {
+		self.priority = Priority::Min;
+		self
+	}
+
+	pub fn max(mut self) -> Self {
+		self.priority = Priority::Max;
+		self
 	}
 
 	pub fn target(mut self, target: &'a K) -> Self {
@@ -51,18 +69,19 @@ where
 		self
 	}
 
+
 	pub fn filter_map(mut self, f: FilterMap<'a, K, N, E>) -> Self {
 		self.method = Method::FilterMap(f);
 		self
 	}
 
-	fn loop_adjacent(
+	fn recurse_min(
 		&self,
 		result: &mut Vec<Edge<K, N, E>>,
 		visited: &mut HashSet<K>,
-		queue: &mut VecDeque<Node<K, N, E>>,
+		queue: &mut MinMaxHeap<Node<K, N, E>>,
 	) -> bool {
-		while let Some(node) = queue.pop_front() {
+		while let Some(node) = queue.pop_min() {
 			for (u, v, e) in node.iter() {
 				if self.method.exec(&u, &v, &e) {
 					if !visited.contains(v.key()) {
@@ -71,7 +90,7 @@ where
 						if self.target.is_some() && self.target.unwrap() == v.key() {
 							return true;
 						}
-						queue.push_back(v.clone());
+						queue.push(v.clone());
 					}
 				}
 			}
@@ -79,64 +98,80 @@ where
 		false
 	}
 
-	fn loop_adjacent_find(
+	fn recurse_max(
 		&self,
+		result: &mut Vec<Edge<K, N, E>>,
 		visited: &mut HashSet<K>,
-		queue: &mut VecDeque<Node<K, N, E>>,
-	) -> Option<Node<K, N, E>> {
-		while let Some(node) = queue.pop_front() {
+		queue: &mut MinMaxHeap<Node<K, N, E>>,
+	) -> bool {
+		while let Some(node) = queue.pop_max() {
 			for (u, v, e) in node.iter() {
 				if self.method.exec(&u, &v, &e) {
 					if !visited.contains(v.key()) {
 						visited.insert(v.key().clone());
+						result.push((u, v.clone(), e));
 						if self.target.is_some() && self.target.unwrap() == v.key() {
-							return Some(v);
+							return true;
 						}
-						queue.push_back(v.clone());
+						queue.push(v.clone());
 					}
 				}
 			}
 		}
-		None
+		false
 	}
 
-	pub fn search(&'a mut self) -> Option<Node<K, N, E>> {
-		let mut queue = VecDeque::new();
-		let mut visited = HashSet::default();
-
-		queue.push_back(self.root.clone());
-		visited.insert(self.root.key().clone());
-
-		return self.loop_adjacent_find(&mut visited, &mut queue);
+	pub fn search(&mut self) -> Option<Node<K, N, E>> {
+		let path = self.search_path();
+		match path {
+			Some(path) => Some(path.last_node().unwrap().clone()),
+			None => None,
+		}
 	}
 
 	pub fn search_cycle(&'a mut self) -> Option<Path<K, N, E>> {
 		let mut edges = vec![];
-		let mut queue = VecDeque::new();
+		let mut queue = MinMaxHeap::new();
 		let mut visited = HashSet::default();
+		let target_found;
 
 		self.target = Some(self.root.key());
-		queue.push_back(self.root.clone());
+		queue.push(self.root.clone());
 
-		if self.loop_adjacent(&mut edges, &mut visited, &mut queue) {
-			Some(Path::from_edge_tree(edges))
-		} else {
-			None
+		match self.priority {
+			Priority::Min => {
+				target_found = self.recurse_min(&mut edges, &mut visited, &mut queue);
+			}
+			Priority::Max => {
+				target_found = self.recurse_max(&mut edges, &mut visited, &mut queue);
+			}
 		}
+		if target_found {
+			return Some(Path::from_edge_tree(edges));
+		}
+		None
 	}
 
 	pub fn search_path(&mut self) -> Option<Path<K, N, E>> {
 		let mut edges = vec![];
-		let mut queue = VecDeque::new();
+		let mut queue = MinMaxHeap::new();
 		let mut visited = HashSet::default();
+		let target_found;
 
-		queue.push_back(self.root.clone());
+		queue.push(self.root.clone());
 		visited.insert(self.root.key().clone());
 
-		if self.loop_adjacent(&mut edges, &mut visited, &mut queue) {
-			Some(Path::from_edge_tree(edges))
-		} else {
-			None
+		match self.priority {
+			Priority::Min => {
+				target_found = self.recurse_min(&mut edges, &mut visited, &mut queue);
+			}
+			Priority::Max => {
+				target_found = self.recurse_max(&mut edges, &mut visited, &mut queue);
+			}
 		}
+		if target_found {
+			return Some(Path::from_edge_tree(edges));
+		}
+		None
 	}
 }

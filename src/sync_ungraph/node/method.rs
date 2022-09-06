@@ -1,9 +1,8 @@
-use crate::async_digraph::node::*;
+use crate::sync_ungraph::node::*;
 
 pub type FilterMap<'a, K, N, E> = &'a dyn Fn(&Node<K, N, E>, &Node<K, N, E>, &E) -> bool;
 pub type Filter<'a, K, N, E> = &'a dyn Fn(&Node<K, N, E>, &Node<K, N, E>, &E) -> bool;
 pub type Map<'a, K, N, E> = &'a dyn Fn(&Node<K, N, E>, &Node<K, N, E>, &E);
-// pub type Level<'a, K, N, E> = &'a dyn Fn(&mut Vec<Edge<K, N, E>>);
 
 #[derive(Clone)]
 pub enum Method<'a, K, N, E>
@@ -37,9 +36,4 @@ where
 pub enum Ordering {
 	Pre,
 	Post,
-}
-
-pub enum Transposition {
-	Outbound,
-	Inbound,
 }

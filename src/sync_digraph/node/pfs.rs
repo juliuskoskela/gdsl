@@ -6,9 +6,10 @@ use std::{
 };
 
 use ahash::AHashSet as HashSet;
-// use min_max_heap::MinMaxHeap;
-use rudac::heap::FibonacciHeap;
-use crate::digraph::node::*;
+// use min_max_heap::BinaryHeap;
+use std::collections::BinaryHeap;
+use std::cmp::Reverse;
+use crate::sync_digraph::node::*;
 use self::method::*;
 use self::path::*;
 
@@ -86,18 +87,19 @@ where
 		&self,
 		result: &mut Vec<Edge<K, N, E>>,
 		visited: &mut HashSet<K>,
-		queue: &mut FibonacciHeap<Node<K, N, E>>,
+		queue: &mut BinaryHeap<Reverse<Node<K, N, E>>>,
 	) -> bool {
 		while let Some(node) = queue.pop() {
+			let node = node.0;
 			for (u, v, e) in node.iter_out() {
-				if !visited.contains(v.key()) {
-					if self.method.exec(&u, &v, &e) {
+				if self.method.exec(&u, &v, &e) {
+					if !visited.contains(v.key()) {
 						visited.insert(v.key().clone());
 						result.push((u, v.clone(), e));
 						if self.target.is_some() && self.target.unwrap() == v.key() {
 							return true;
 						}
-						queue.push(v.clone());
+						queue.push(Reverse(v.clone()));
 					}
 				}
 			}
@@ -109,18 +111,19 @@ where
 		&self,
 		result: &mut Vec<Edge<K, N, E>>,
 		visited: &mut HashSet<K>,
-		queue: &mut FibonacciHeap<Node<K, N, E>>,
+		queue: &mut BinaryHeap<Reverse<Node<K, N, E>>>,
 	) -> bool {
 		while let Some(node) = queue.pop() {
+			let node = node.0;
 			for (v, u, e) in node.iter_in() {
-				if !visited.contains(v.key()) {
-					if self.method.exec(&u, &v, &e) {
+				if self.method.exec(&u, &v, &e) {
+					if !visited.contains(v.key()) {
 						visited.insert(v.key().clone());
 						result.push((u, v.clone(), e));
 						if self.target.is_some() && self.target.unwrap() == v.key() {
 							return true;
 						}
-						queue.push(v.clone());
+						queue.push(Reverse(v.clone()));
 					}
 				}
 			}
@@ -132,12 +135,12 @@ where
 		&self,
 		result: &mut Vec<Edge<K, N, E>>,
 		visited: &mut HashSet<K>,
-		queue: &mut FibonacciHeap<Node<K, N, E>>,
+		queue: &mut BinaryHeap<Node<K, N, E>>,
 	) -> bool {
 		while let Some(node) = queue.pop() {
 			for (u, v, e) in node.iter_out() {
-				if !visited.contains(v.key()) {
-					if self.method.exec(&u, &v, &e) {
+				if self.method.exec(&u, &v, &e) {
+					if !visited.contains(v.key()) {
 						visited.insert(v.key().clone());
 						result.push((u, v.clone(), e));
 						if self.target.is_some() && self.target.unwrap() == v.key() {
@@ -155,12 +158,12 @@ where
 		&self,
 		result: &mut Vec<Edge<K, N, E>>,
 		visited: &mut HashSet<K>,
-		queue: &mut FibonacciHeap<Node<K, N, E>>,
+		queue: &mut BinaryHeap<Node<K, N, E>>,
 	) -> bool {
 		while let Some(node) = queue.pop() {
 			for (v, u, e) in node.iter_in() {
-				if !visited.contains(v.key()) {
-					if self.method.exec(&u, &v, &e) {
+				if self.method.exec(&u, &v, &e) {
+					if !visited.contains(v.key()) {
 						visited.insert(v.key().clone());
 						result.push((u, v.clone(), e));
 						if self.target.is_some() && self.target.unwrap() == v.key() {
@@ -185,22 +188,21 @@ where
 	pub fn search_cycle(&'a mut self) -> Option<Path<K, N, E>> {
 		let mut edges = vec![];
 		let mut visited = HashSet::default();
-		let mut queue = match self.priority {
-			Priority::Min => FibonacciHeap::init_min(),
-			Priority::Max => FibonacciHeap::init_max(),
-		};
 		let target_found;
 
 		self.target = Some(self.root.key());
-		queue.push(self.root.clone());
 
 		match self.transpose {
 			Transposition::Outbound => {
 				match self.priority {
 					Priority::Min => {
+						let mut queue = BinaryHeap::new();
+						queue.push(Reverse(self.root.clone()));
 						target_found = self.forward_min(&mut edges, &mut visited, &mut queue);
 					}
 					Priority::Max => {
+						let mut queue = BinaryHeap::new();
+						queue.push(self.root.clone());
 						target_found = self.forward_max(&mut edges, &mut visited, &mut queue);
 					}
 				}
@@ -208,9 +210,13 @@ where
 			Transposition::Inbound => {
 				match self.priority {
 					Priority::Min => {
+						let mut queue = BinaryHeap::new();
+						queue.push(Reverse(self.root.clone()));
 						target_found = self.backward_min(&mut edges, &mut visited, &mut queue);
 					}
 					Priority::Max => {
+						let mut queue = BinaryHeap::new();
+						queue.push(self.root.clone());
 						target_found = self.backward_max(&mut edges, &mut visited, &mut queue);
 					}
 				}
@@ -225,22 +231,21 @@ where
 	pub fn search_path(&mut self) -> Option<Path<K, N, E>> {
 		let mut edges = vec![];
 		let mut visited = HashSet::default();
-		let mut queue = match self.priority {
-			Priority::Min => FibonacciHeap::init_min(),
-			Priority::Max => FibonacciHeap::init_max(),
-		};
 		let target_found;
 
-		queue.push(self.root.clone());
 		visited.insert(self.root.key().clone());
 
 		match self.transpose {
 			Transposition::Outbound => {
 				match self.priority {
 					Priority::Min => {
+						let mut queue = BinaryHeap::new();
+						queue.push(Reverse(self.root.clone()));
 						target_found = self.forward_min(&mut edges, &mut visited, &mut queue);
 					}
 					Priority::Max => {
+						let mut queue = BinaryHeap::new();
+						queue.push(self.root.clone());
 						target_found = self.forward_max(&mut edges, &mut visited, &mut queue);
 					}
 				}
@@ -248,9 +253,13 @@ where
 			Transposition::Inbound => {
 				match self.priority {
 					Priority::Min => {
+						let mut queue = BinaryHeap::new();
+						queue.push(Reverse(self.root.clone()));
 						target_found = self.backward_min(&mut edges, &mut visited, &mut queue);
 					}
 					Priority::Max => {
+						let mut queue = BinaryHeap::new();
+						queue.push(self.root.clone());
 						target_found = self.backward_max(&mut edges, &mut visited, &mut queue);
 					}
 				}

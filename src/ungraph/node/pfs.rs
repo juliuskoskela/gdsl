@@ -5,7 +5,7 @@ use std::{
     hash::Hash,
 };
 
-use fnv::FnvHashSet as HashSet;
+use ahash::HashSet as HashSet;
 use min_max_heap::MinMaxHeap;
 
 use crate::ungraph::node::*;

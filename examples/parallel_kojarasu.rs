@@ -6,8 +6,8 @@
 // https://en.wikipedia.org/wiki/Kosaraju%27s_algorithm
 
 use gdsl::{
-	async_digraph as graph,
-	async_digraph::*
+	sync_digraph as graph,
+	sync_digraph::*
 };
 
 use std::collections::HashSet;

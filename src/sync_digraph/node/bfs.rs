@@ -8,7 +8,7 @@ use std::{
 
 use ahash::AHashSet as HashSet;
 
-use crate::async_digraph::node::*;
+use crate::sync_digraph::node::*;
 use self::{method::*, path::*};
 
 pub struct BFS<'a, K, N, E>

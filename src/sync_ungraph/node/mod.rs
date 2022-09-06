@@ -16,7 +16,7 @@
 //!   and is used to store data associated with the edge.
 //!
 //! ```
-//! use gdsl::digraph::*;
+//! use gdsl::ungraph::*;
 //!
 //! type N<'a> = Node<usize, &'a str, f64>;
 //!
@@ -24,12 +24,12 @@
 //! ```
 //!
 //! For an inner value type to be mutable, it must be wrapped in a mutable
-//! pointer such as a `Cell`, `RefCell`, or `Mutex`.
+//! pointer such as a `Cell`, `RwLock`, or `Mutex`.
 //!
 //! Node's are wrapped in a reference counted smart pointer. This means
 //! that a node can be cloned and shared among multiple owners.
 //!
-//! This node uses `Rc` for reference counting, thus it is not thread-safe.
+//! This node uses `Arc` for reference counting, thus it is thread-safe.
 
 mod method;
 mod order;
@@ -41,9 +41,8 @@ mod path;
 use std::{
     fmt::Display,
     hash::Hash,
-	cell::RefCell,
+	sync::{RwLock, Arc, Weak},
     ops::Deref,
-    rc::{Rc, Weak},
 };
 
 use self::{
@@ -70,7 +69,7 @@ pub type Edge<K, N, E> = (Node<K, N, E>, Node<K, N, E>, E);
 /// # Example
 ///
 /// ```
-/// use gdsl::digraph::*;
+/// use gdsl::ungraph::*;
 ///
 /// let a = Node::new(0x1, "A");
 /// let b = Node::new(0x2, "B");
@@ -81,7 +80,7 @@ pub type Edge<K, N, E> = (Node<K, N, E>, Node<K, N, E>, E);
 /// b.connect(&c, 0.09);
 /// c.connect(&b, 12.9);
 ///
-/// let (u, v, e) = a.iter_out().next().unwrap();
+/// let (u, v, e) = a.iter().next().unwrap();
 ///
 /// assert!(u == a);
 /// assert!(v == b);
@@ -94,7 +93,7 @@ where
     N: Clone,
     E: Clone,
 {
-	inner: Rc<NodeInner<K, N, E>>,
+	inner: Arc<NodeInner<K, N, E>>,
 }
 
 impl<K, N, E> Node<K, N, E>
@@ -111,7 +110,7 @@ where
 	/// # Example
 	///
 	/// ```
-	///	use gdsl::digraph::*;
+	///	use gdsl::ungraph::*;
 	///
 	///	let n1 = Node::<i32, char, ()>::new(1, 'A');
 	///
@@ -120,7 +119,7 @@ where
 	/// ```
     pub fn new(key: K, value: N) -> Self {
 		Node {
-			inner: Rc::new(NodeInner {
+			inner: Arc::new(NodeInner {
 				key,
 				value,
 				edges: Adjacent::new(),
@@ -133,7 +132,7 @@ where
 	/// # Example
 	///
 	/// ```
-	///	use gdsl::digraph::*;
+	///	use gdsl::ungraph::*;
 	///
 	///	let n1 = Node::<i32, (), ()>::new(1, ());
 	///
@@ -148,7 +147,7 @@ where
 	/// # Example
 	///
 	/// ```
-	///	use gdsl::digraph::*;
+	///	use gdsl::ungraph::*;
 	///
 	///	let n1 = Node::<i32, char, ()>::new(1, 'A');
 	///
@@ -166,7 +165,7 @@ where
 	/// # Example
 	///
 	/// ```
-	/// use gdsl::digraph::*;
+	/// use gdsl::ungraph::*;
 	///
 	///	let n1 = Node::new(1, ());
 	///	let n2 = Node::new(2, ());
@@ -191,7 +190,7 @@ where
 	/// # Example
 	///
 	/// ```
-	///	use gdsl::digraph::*;
+	///	use gdsl::ungraph::*;
 	///
 	///	let n1 = Node::new(1, ());
 	///	let n2 = Node::new(2, ());
@@ -222,7 +221,7 @@ where
 	/// # Example
 	///
 	/// ```
-	///	use gdsl::digraph::*;
+	///	use gdsl::ungraph::*;
 	///
 	///	let n1 = Node::new(1, ());
 	///	let n2 = Node::new(2, ());
@@ -238,7 +237,7 @@ where
 	///	assert!(!n1.is_connected(n2.key()));
 	/// ```
 	pub fn disconnect(&self, other: &K) -> Result<E, ()> {
-		match self.find_outbound(other) {
+		match self.find_adjacent(other) {
 			Some(other) => {
 				match self.inner.edges.remove_outbound(other.key()) {
 					Ok(edge) => {
@@ -257,7 +256,7 @@ where
 	/// # Example
 	///
 	/// ```
-	///	use gdsl::digraph::*;
+	///	use gdsl::ungraph::*;
 	///
 	///	let n1 = Node::new(1, ());
 	///	let n2 = Node::new(2, ());
@@ -280,56 +279,39 @@ where
 	///	assert!(n1.is_orphan());
 	/// ```
 	pub fn isolate(&self) {
-		for (_, v, _) in self.iter_out() {
-			v.inner.edges.remove_inbound(self.key()).unwrap();
-		}
-		for (v, _, _) in self.iter_in() {
-			v.inner.edges.remove_outbound(self.key()).unwrap();
+		for (_, v, _) in self.iter() {
+			if v.inner.edges.remove_inbound(self.key()).is_err() {
+				v.inner.edges.remove_outbound(self.key()).unwrap();
+			}
 		}
 		self.inner.edges.clear_outbound();
 		self.inner.edges.clear_inbound();
 	}
 
-	/// Returns true if the node is a root node. Root nodes are nodes that have
-	/// no incoming connections.
-	pub fn is_root(&self) -> bool {
-		self.inner.edges.len_inbound() == 0
-	}
-
-	/// Returns true if the node is a leaf node. Leaf nodes are nodes that have
-	/// no outgoing connections.
-	pub fn is_leaf(&self) -> bool {
-		self.inner.edges.len_outbound() == 0
-	}
-
 	/// Returns true if the node is an oprhan. Orphan nodes are nodes that have
 	/// no connections.
 	pub fn is_orphan(&self) -> bool {
-		self.is_root() && self.is_leaf()
+		self.inner.edges.len_outbound() == 0 && self.inner.edges.len_inbound() == 0
 	}
 
 	/// Returns true if the node is connected to another node with a given key.
 	pub fn is_connected(&self, other: &K) -> bool {
-		self.find_outbound(other).is_some()
+		self.find_adjacent(other).is_some()
 	}
 
 	/// Get a pointer to an adjacent node with a given key. Returns None if no
 	/// node with the given key is found from the node's adjacency list.
-	pub fn find_outbound(&self, other: &K) -> Option<Node<K, N, E>> {
+	pub fn find_adjacent(&self, other: &K) -> Option<Node<K, N, E>> {
 		let edge = self.inner.edges.find_outbound(other);
 		if let Some(edge) = edge {
 			Some(edge.target().clone())
 		} else {
-			None
-		}
-	}
-
-	pub fn find_inbound(&self, other: &K) -> Option<Node<K, N, E>> {
-		let edge = self.inner.edges.find_inbound(other);
-		if let Some(edge) = edge {
-			Some(edge.target().clone())
-		} else {
-			None
+			let edge = self.inner.edges.find_inbound(other);
+			if let Some(edge) = edge {
+				Some(edge.target().clone())
+			} else {
+				None
+			}
 		}
 	}
 
@@ -362,20 +344,15 @@ where
 		PFS::new(self)
 	}
 
-	/// Returns an iterator over the node's outbound edges.
-	pub fn iter_out(&self) -> NodeOutboundIterator<K, N, E> {
-		NodeOutboundIterator { node: self, position: 0 }
-	}
-
-	/// Returns an iterator over the node's inbound edges.
-	pub fn iter_in(&self) -> NodeInboundIterator<K, N, E> {
-		NodeInboundIterator { node: self, position: 0 }
+	/// Returns an iterator over the node's adjacent edges.
+	pub fn iter(&self) -> NodeIterator<K, N, E> {
+		NodeIterator { node: self, position: 0 }
 	}
 
 	pub fn sizeof(&self) -> usize {
 		let len_in = self.inner.edges.len_inbound();
 		let len_out = self.inner.edges.len_outbound();
-		let size_edges = (len_in + len_out) * std::mem::size_of::<EdgeInner<K, N, E>>();
+		let size_edges = (len_in + len_out) * std::mem::size_of::<Edge<K, N, E>>();
 		let size_node_inner = std::mem::size_of::<NodeInner<K, N, E>>();
 		size_edges + size_node_inner + 8
 	}
@@ -435,7 +412,7 @@ where
     }
 }
 
-pub struct NodeOutboundIterator<'a, K, N, E>
+pub struct NodeIterator<'a, K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
 	N: Clone,
@@ -445,7 +422,7 @@ where
 	position: usize,
 }
 
-impl<'a, K, N, E> Iterator for NodeOutboundIterator<'a, K, N, E>
+impl<'a, K, N, E> Iterator for NodeIterator<'a, K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
 	N: Clone,
@@ -454,7 +431,8 @@ where
 	type Item = (Node<K, N, E>, Node<K, N, E>, E);
 
 	fn next(&mut self) -> Option<Self::Item> {
-		match self.node.inner.edges.get_outbound(self.position) {
+		let adjacent = &self.node.inner.edges;
+		match adjacent.get_outbound(self.position) {
 			Some(current) => {
 				self.position += 1;
 				Some((
@@ -463,40 +441,19 @@ where
 					current.value.clone()
 				))
 			}
-			None => None,
-		}
-	}
-}
-
-pub struct NodeInboundIterator<'a, K, N, E>
-where
-	K: Clone + Hash + Display + PartialEq + Eq,
-	N: Clone,
-	E: Clone,
-{
-	node: &'a Node<K, N, E>,
-	position: usize,
-}
-
-impl<'a, K, N, E> Iterator for NodeInboundIterator<'a, K, N, E>
-where
-	K: Clone + Hash + Display + PartialEq + Eq,
-	N: Clone,
-	E: Clone,
-{
-	type Item = (Node<K, N, E>, Node<K, N, E>, E);
-
-	fn next(&mut self) -> Option<Self::Item> {
-		match self.node.inner.edges.get_inbound(self.position) {
-			Some(current) => {
-				self.position += 1;
-				Some((
-					current.target().clone(),
-					self.node.clone(),
-					current.value.clone()
-				))
-			}
-			None => None,
+			None => {
+				match adjacent.get_inbound(self.position - adjacent.len_outbound()) {
+					Some(current) => {
+						self.position += 1;
+						Some((
+							self.node.clone(),
+							current.target().clone(),
+							current.value.clone()
+						))
+					}
+					None => None
+				}
+			},
 		}
 	}
 }
@@ -508,10 +465,10 @@ where
 	E: Clone,
 {
 	type Item = (Node<K, N, E>, Node<K, N, E>, E);
-	type IntoIter = NodeOutboundIterator<'a, K, N, E>;
+	type IntoIter = NodeIterator<'a, K, N, E>;
 
 	fn into_iter(self) -> Self::IntoIter {
-		NodeOutboundIterator { node: self, position: 0 }
+		NodeIterator { node: self, position: 0 }
 	}
 }
 
@@ -550,7 +507,7 @@ where
 
 	fn downgrade(node: &Node<K, N, E>) -> Self {
 		WeakNode {
-			inner: Rc::downgrade(&node.inner)
+			inner: Arc::downgrade(&node.inner)
 		}
 	}
 }
@@ -608,7 +565,7 @@ where
 	N: Clone,
 	E: Clone,
 {
-	edges: RefCell<AdjacentInner<K, N, E>>,
+	edges: Arc<RwLock<AdjacentInner<K, N, E>>>,
 }
 
 #[derive(Clone)]
@@ -630,53 +587,53 @@ where
 {
 	fn new() -> Self {
 		Self {
-			edges: RefCell::new(AdjacentInner {
+			edges: Arc::new(RwLock::new(AdjacentInner {
 				outbound: Vec::new(),
 				inbound: Vec::new(),
-			}),
+			})),
 		}
 	}
 
 	fn get_outbound(&self, idx: usize) -> Option<EdgeInner<K, N, E>> {
-		let edges = self.edges.borrow();
+		let edges = self.edges.read().unwrap();
 		edges.outbound.get(idx).cloned()
 	}
 
 	fn get_inbound(&self, idx: usize) -> Option<EdgeInner<K, N, E>> {
-		let edges = self.edges.borrow();
+		let edges = self.edges.read().unwrap();
 		edges.inbound.get(idx).cloned()
 	}
 
 	fn find_outbound(&self, node: &K) -> Option<EdgeInner<K, N, E>> {
-		let edges = self.edges.borrow();
+		let edges = self.edges.read().unwrap();
 		edges.outbound.iter().find(|edge| edge.target().key() == node).cloned()
 	}
 
 	fn find_inbound(&self, node: &K) -> Option<EdgeInner<K, N, E>> {
-		let edges = self.edges.borrow();
+		let edges = self.edges.read().unwrap();
 		edges.inbound.iter().find(|edge| edge.target().key() == node).cloned()
 	}
 
 	fn len_outbound(&self) -> usize {
-		let edges = self.edges.borrow();
+		let edges = self.edges.read().unwrap();
 		edges.outbound.len()
 	}
 
 	fn len_inbound(&self) -> usize {
-		let edges = self.edges.borrow();
+		let edges = self.edges.read().unwrap();
 		edges.inbound.len()
 	}
 
 	fn push_inbound(&self, edge: EdgeInner<K, N, E>) {
-		self.edges.borrow_mut().inbound.push(edge);
+		self.edges.write().unwrap().inbound.push(edge);
 	}
 
 	fn push_outbound(&self, edge: EdgeInner<K, N, E>) {
-		self.edges.borrow_mut().outbound.push(edge);
+		self.edges.write().unwrap().outbound.push(edge);
 	}
 
 	fn remove_inbound(&self, source: &K) -> Result<E, ()> {
-		let mut edges = self.edges.borrow_mut();
+		let mut edges = self.edges.write().unwrap();
 		let idx = edges.inbound.iter().position(|edge| edge.target().key() == source);
 		match idx {
 			Some(idx) => {
@@ -688,7 +645,7 @@ where
 	}
 
 	fn remove_outbound(&self, target: &K) -> Result<E, ()> {
-		let mut edges = self.edges.borrow_mut();
+		let mut edges = self.edges.write().unwrap();
 		let idx = edges.outbound.iter().position(|edge| edge.target().key() == target);
 		match idx {
 			Some(idx) => {
@@ -700,32 +657,12 @@ where
 	}
 
 	fn clear_inbound(&self) {
-		self.edges.borrow_mut().inbound.clear();
+		self.edges.write().unwrap().inbound.clear();
 	}
 
 	fn clear_outbound(&self) {
-		self.edges.borrow_mut().outbound.clear();
+		self.edges.write().unwrap().outbound.clear();
 	}
-}
-
-trait NodeAdjacencyList<K, N, E>
-where
-	K: Clone + Hash + PartialEq + Eq + Display,
-	N: Clone,
-	E: Clone,
-{
-	fn get_outbound(&self, idx: usize) -> Option<EdgeInner<K, N, E>>;
-	fn get_inbound(&self, idx: usize) -> Option<EdgeInner<K, N, E>>;
-	fn find_outbound(&self, node: &K) -> Option<EdgeInner<K, N, E>>;
-	fn find_inbound(&self, node: &K) -> Option<EdgeInner<K, N, E>>;
-	fn len_outbound(&self) -> usize;
-	fn len_inbound(&self) -> usize;
-	fn push_inbound(&self, edge: EdgeInner<K, N, E>);
-	fn push_outbound(&self, edge: EdgeInner<K, N, E>);
-	fn remove_inbound(&self, source: &K) -> Result<E, ()>;
-	fn remove_outbound(&self, target: &K) -> Result<E, ()>;
-	fn clear_inbound(&self);
-	fn clear_outbound(&self);
 }
 
 //==== EOF ====================================================================

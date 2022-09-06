@@ -6,7 +6,7 @@ use std::{
 	// collections::HashSet
 };
 
-use fnv::FnvHashSet as HashSet;
+use ahash::HashSet as HashSet;
 use crate::ungraph::node::*;
 
 use self::{method::*, path::*};
