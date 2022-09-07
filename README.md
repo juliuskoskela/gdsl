@@ -269,3 +269,5 @@ assert!(g['E'].take() == 21);
 ## Similar Crates
 
 - [Petgraph](https://docs.rs/petgraph/latest/petgraph/) is probably the most used graph library in Rust. Offers more graph representations, but all are tied to a container.
+
+[crates]: https://img.shields.io/crates/v/gdsl
