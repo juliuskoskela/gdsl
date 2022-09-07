@@ -1,8 +1,8 @@
 # Graph Data Structure Library
 
-[![crates][]](https://crates.io/crates/gdsl/)
+[![crates][]](https://crates.io/crates/gdsl/) [![license][]]
 
-[API Documentation](https://docs.rs/gdsl/latest/gdsl/)
+You can find the [API Documentation here](https://docs.rs/gdsl/latest/gdsl/)
 
 GDSL is a graph data structure library providing efficient and easy-to-use
 abstractions for working with connected nodes and graphs. Contrary to many other
@@ -71,12 +71,12 @@ graph.
 
 ```rust
 for (u, v, e) in &node {
-    println("{} -> {} : {}", u.key(), v.key(), e);
+    println!("{} -> {} : {}", u.key(), v.key(), e);
 }
 
-// Transposed iteration i.e. iterating the inbound edges of a node.
+// Transposed iteration i.e. iterating the inbound edges of a node in digrap.
 for (u, v, e) in node.iter_in() {
-    println("{} <- {} : {}", u.key(), v.key(), e);
+    println!("{} <- {} : {}", u.key(), v.key(), e);
 }
 ```
 
@@ -266,8 +266,14 @@ g['A'].pfs().map(&|u, v, e| {
 assert!(g['E'].take() == 21);
 
 ```
+
 ## Similar Crates
 
 - [Petgraph](https://docs.rs/petgraph/latest/petgraph/) is probably the most used graph library in Rust. Offers more graph representations, but all are tied to a container.
 
+## Contact Developer
+
+me@juliuskoskela.dev
+
 [crates]: https://img.shields.io/crates/v/gdsl
+[license]: https://img.shields.io/apm/l/vim-mode
