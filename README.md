@@ -1,6 +1,6 @@
 # Graph Data Structure Library
 
-[![crates][]](https://crates.io/crates/petgraph)
+[![crates][]](https://crates.io/crates/gdsl/)
 
 [API Documentation](https://docs.rs/gdsl/latest/gdsl/)
 
