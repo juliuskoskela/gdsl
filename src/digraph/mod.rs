@@ -1,3 +1,45 @@
+//! # Directed Graph
+//!
+//! This module containes the implementation of a directed graph and its
+//! node-type and algorithms.
+//!
+//! - `Graph` is a container type for a directed graph.
+//! - `Node` is a node type for a directed graph.
+//! - An edge is denoted by a tuple `(u, v, e)` where `u` and `v` are the
+//!  source and target node and `e` is the edge parameter.
+//!
+//! # Example
+//!
+//! ```
+//! use gdsl::digraph::*;
+//!
+//! let mut g: Graph<usize, (), ()> = Graph::new();
+//!
+//! g.insert(Node::new(0, ()));
+//! g.insert(Node::new(1, ()));
+//! g.insert(Node::new(2, ()));
+//! g.insert(Node::new(3, ()));
+//! g.insert(Node::new(4, ()));
+//!
+//! g[0].connect(&g[1], ());
+//! g[0].connect(&g[2], ());
+//! g[0].connect(&g[3], ());
+//! g[1].connect(&g[3], ());
+//! g[2].connect(&g[4], ());
+//! g[3].connect(&g[2], ());
+//! g[3].connect(&g[0], ());	// 3 points back to 0 creating a cycle
+//!
+//! let cycle = g[0]			// We start at node 0
+//! 	.bfs()					// We use a breadth-first search
+//! 	.search_cycle()			// We search for a cycle
+//! 	.unwrap()				// Returns `Option<Path<usize, (), ()>>`
+//! 	.to_vec_nodes();		// Path is converted to a vector of nodes
+//!
+//! assert!(cycle[0] == g[0]);
+//! assert!(cycle[1] == g[3]);
+//! assert!(cycle[2] == g[0]);
+//! ```
+
 mod graph_macros;
 mod graph_serde;
 mod node;
@@ -286,25 +328,51 @@ where
         self.nodes.iter()
     }
 
-    fn scc_ordering(&self) -> Vec<Node<K, N, E>> {
-        let mut visited = HashSet::new();
-        let mut ordering = Vec::new();
-
-        for (_, next) in self.iter() {
-            if !visited.contains(next.key()) {
-                let partition = next
-                    .postorder()
-                    .filter(&|_, v, _| !visited.contains(v.key()))
-                    .search_nodes();
-                for node in &partition {
-                    visited.insert(node.key().clone());
-                    ordering.push(node.clone());
-                }
-            }
-        }
-        ordering
-    }
-
+	/// Find the strongly connected components of the graph. Can be used to
+	/// find cycles in the graph and for topological sorting.
+	///
+	/// # Examples
+	///
+	/// ```
+	/// use gdsl::digraph::*;
+	///
+	/// let mut g: Graph<usize, (), ()> = Graph::new();
+	///
+	/// g.insert(Node::new(0, ()));
+	/// g.insert(Node::new(1, ()));
+	/// g.insert(Node::new(2, ()));
+	/// g.insert(Node::new(3, ()));
+	/// g.insert(Node::new(4, ()));
+	/// g.insert(Node::new(5, ()));
+	/// g.insert(Node::new(6, ()));
+	/// g.insert(Node::new(7, ()));
+	/// g.insert(Node::new(8, ()));
+	/// g.insert(Node::new(9, ()));
+	///
+	/// g[0].connect(&g[1], ());	// ---- C1
+	/// g[1].connect(&g[2], ());	//
+	/// g[2].connect(&g[0], ());	//
+	/// g[3].connect(&g[4], ());	// ---- C2
+	/// g[4].connect(&g[5], ());	//
+	/// g[5].connect(&g[3], ());	//
+	/// g[6].connect(&g[7], ());	// ---- C3
+	/// g[7].connect(&g[8], ());	//
+	/// g[8].connect(&g[6], ());	//
+	/// g[9].connect(&g[9], ());	// ---- C4
+	///
+	/// let mut scc = g.scc();
+	///
+	/// // Since the graph container is a hash map, the order of the SCCs is
+	/// // not deterministic. We sort the SCCs by their size to make the test
+	/// // deterministic.
+	/// scc.sort_by(|a, b| a.len().cmp(&b.len()));
+	///
+	/// assert!(scc.len() == 4);
+	/// assert!(scc[0].len() == 1);
+	/// assert!(scc[1].len() == 3);
+	/// assert!(scc[2].len() == 3);
+	/// assert!(scc[3].len() == 3);
+	/// ```
     pub fn scc(&self) -> Vec<Vec<Node<K, N, E>>> {
         let mut invariant = HashSet::new();
         let mut components = Vec::new();
@@ -334,6 +402,25 @@ where
             }
         }
         components
+    }
+
+	fn scc_ordering(&self) -> Vec<Node<K, N, E>> {
+        let mut visited = HashSet::new();
+        let mut ordering = Vec::new();
+
+        for (_, next) in self.iter() {
+            if !visited.contains(next.key()) {
+                let partition = next
+                    .postorder()
+                    .filter(&|_, v, _| !visited.contains(v.key()))
+                    .search_nodes();
+                for node in &partition {
+                    visited.insert(node.key().clone());
+                    ordering.push(node.clone());
+                }
+            }
+        }
+        ordering
     }
 
     pub fn to_dot(&self) -> String {
@@ -393,8 +480,8 @@ where
 
     pub fn sizeof(&self) -> usize {
         let mut size = 0;
-        for (_, node) in self.iter() {
-            size += node.sizeof();
+        for (k, node) in self.iter() {
+            size += node.sizeof() + std::mem::size_of_val(k);
         }
         size
     }

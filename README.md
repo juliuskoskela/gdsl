@@ -18,6 +18,12 @@ depth-firs and priority-first traversals as well as post- and preordering.
 
 - Macros for creating inline graphs in an easy-to-read style.
 
+- Removing or inserting connections or otherwise manipulating the graph
+or any of its nodes is stable. Any references to nodes or edges remain
+consistent. This is due to not relying on an underlying container where
+nodes and edges would be represented as separate lists and indexed into,
+in GDSL a node "owns" all it's incoming and outgoing connections.
+
 - Graphs implement Serde's serialization and deserialization.
 
 Motivation for creating this library has been to explore the idea of graphs and
@@ -254,3 +260,6 @@ g['A'].pfs().map(&|u, v, e| {
 assert!(g['E'].take() == 21);
 
 ```
+## Similar Crates
+
+- [Petgraph](https://docs.rs/petgraph/latest/petgraph/) is probably the most used graph library in Rust. Offers more graph representations, but all are tied to a container.

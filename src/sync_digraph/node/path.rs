@@ -1,9 +1,5 @@
-use std::{
-    fmt::Display,
-    hash::Hash, ops::Index,
-};
-
-use crate::sync_digraph::node::*;
+use std::{fmt::Display, hash::Hash, ops::Index};
+use super::*;
 
 pub fn backtrack_edge_tree<K, N, E>(edge_tree: Vec<Edge<K, N, E>>) -> Vec<Edge<K, N, E>>
 where
@@ -46,6 +42,13 @@ where
 	N: Clone,
 	E: Clone,
 {
+	pub fn len(&self) -> usize {
+		// Conceptually a path always contains at least one node,
+		// the root node. The path containes edges, so the length
+		// of the path is the number of edges plus one.
+		self.edges.len() + 1
+	}
+
 	pub fn from_edge_tree(edge_tree: Vec<Edge<K, N, E>>) -> Path<K, N, E> {
 		Path { edges: backtrack_edge_tree(edge_tree) }
 	}

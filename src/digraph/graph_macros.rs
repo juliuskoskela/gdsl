@@ -80,9 +80,9 @@ macro_rules! digraph {
 			for (s, t) in edges {
 				if !g.contains(&s) || !g.contains(&t) {
 					if !g.contains(&s) {
-						panic!("Check your macro invocation: \"{}\" is not in the graph", s);
+						panic!("Check your macro invocation, \"{}\" is not in the graph", s);
 					} else {
-						panic!("Check your macro invocation: \"{}\" is not in the graph", t);
+						panic!("Check your macro invocation, \"{}\" is not in the graph", t);
 					}
 				}
 				let s = g.get(&s).unwrap();
@@ -115,9 +115,9 @@ macro_rules! digraph {
 			for (s, t) in edges {
 				if !g.contains(&s) || !g.contains(&t) {
 					if !g.contains(&s) {
-						panic!("Check your macro invocation: \"{}\" is not in the graph", s);
+						panic!("Check your macro invocation, \"{}\" is not in the graph", s);
 					} else {
-						panic!("Check your macro invocation: \"{}\" is not in the graph", t);
+						panic!("Check your macro invocation, \"{}\" is not in the graph", t);
 					}
 				}
 				let s = g.get(&s).unwrap();
@@ -150,9 +150,9 @@ macro_rules! digraph {
 			for (s, t, param) in edges {
 				if !g.contains(&s) || !g.contains(&t) {
 					if !g.contains(&s) {
-						panic!("Check your macro invocation: \"{}\" is not in the graph", s);
+						panic!("Check your macro invocation, \"{}\" is not in the graph", s);
 					} else {
-						panic!("Check your macro invocation: \"{}\" is not in the graph", t);
+						panic!("Check your macro invocation, \"{}\" is not in the graph", t);
 					}
 				}
 				let s = g.get(&s).unwrap();
@@ -185,9 +185,9 @@ macro_rules! digraph {
 			for (s, t, param) in edges {
 				if !g.contains(&s) || !g.contains(&t) {
 					if !g.contains(&s) {
-						panic!("Check your macro invocation: \"{}\" is not in the graph", s);
+						panic!("Check your macro invocation, \"{}\" is not in the graph", s);
 					} else {
-						panic!("Check your macro invocation: \"{}\" is not in the graph", t);
+						panic!("Check your macro invocation, \"{}\" is not in the graph", t);
 					}
 				}
 				let s = g.get(&s).unwrap();

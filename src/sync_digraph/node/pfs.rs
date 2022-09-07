@@ -1,17 +1,12 @@
-//==== Includes ===============================================================
-
 use std::{
     fmt::Display,
     hash::Hash,
+	collections::BinaryHeap,
+	cmp::Reverse
 };
-
+use super::{*, method::*, path::*};
 use ahash::AHashSet as HashSet;
-// use min_max_heap::BinaryHeap;
-use std::collections::BinaryHeap;
-use std::cmp::Reverse;
-use crate::sync_digraph::node::*;
-use self::method::*;
-use self::path::*;
+
 
 enum Priority {
 	Min,
@@ -92,8 +87,8 @@ where
 		while let Some(node) = queue.pop() {
 			let node = node.0;
 			for (u, v, e) in node.iter_out() {
-				if self.method.exec(&u, &v, &e) {
-					if !visited.contains(v.key()) {
+				if !visited.contains(v.key()) {
+					if self.method.exec(&u, &v, &e) {
 						visited.insert(v.key().clone());
 						result.push((u, v.clone(), e));
 						if self.target.is_some() && self.target.unwrap() == v.key() {
