@@ -1,5 +1,9 @@
 # Graph Data Structure Library
 
+[![crates][]](https://crates.io/crates/petgraph)
+
+[API Documentation](https://docs.rs/gdsl/latest/gdsl/)
+
 GDSL is a graph data structure library providing efficient and easy-to-use
 abstractions for working with connected nodes and graphs. Contrary to many other
 graph implementations, in GDSL a graph is mostly just a container and the
@@ -22,7 +26,9 @@ depth-firs and priority-first traversals as well as post- and preordering.
 or any of its nodes is stable. Any references to nodes or edges remain
 consistent. This is due to not relying on an underlying container where
 nodes and edges would be represented as separate lists and indexed into,
-in GDSL a node "owns" all it's incoming and outgoing connections.
+in GDSL a node "owns" all it's incoming and outgoing connections. On the other
+hand, each node represents a heap allocation and store's its adjacent
+edges inside a `RefCell` or an `RwLock`.
 
 - Graphs implement Serde's serialization and deserialization.
 
