@@ -1,7 +1,8 @@
-//! # Directed Graph
+//! # Sync Directed Graph
 //!
-//! This module containes the implementation of a directed graph and its
-//! node-type and algorithms.
+//! This module containes the implementation of a sync directed graph and its
+//! node-type and algorithms. Sync means that the nodes and edges are wrapped in
+//! a `Arc` and `RwLock` to allow for concurrent access.
 //!
 //! - `Graph` is a container type for a directed graph.
 //! - `Node` is a node type for a directed graph.
@@ -11,7 +12,7 @@
 //! # Example
 //!
 //! ```
-//! use gdsl::digraph::*;
+//! use gdsl::sync_digraph::*;
 //!
 //! let mut g: Graph<usize, (), ()> = Graph::new();
 //!
@@ -44,7 +45,7 @@ mod graph_macros;
 mod graph_serde;
 mod node;
 
-pub use crate::digraph::node::*;
+pub use crate::sync_digraph::node::*;
 use ahash::{AHashMap as HashMap, AHashSet as HashSet};
 use std::{fmt::Display, hash::Hash};
 
@@ -73,7 +74,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// use gdsl::digraph::*;
+    /// use gdsl::sync_digraph::*;
     ///
     /// let mut g = Graph::<&str, u64, u64>::new();
     /// ```
@@ -88,7 +89,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// use gdsl::digraph::*;
+    /// use gdsl::sync_digraph::*;
     ///
     /// let mut g = Graph::<&str, u64, u64>::new();
     ///
@@ -105,7 +106,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// use gdsl::digraph::*;
+    /// use gdsl::sync_digraph::*;
     ///
     /// let mut g = Graph::<&str, u64, u64>::new();
     ///
@@ -125,7 +126,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// use gdsl::digraph::*;
+    /// use gdsl::sync_digraph::*;
     ///
     /// let mut g = Graph::<&str, u64, u64>::new();
     ///
@@ -146,7 +147,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// use gdsl::digraph::*;
+    /// use gdsl::sync_digraph::*;
     ///
     /// let mut g = Graph::<&str, u64, u64>::new();
     ///
@@ -161,7 +162,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// use gdsl::digraph::*;
+    /// use gdsl::sync_digraph::*;
     ///
     /// let mut g = Graph::<&str, u64, u64>::new();
     ///
@@ -184,7 +185,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// use gdsl::digraph::*;
+    /// use gdsl::sync_digraph::*;
     ///
     /// let mut g = Graph::<&str, u64, u64>::new();
     ///
@@ -206,7 +207,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// use gdsl::digraph::*;
+    /// use gdsl::sync_digraph::*;
     ///
     /// let mut g = Graph::<&str, u64, u64>::new();
     ///
@@ -227,7 +228,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// use gdsl::digraph::*;
+    /// use gdsl::sync_digraph::*;
     ///
     /// let mut g = Graph::<&str, u64, u64>::new();
     ///
@@ -256,7 +257,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// use gdsl::digraph::*;
+    /// use gdsl::sync_digraph::*;
     ///
     /// let mut g = Graph::<&str, u64, u64>::new();
     ///
@@ -284,7 +285,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// use gdsl::digraph::*;
+    /// use gdsl::sync_digraph::*;
     ///
     /// let mut g = Graph::<&str, u64, u64>::new();
     ///
@@ -312,7 +313,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// use gdsl::digraph::*;
+    /// use gdsl::sync_digraph::*;
     ///
     /// let mut g = Graph::<&str, u64, u64>::new();
     ///
@@ -334,7 +335,7 @@ where
 	/// # Examples
 	///
 	/// ```
-	/// use gdsl::digraph::*;
+	/// use gdsl::sync_digraph::*;
 	///
 	/// let mut g: Graph<usize, (), ()> = Graph::new();
 	///

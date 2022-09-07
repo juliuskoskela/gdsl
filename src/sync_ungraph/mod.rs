@@ -1,8 +1,12 @@
 //! Undirected Graph
 
+//==== Submodules =============================================================
+
 mod node;
 mod graph_macros;
 mod graph_serde;
+
+//==== Includes ===============================================================
 
 use std::{
 	fmt::Display,
@@ -11,7 +15,7 @@ use std::{
 
 use ahash::HashMap as HashMap;
 
-pub use crate::ungraph::node::*;
+pub use crate::sync_ungraph::node::*;
 
 pub struct Graph<K, N, E>
 where
@@ -33,7 +37,7 @@ where
 	/// # Examples
 	///
 	/// ```
-	/// use gdsl::ungraph::*;
+	/// use gdsl::sync_ungraph::*;
 	///
 	/// let mut g = Graph::<&str, u64, u64>::new();
 	/// ```
@@ -44,7 +48,7 @@ where
 	/// # Examples
 	///
 	/// ```
-	/// use gdsl::ungraph::*;
+	/// use gdsl::sync_ungraph::*;
 	///
 	/// let mut g = Graph::<&str, u64, u64>::new();
 	///
@@ -59,7 +63,7 @@ where
 	/// # Examples
 	///
 	/// ```
-	/// use gdsl::ungraph::*;
+	/// use gdsl::sync_ungraph::*;
 	///
 	/// let mut g = Graph::<&str, u64, u64>::new();
 	///
@@ -77,7 +81,7 @@ where
 	/// # Examples
 	///
 	/// ```
-	/// use gdsl::ungraph::*;
+	/// use gdsl::sync_ungraph::*;
 	///
 	/// let mut g = Graph::<&str, u64, u64>::new();
 	///
@@ -96,7 +100,7 @@ where
 	/// # Examples
 	///
 	/// ```
-	/// use gdsl::ungraph::*;
+	/// use gdsl::sync_ungraph::*;
 	///
 	/// let mut g = Graph::<&str, u64, u64>::new();
 	///
@@ -109,7 +113,7 @@ where
 	/// # Examples
 	///
 	/// ```
-	/// use gdsl::ungraph::*;
+	/// use gdsl::sync_ungraph::*;
 	///
 	/// let mut g = Graph::<&str, u64, u64>::new();
 	///
@@ -132,7 +136,7 @@ where
 	/// # Examples
 	///
 	/// ```
-	/// use gdsl::ungraph::*;
+	/// use gdsl::sync_ungraph::*;
 	///
 	/// let mut g = Graph::<&str, u64, u64>::new();
 	///
@@ -154,7 +158,7 @@ where
 	/// # Examples
 	///
 	/// ```
-	/// use gdsl::ungraph::*;
+	/// use gdsl::sync_ungraph::*;
 	///
 	/// let mut g = Graph::<&str, u64, u64>::new();
 	///
@@ -175,7 +179,7 @@ where
 	/// # Examples
 	///
 	/// ```
-	/// use gdsl::ungraph::*;
+	/// use gdsl::sync_ungraph::*;
 	///
 	/// let mut g = Graph::<&str, u64, u64>::new();
 	///
@@ -203,7 +207,7 @@ where
 	/// # Examples
 	///
 	/// ```
-	/// use gdsl::ungraph::*;
+	/// use gdsl::sync_ungraph::*;
 	///
 	/// let mut g = Graph::<&str, u64, u64>::new();
 	///

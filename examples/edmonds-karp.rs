@@ -118,4 +118,49 @@ fn main() {
 
 	// For this Graph we expect the maximum flow from 0 -> 5 to be 23
 	assert!(max_flow(&g) == 23);
+
+	// print_flow_graph(&g);
 }
+
+// fn attr(field: &str, value: &str) -> (String, String) {
+// 	(field.to_string(), value.to_string())
+// }
+
+// pub const THEME: [&str; 5] = [
+// 	"#ffffff", // 0. background
+// 	"#ffe5a9", // 1. medium
+// 	"#423f3b", // 2. dark
+// 	"#ff6666", // 3. accent
+// 	"#525266", // 4. theme
+// ];
+
+// fn print_flow_graph(g: &G) {
+// 	let dot_str = g.to_dot_with_attr(
+// 		&|| {
+// 			Some(vec![
+// 				attr("bgcolor", THEME[0]),
+// 				attr("fontcolor", THEME[4]),
+// 				attr("label", "Flow Graph"),
+// 			])
+// 		 },
+// 		&|node| {
+// 			Some(vec![
+// 				attr("fillcolor", THEME[1]),
+// 				attr("fontcolor", THEME[4]),
+// 				attr("label", &format!("{}", node.key())),
+// 			])
+// 		},
+// 		&|_, _, edge| {
+// 			let Flow (max, cur) = edge.0.get();
+// 			let flow_str = format!("{}/{}", cur, max);
+// 			let color = if cur == 0 { THEME[4] } else { THEME[3] };
+// 			Some(vec![
+// 				attr("fontcolor", THEME[4]),
+// 				attr("label", &flow_str),
+// 				attr("color", &color),
+// 			])
+// 		 }
+// 	);
+
+// 	println!("{}", dot_str);
+// }

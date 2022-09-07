@@ -1,7 +1,8 @@
 # Graph Data Structure Library
 
-**This library is still in early development and the API might experience breaking
-changes.**
+[![Rust](https://github.com/juliuskoskela/gdsl/actions/workflows/build.yml/badge.svg)](https://github.com/juliuskoskela/gdsl/actions/workflows/build.yml) [![crates][]](https://crates.io/crates/gdsl/) ![license][] ![code_size][]
+
+You can find the [API Documentation here](https://docs.rs/gdsl/latest/gdsl/)
 
 GDSL is a graph data structure library providing efficient and easy-to-use
 abstractions for working with connected nodes and graphs. Contrary to many other
@@ -10,11 +11,30 @@ functionality is in the `Node<K, N, E>` structure which can then be used to
 create different graph representations or be used more freely as a part of
 some other data structure.
 
-The library provides both directed and undirected graphs and nodes.
+- Directed and undirected graph and node types.
+
+- Normal and sync versions of the node and graph types. Normally a node is
+wrapped in a `Rc` pointer and adjacent edges in a `RefCell`. In the sync
+versions these are `Arc` and `RwLock` respectively.
+
+- Nodes implement building blocks for algorithms in the form of breadth-first,
+depth-firs and priority-first traversals as well as post- and preordering.
+
+- Macros for creating inline graphs in an easy-to-read style.
+
+- Removing or inserting connections or otherwise manipulating the graph
+or any of its nodes is stable. Any references to nodes or edges remain
+consistent. This is due to not relying on an underlying container where
+nodes and edges would be represented as separate lists and indexed into,
+in GDSL a node "owns" all it's incoming and outgoing connections. On the other
+hand, each node represents a heap allocation and store's its adjacent
+edges inside a `RefCell` or an `RwLock`.
+
+- Graphs implement Serde's serialization and deserialization.
 
 Motivation for creating this library has been to explore the idea of graphs and
 connected nodes as more generic data-structures that store data without
-depending on a central data-container which in turn implements the graph-logic.
+depending on a central graph-container which in turn implements the graph-logic.
 
 Commented examples of algorithms implemented with GDSL can be found from the `examples` folder.
 
@@ -51,12 +71,12 @@ graph.
 
 ```rust
 for (u, v, e) in &node {
-    println("{} -> {} : {}", u.key(), v.key(), e);
+    println!("{} -> {} : {}", u.key(), v.key(), e);
 }
 
-// Transposed iteration i.e. iterating the inbound edges of a node.
+// Transposed iteration i.e. iterating the inbound edges of a node in digrap.
 for (u, v, e) in node.iter_in() {
-    println("{} <- {} : {}", u.key(), v.key(), e);
+    println!("{} <- {} : {}", u.key(), v.key(), e);
 }
 ```
 
@@ -246,3 +266,15 @@ g['A'].pfs().map(&|u, v, e| {
 assert!(g['E'].take() == 21);
 
 ```
+
+## Similar Crates
+
+- [Petgraph](https://docs.rs/petgraph/latest/petgraph/) is probably the most used graph library in Rust. Offers more graph representations, but all are tied to a container.
+
+## Contact Developer
+
+me@juliuskoskela.dev
+
+[crates]: https://img.shields.io/crates/v/gdsl
+[license]: https://img.shields.io/apm/l/vim-mode
+[code_size]: https://img.shields.io/tokei/lines/github/juliuskoskela/gdsl

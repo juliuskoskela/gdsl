@@ -1,20 +1,7 @@
-#![allow(unused)]
 use criterion::Throughput;
 use criterion::{criterion_group, criterion_main, black_box, BenchmarkId, Criterion};
-use gdsl::*;
-use rand::*;
-use std::cell::Cell;
-use std::cmp::{max, min};
-use std::collections::HashSet;
-
 mod test_graphs;
 use test_graphs::*;
-
-// use gdsl::digraph::{
-// 	Node,
-// 	Graph
-// };
-
 
 // ============================================================================
 
@@ -119,11 +106,77 @@ fn digraph_bfs(c: &mut Criterion) {
     group.finish();
 }
 
+fn digraph_scc(c: &mut Criterion) {
+    let b = 100;
+
+	let mut group = c.benchmark_group("digraph scc");
+    for (i, size) in [b, 2 * b, 4 * b, 8 * b, 16 * b]
+        .iter()
+        .enumerate()
+    {
+		group.throughput(Throughput::Elements(*size as u64));
+		let g = create_graph_simple_1(*size, size / 10);
+
+        group.bench_with_input(BenchmarkId::new("find scc's", size), &i, |b, _| {
+			b.iter(|| {
+				black_box(g.scc());
+            })
+        });
+    }
+
+    group.finish();
+}
+
+fn digraph_serde(c: &mut Criterion) {
+	use gdsl::digraph::*;
+	let b = 1000;
+
+	let mut group = c.benchmark_group("digraph serde");
+	for (i, size) in [b, 2 * b, 4 * b]
+		.iter()
+		.enumerate()
+	{
+		group.throughput(Throughput::Elements(*size as u64));
+
+		let g = create_graph_simple_1(*size, size / 10);
+		let json = serde_json::to_vec(&g).unwrap();
+		let cbor = serde_cbor::to_vec(&g).unwrap();
+
+		group.bench_with_input(BenchmarkId::new("serialize JSON", size), &i, |b, _| {
+			b.iter(|| {
+				black_box(serde_json::to_vec(&g).unwrap());
+			})
+		});
+
+		group.bench_with_input(BenchmarkId::new("deserialize JSON", size), &i, |b, _| {
+			b.iter(|| {
+				black_box(serde_json::from_slice::<Graph<usize, (), ()>>(&json).unwrap());
+			})
+		});
+
+		group.bench_with_input(BenchmarkId::new("serialize CBOR", size), &i, |b, _| {
+			b.iter(|| {
+				black_box(serde_cbor::to_vec(&g).unwrap());
+			})
+		});
+
+		group.bench_with_input(BenchmarkId::new("deserialize CBOR", size), &i, |b, _| {
+			b.iter(|| {
+				black_box(serde_cbor::from_slice::<Graph<usize, (), ()>>(&cbor).unwrap());
+			})
+		});
+	}
+
+	group.finish();
+}
+
 
 criterion_group!(
     benches,
 	digraph_creation,
 	digraph_dfs,
 	digraph_bfs,
+	digraph_scc,
+	digraph_serde
 );
 criterion_main!(benches);

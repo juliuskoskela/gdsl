@@ -1,4 +1,4 @@
-use super::*;
+use crate::sync_ungraph::node::*;
 
 pub type FilterMap<'a, K, N, E> = &'a dyn Fn(&Node<K, N, E>, &Node<K, N, E>, &E) -> bool;
 pub type Filter<'a, K, N, E> = &'a dyn Fn(&Node<K, N, E>, &Node<K, N, E>, &E) -> bool;
@@ -36,9 +36,4 @@ where
 pub enum Ordering {
 	Pre,
 	Post,
-}
-
-pub enum Transposition {
-	Outbound,
-	Inbound,
 }

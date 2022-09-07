@@ -5,7 +5,7 @@ use std::{
     hash::Hash,
 };
 
-use fnv::FnvHashSet as HashSet;
+use ahash::HashSet as HashSet;
 use min_max_heap::MinMaxHeap;
 
 use crate::ungraph::node::*;
@@ -83,8 +83,8 @@ where
 	) -> bool {
 		while let Some(node) = queue.pop_min() {
 			for (u, v, e) in node.iter() {
-				if !visited.contains(v.key()) {
-					if self.method.exec(&u, &v, &e) {
+				if self.method.exec(&u, &v, &e) {
+					if !visited.contains(v.key()) {
 						visited.insert(v.key().clone());
 						result.push((u, v.clone(), e));
 						if self.target.is_some() && self.target.unwrap() == v.key() {
@@ -106,8 +106,8 @@ where
 	) -> bool {
 		while let Some(node) = queue.pop_max() {
 			for (u, v, e) in node.iter() {
-				if !visited.contains(v.key()) {
-					if self.method.exec(&u, &v, &e) {
+				if self.method.exec(&u, &v, &e) {
+					if !visited.contains(v.key()) {
 						visited.insert(v.key().clone());
 						result.push((u, v.clone(), e));
 						if self.target.is_some() && self.target.unwrap() == v.key() {

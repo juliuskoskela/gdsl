@@ -8,7 +8,7 @@ use std::{
 
 use ahash::HashSet as HashSet;
 
-use crate::ungraph::node::*;
+use crate::sync_ungraph::node::*;
 use self::{method::*, path::*};
 
 pub struct BFS<'a, K, N, E>

@@ -1,4 +1,4 @@
-//! # Node<K, N, E>
+//! # Node<K, N, E> + Send + Sync
 //!
 //! `Node` is a key value pair smart-pointer, which includes inbound and
 //! outbound connections to other nodes. Nodes can be created
@@ -24,12 +24,15 @@
 //! ```
 //!
 //! For an inner value type to be mutable, it must be wrapped in a mutable
-//! pointer such as a `Cell`, `RefCell`, or `Mutex`.
+//! pointer such as a `Cell`, `RwLock`, or `Mutex`.
 //!
 //! Node's are wrapped in a reference counted smart pointer. This means
 //! that a node can be cloned and shared among multiple owners.
 //!
-//! This node uses `Rc` for reference counting, thus it is not thread-safe.
+//! This node uses `Arc` for reference counting, thus it is thread-safe.
+//! This doesn't mean that all the methods on the node are atomic.
+//! The node can be shared among multiple threads, and manipulating
+//! its connections is thread-safe.
 
 mod bfs;
 mod dfs;
@@ -39,7 +42,7 @@ mod path;
 mod pfs;
 mod adjacent;
 
-use std::{cell::RefCell, fmt::Display, hash::Hash, ops::Deref, rc::Rc};
+use std::{sync::{RwLock, Arc}, fmt::Display, hash::Hash, ops::Deref};
 use self::{bfs::*, dfs::*, order::*, pfs::*, adjacent::*};
 
 /// An edge between nodes is a tuple `(u, v, e)` where `u` is the
@@ -79,7 +82,7 @@ where
     N: Clone,
     E: Clone,
 {
-    inner: Rc<(K, N, RefCell<Adjacent<K, N, E>>)>,
+    inner: Arc<(K, N, RwLock<Adjacent<K, N, E>>)>,
 }
 
 impl<K, N, E> Node<K, N, E>
@@ -105,7 +108,7 @@ where
     /// ```
     pub fn new(key: K, value: N) -> Self {
         Node {
-            inner: Rc::new((key, value, Adjacent::new())),
+            inner: Arc::new((key, value, Adjacent::new())),
         }
     }
 
@@ -157,7 +160,7 @@ where
 	/// assert!(a.out_degree() == 2);
 	/// ```
 	pub fn out_degree(&self) -> usize {
-		self.inner.2.borrow().len_outbound()
+		self.inner.2.read().unwrap().len_outbound()
 	}
 
 	/// Returns the in-degree of the node. The out degree is the number of
@@ -177,7 +180,10 @@ where
 	///
 	/// assert!(a.in_degree() == 2);
 	pub fn in_degree(&self) -> usize {
-		self.inner.2.borrow().len_inbound()
+		self.inner.2
+			.read()
+			.unwrap()
+			.len_inbound()
 	}
 
     /// Connects this node to another node. The connection is created in both
@@ -199,10 +205,12 @@ where
     /// ```
     pub fn connect(&self, other: &Self, value: E) {
         self.inner.2
-            .borrow_mut()
+            .write()
+			.unwrap()
             .push_outbound((other.clone(), value.clone()));
         other.inner.2
-            .borrow_mut()
+            .write()
+			.unwrap()
             .push_inbound((self.clone(), value));
     }
 
@@ -264,11 +272,11 @@ where
     pub fn disconnect(&self, other: &K) -> Result<E, ()> {
         match self.find_outbound(other) {
             Some(other) => match self.inner.2
-				.borrow_mut()
+				.write().unwrap()
 				.remove_outbound(other.key()) {
                 Ok(edge) => {
                     other.inner.2
-						.borrow_mut()
+						.write().unwrap()
 						.remove_inbound(self.key())?;
                     Ok(edge)
                 }
@@ -308,18 +316,20 @@ where
     pub fn isolate(&self) {
         for (_, v, _) in self.iter_out() {
             v.inner.2
-                .borrow_mut()
+                .write()
+				.unwrap()
                 .remove_inbound(self.key())
                 .unwrap();
         }
         for (v, _, _) in self.iter_in() {
             v.inner.2
-                .borrow_mut()
+                .write()
+				.unwrap()
                 .remove_outbound(self.key())
                 .unwrap();
         }
-        self.inner.2.borrow_mut().clear_outbound();
-        self.inner.2.borrow_mut().clear_inbound();
+        self.inner.2.write().unwrap().clear_outbound();
+        self.inner.2.write().unwrap().clear_inbound();
     }
 
     /// Returns true if the node is a root node. Root nodes are nodes that have
@@ -339,7 +349,7 @@ where
 	/// assert!(!n2.is_root());
 	/// ```
     pub fn is_root(&self) -> bool {
-        self.inner.2.borrow().len_inbound() == 0
+        self.inner.2.read().unwrap().len_inbound() == 0
     }
 
     /// Returns true if the node is a leaf node. Leaf nodes are nodes that have
@@ -359,7 +369,7 @@ where
 	/// assert!(n2.is_leaf());
 	/// ```
     pub fn is_leaf(&self) -> bool {
-        self.inner.2.borrow().len_outbound() == 0
+        self.inner.2.read().unwrap().len_outbound() == 0
     }
 
     /// Returns true if the node is an oprhan. Orphan nodes are nodes that have
@@ -424,7 +434,7 @@ where
 	/// assert!(n1.find_outbound(&4).is_none());
 	/// ```
     pub fn find_outbound(&self, other: &K) -> Option<Node<K, N, E>> {
-        let edge = self.inner.2.borrow().find_outbound(other);
+        let edge = self.inner.2.read().unwrap().find_outbound(other);
         if let Some(edge) = edge {
             Some(edge.0.clone())
         } else {
@@ -453,7 +463,7 @@ where
 	/// assert!(n1.find_inbound(&4).is_none());
 	/// ```
     pub fn find_inbound(&self, other: &K) -> Option<Node<K, N, E>> {
-        let edge = self.inner.2.borrow().find_inbound(other);
+        let edge = self.inner.2.read().unwrap().find_inbound(other);
         if let Some(edge) = edge {
             Some(edge.0.clone())
         } else {
@@ -671,7 +681,7 @@ where
 		std::mem::size_of::<Node<K, N, E>>()
 			+ std::mem::size_of::<K>()
 			+ std::mem::size_of::<N>()
-			+ self.inner.2.borrow().sizeof()
+			+ self.inner.2.read().unwrap().sizeof()
 			+ std::mem::size_of::<Self>()
     }
 }
@@ -748,7 +758,7 @@ where
     type Item = (Node<K, N, E>, Node<K, N, E>, E);
 
     fn next(&mut self) -> Option<Self::Item> {
-        match self.node.inner.2.borrow().get_outbound(self.position) {
+        match self.node.inner.2.read().unwrap().get_outbound(self.position) {
             Some(current) => {
                 self.position += 1;
                 Some((self.node.clone(), current.0, current.1))
@@ -778,7 +788,7 @@ where
     type Item = (Node<K, N, E>, Node<K, N, E>, E);
 
     fn next(&mut self) -> Option<Self::Item> {
-        match self.node.inner.2.borrow().get_inbound(self.position) {
+        match self.node.inner.2.read().unwrap().get_inbound(self.position) {
             Some(current) => {
                 self.position += 1;
                 Some((current.0, self.node.clone(), current.1))

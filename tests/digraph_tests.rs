@@ -290,7 +290,7 @@ fn ut_digraph_bfs_cycle_1() {
 
 	let g = digraph![
 		(usize)
-		(0) => [0, 2, 3]
+		(0) => [1, 2, 3]
 		(1) => [3]
 		(2) => [4]
 		(3) => [2, 0]
@@ -304,7 +304,8 @@ fn ut_digraph_bfs_cycle_1() {
 		.to_vec_nodes();
 
 	assert!(cycle[0] == g[0]);
-	assert!(cycle[1] == g[0]);
+	assert!(cycle[1] == g[3]);
+	assert!(cycle[2] == g[0]);
 }
 
 #[test]
@@ -349,17 +350,6 @@ fn ut_digraph_sizes() {
 	assert!(n2.sizeof() == 72);
 	assert!(n3.sizeof() == 80);
 	assert!(n4.sizeof() == 80);
-
-	let n1t1 = N1::new(1, ());
-	let n1t2 = N1::new(1, ());
-	let n1t3 = N1::new(1, ());
-
-	n1.connect(&n1t1, ());
-	n1.connect(&n1t2, ());
-	n1.connect(&n1t3, ());
-
-	assert!(n1.sizeof() == 120);
-	assert!(n1t1.sizeof() == 88);
 }
 
 #[test]
@@ -379,4 +369,209 @@ fn ut_digraph_deref_node() {
 	assert!(u.key() == &'A');
 	assert!(v == n2);
 	assert!(e == 0.5);
+}
+
+#[test]
+fn ut_serde_json() {
+	use gdsl::*;
+	use gdsl::digraph::*;
+
+	let graph = digraph![
+		(usize)
+		(0) => [1, 2, 3]
+		(1) => [3]
+		(2) => [4]
+		(3) => [2]
+		(4) => []
+	];
+
+	let json = serde_json::to_string(&graph).unwrap();
+
+	let de: Graph<usize, (), ()> = serde_json::from_str(&json).unwrap();
+
+	let mut graph_vec = graph.to_vec();
+	let mut de_vec = de.to_vec();
+
+	graph_vec.sort_by(|a, b| a.key().cmp(b.key()));
+	de_vec.sort_by(|a, b| a.key().cmp(b.key()));
+
+	for (a, b) in graph_vec.iter().zip(de_vec.iter()) {
+		assert!(a == b);
+		for ((u, v, e), (u2, v2, e2)) in a.iter_out().zip(b.iter_out()) {
+			assert!(u == u2);
+			assert!(v == v2);
+			assert!(e == e2);
+		}
+	}
+}
+
+#[test]
+fn ut_serde_cbor() {
+	use gdsl::*;
+	use gdsl::digraph::*;
+
+	let graph = digraph![
+		(usize)
+		(0) => [1, 2, 3]
+		(1) => [3]
+		(2) => [4]
+		(3) => [2]
+		(4) => []
+	];
+
+	let cbor = serde_cbor::to_vec(&graph).unwrap();
+
+	let de: Graph<usize, (), ()> = serde_cbor::from_slice(&cbor).unwrap();
+
+	let mut graph_vec = graph.to_vec();
+	let mut de_vec = de.to_vec();
+
+	graph_vec.sort_by(|a, b| a.key().cmp(b.key()));
+	de_vec.sort_by(|a, b| a.key().cmp(b.key()));
+
+	for (a, b) in graph_vec.iter().zip(de_vec.iter()) {
+		assert!(a == b);
+		for ((u, v, e), (u2, v2, e2)) in a.iter_out().zip(b.iter_out()) {
+			assert!(u == u2);
+			assert!(v == v2);
+			assert!(e == e2);
+		}
+	}
+}
+
+#[test]
+fn ut_serde_cbor_big() {
+	use gdsl::*;
+	use gdsl::digraph::*;
+	use std::cell::Cell;
+
+	let graph = digraph![
+		(char, Cell<u64>) => [u64]
+		('A', Cell::new(u64::MAX)) => [ ('B', 4), ('H', 8) ]
+		('B', Cell::new(u64::MAX)) => [ ('A', 4), ('H', 11), ('C', 8) ]
+		('C', Cell::new(u64::MAX)) => [ ('B', 8), ('C', 2), ('F', 4), ('D', 7) ]
+		('D', Cell::new(u64::MAX)) => [ ('C', 7), ('F', 14), ('E', 9) ]
+		('E', Cell::new(u64::MAX)) => [ ('D', 9), ('F', 10) ]
+		('F', Cell::new(u64::MAX)) => [ ('G', 2), ('C', 4), ('D', 14), ('E', 10) ]
+		('G', Cell::new(u64::MAX)) => [ ('H', 1), ('I', 6), ('F', 2) ]
+		('H', Cell::new(u64::MAX)) => [ ('A', 8), ('B', 11), ('I', 7), ('G', 1) ]
+		('I', Cell::new(u64::MAX)) => [ ('H', 7), ('C', 2), ('G', 6) ]
+	];
+
+	let cbor = serde_cbor::to_vec(&graph).unwrap();
+
+	let de: Graph<char, Cell<u64>, u64> = serde_cbor::from_slice(&cbor).unwrap();
+
+	let mut graph_vec = graph.to_vec();
+	let mut de_vec = de.to_vec();
+
+	graph_vec.sort_by(|a, b| a.key().cmp(b.key()));
+	de_vec.sort_by(|a, b| a.key().cmp(b.key()));
+
+	for (a, b) in graph_vec.iter().zip(de_vec.iter()) {
+		assert!(a == b);
+		for ((u, v, e), (u2, v2, e2)) in a.iter_out().zip(b.iter_out()) {
+			assert!(u == u2);
+			assert!(v == v2);
+			assert!(e == e2);
+		}
+	}
+}
+
+#[test]
+fn ut_digraph_order() {
+	use gdsl::digraph::*;
+
+	let n1 = Node::new(1, ());
+	let n2 = Node::new(2, ());
+	let n3 = Node::new(3, ());
+
+	n1.connect(&n2, ());
+	n2.connect(&n3, ());
+	n3.connect(&n1, ());
+
+	let order = n1.preorder().search_nodes();
+
+	assert!(order[0] == n1);
+	assert!(order[1] == n2);
+	assert!(order[2] == n3);
+
+	let order = n1.postorder().search_nodes();
+
+	assert!(order[0] == n3);
+	assert!(order[1] == n2);
+	assert!(order[2] == n1);
+}
+
+#[test]
+fn doc_header_digraph() {
+	use gdsl::digraph::*;
+
+	let mut g: Graph<usize, (), ()> = Graph::new();
+
+	g.insert(Node::new(0, ()));
+	g.insert(Node::new(1, ()));
+	g.insert(Node::new(2, ()));
+	g.insert(Node::new(3, ()));
+	g.insert(Node::new(4, ()));
+
+	g[0].connect(&g[1], ());
+	g[0].connect(&g[2], ());
+	g[0].connect(&g[3], ());
+	g[1].connect(&g[3], ());
+	g[2].connect(&g[4], ());
+	g[3].connect(&g[2], ());
+	g[3].connect(&g[0], ());	// 3 points back to 0 creating a cycle
+
+	let cycle = g[0]			// We start at node 0
+		.bfs()					// We use a breadth-first search
+		.search_cycle()			// We search for a cycle
+		.unwrap()				// Returns `Option<Path<usize, (), ()>>`
+		.to_vec_nodes();		// Path is converted to a vector of nodes
+
+	assert!(cycle[0] == g[0]);
+	assert!(cycle[1] == g[3]);
+	assert!(cycle[2] == g[0]);
+}
+
+#[test]
+fn ut_digraph_scc() {
+	use gdsl::digraph::*;
+
+	let mut g: Graph<usize, (), ()> = Graph::new();
+
+	g.insert(Node::new(0, ()));
+	g.insert(Node::new(1, ()));
+	g.insert(Node::new(2, ()));
+	g.insert(Node::new(3, ()));
+	g.insert(Node::new(4, ()));
+	g.insert(Node::new(5, ()));
+	g.insert(Node::new(6, ()));
+	g.insert(Node::new(7, ()));
+	g.insert(Node::new(8, ()));
+	g.insert(Node::new(9, ()));
+
+	g[0].connect(&g[1], ());	// ---- C1
+	g[1].connect(&g[2], ());	//
+	g[2].connect(&g[0], ());	//
+	g[3].connect(&g[4], ());	// ---- C2
+	g[4].connect(&g[5], ());	//
+	g[5].connect(&g[3], ());	//
+	g[6].connect(&g[7], ());	// ---- C3
+	g[7].connect(&g[8], ());	//
+	g[8].connect(&g[6], ());	//
+	g[9].connect(&g[9], ());	// ---- C4
+
+	let mut scc = g.scc();
+
+	// Since the graph container is a hash map, the order of the SCCs is not
+	// deterministic. We sort the SCCs by their size to make the test
+	// deterministic.
+	scc.sort_by(|a, b| a.len().cmp(&b.len()));
+
+	assert!(scc.len() == 4);
+	assert!(scc[0].len() == 1);
+	assert!(scc[1].len() == 3);
+	assert!(scc[2].len() == 3);
+	assert!(scc[3].len() == 3);
 }

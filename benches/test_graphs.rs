@@ -1,11 +1,10 @@
 use std::cell::Cell;
 use std::cmp::{max, min};
-
 use gdsl::digraph::*;
 
 use gdsl::{
 	digraph_node as node,
-	digraph_connect as connect
+	digraph_connect as connect,
 };
 
 pub fn create_graph_vec_distance_1(size: usize) -> Vec<Node<usize, Cell<usize>, usize>> {

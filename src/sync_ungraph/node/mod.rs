@@ -16,7 +16,7 @@
 //!   and is used to store data associated with the edge.
 //!
 //! ```
-//! use gdsl::ungraph::*;
+//! use gdsl::sync_ungraph::*;
 //!
 //! type N<'a> = Node<usize, &'a str, f64>;
 //!
@@ -24,12 +24,12 @@
 //! ```
 //!
 //! For an inner value type to be mutable, it must be wrapped in a mutable
-//! pointer such as a `Cell`, `RefCell`, or `Mutex`.
+//! pointer such as a `Cell`, `RwLock`, or `Mutex`.
 //!
 //! Node's are wrapped in a reference counted smart pointer. This means
 //! that a node can be cloned and shared among multiple owners.
 //!
-//! This node uses `Rc` for reference counting, thus it is not thread-safe.
+//! This node uses `Arc` for reference counting, thus it is thread-safe.
 
 mod method;
 mod order;
@@ -41,9 +41,8 @@ mod path;
 use std::{
     fmt::Display,
     hash::Hash,
-	cell::RefCell,
+	sync::{RwLock, Arc, Weak},
     ops::Deref,
-    rc::{Rc, Weak},
 };
 
 use self::{
@@ -70,7 +69,7 @@ pub type Edge<K, N, E> = (Node<K, N, E>, Node<K, N, E>, E);
 /// # Example
 ///
 /// ```
-/// use gdsl::ungraph::*;
+/// use gdsl::sync_ungraph::*;
 ///
 /// let a = Node::new(0x1, "A");
 /// let b = Node::new(0x2, "B");
@@ -94,7 +93,7 @@ where
     N: Clone,
     E: Clone,
 {
-	inner: Rc<NodeInner<K, N, E>>,
+	inner: Arc<NodeInner<K, N, E>>,
 }
 
 impl<K, N, E> Node<K, N, E>
@@ -111,7 +110,7 @@ where
 	/// # Example
 	///
 	/// ```
-	///	use gdsl::ungraph::*;
+	///	use gdsl::sync_ungraph::*;
 	///
 	///	let n1 = Node::<i32, char, ()>::new(1, 'A');
 	///
@@ -120,7 +119,7 @@ where
 	/// ```
     pub fn new(key: K, value: N) -> Self {
 		Node {
-			inner: Rc::new(NodeInner {
+			inner: Arc::new(NodeInner {
 				key,
 				value,
 				edges: Adjacent::new(),
@@ -133,7 +132,7 @@ where
 	/// # Example
 	///
 	/// ```
-	///	use gdsl::ungraph::*;
+	///	use gdsl::sync_ungraph::*;
 	///
 	///	let n1 = Node::<i32, (), ()>::new(1, ());
 	///
@@ -148,7 +147,7 @@ where
 	/// # Example
 	///
 	/// ```
-	///	use gdsl::ungraph::*;
+	///	use gdsl::sync_ungraph::*;
 	///
 	///	let n1 = Node::<i32, char, ()>::new(1, 'A');
 	///
@@ -166,7 +165,7 @@ where
 	/// # Example
 	///
 	/// ```
-	/// use gdsl::ungraph::*;
+	/// use gdsl::sync_ungraph::*;
 	///
 	///	let n1 = Node::new(1, ());
 	///	let n2 = Node::new(2, ());
@@ -191,7 +190,7 @@ where
 	/// # Example
 	///
 	/// ```
-	///	use gdsl::ungraph::*;
+	///	use gdsl::sync_ungraph::*;
 	///
 	///	let n1 = Node::new(1, ());
 	///	let n2 = Node::new(2, ());
@@ -222,7 +221,7 @@ where
 	/// # Example
 	///
 	/// ```
-	///	use gdsl::ungraph::*;
+	///	use gdsl::sync_ungraph::*;
 	///
 	///	let n1 = Node::new(1, ());
 	///	let n2 = Node::new(2, ());
@@ -257,7 +256,7 @@ where
 	/// # Example
 	///
 	/// ```
-	///	use gdsl::ungraph::*;
+	///	use gdsl::sync_ungraph::*;
 	///
 	///	let n1 = Node::new(1, ());
 	///	let n2 = Node::new(2, ());
@@ -508,7 +507,7 @@ where
 
 	fn downgrade(node: &Node<K, N, E>) -> Self {
 		WeakNode {
-			inner: Rc::downgrade(&node.inner)
+			inner: Arc::downgrade(&node.inner)
 		}
 	}
 }
@@ -566,7 +565,7 @@ where
 	N: Clone,
 	E: Clone,
 {
-	edges: RefCell<AdjacentInner<K, N, E>>,
+	edges: Arc<RwLock<AdjacentInner<K, N, E>>>,
 }
 
 #[derive(Clone)]
@@ -588,53 +587,53 @@ where
 {
 	fn new() -> Self {
 		Self {
-			edges: RefCell::new(AdjacentInner {
+			edges: Arc::new(RwLock::new(AdjacentInner {
 				outbound: Vec::new(),
 				inbound: Vec::new(),
-			}),
+			})),
 		}
 	}
 
 	fn get_outbound(&self, idx: usize) -> Option<EdgeInner<K, N, E>> {
-		let edges = self.edges.borrow();
+		let edges = self.edges.read().unwrap();
 		edges.outbound.get(idx).cloned()
 	}
 
 	fn get_inbound(&self, idx: usize) -> Option<EdgeInner<K, N, E>> {
-		let edges = self.edges.borrow();
+		let edges = self.edges.read().unwrap();
 		edges.inbound.get(idx).cloned()
 	}
 
 	fn find_outbound(&self, node: &K) -> Option<EdgeInner<K, N, E>> {
-		let edges = self.edges.borrow();
+		let edges = self.edges.read().unwrap();
 		edges.outbound.iter().find(|edge| edge.target().key() == node).cloned()
 	}
 
 	fn find_inbound(&self, node: &K) -> Option<EdgeInner<K, N, E>> {
-		let edges = self.edges.borrow();
+		let edges = self.edges.read().unwrap();
 		edges.inbound.iter().find(|edge| edge.target().key() == node).cloned()
 	}
 
 	fn len_outbound(&self) -> usize {
-		let edges = self.edges.borrow();
+		let edges = self.edges.read().unwrap();
 		edges.outbound.len()
 	}
 
 	fn len_inbound(&self) -> usize {
-		let edges = self.edges.borrow();
+		let edges = self.edges.read().unwrap();
 		edges.inbound.len()
 	}
 
 	fn push_inbound(&self, edge: EdgeInner<K, N, E>) {
-		self.edges.borrow_mut().inbound.push(edge);
+		self.edges.write().unwrap().inbound.push(edge);
 	}
 
 	fn push_outbound(&self, edge: EdgeInner<K, N, E>) {
-		self.edges.borrow_mut().outbound.push(edge);
+		self.edges.write().unwrap().outbound.push(edge);
 	}
 
 	fn remove_inbound(&self, source: &K) -> Result<E, ()> {
-		let mut edges = self.edges.borrow_mut();
+		let mut edges = self.edges.write().unwrap();
 		let idx = edges.inbound.iter().position(|edge| edge.target().key() == source);
 		match idx {
 			Some(idx) => {
@@ -646,7 +645,7 @@ where
 	}
 
 	fn remove_outbound(&self, target: &K) -> Result<E, ()> {
-		let mut edges = self.edges.borrow_mut();
+		let mut edges = self.edges.write().unwrap();
 		let idx = edges.outbound.iter().position(|edge| edge.target().key() == target);
 		match idx {
 			Some(idx) => {
@@ -658,11 +657,11 @@ where
 	}
 
 	fn clear_inbound(&self) {
-		self.edges.borrow_mut().inbound.clear();
+		self.edges.write().unwrap().inbound.clear();
 	}
 
 	fn clear_outbound(&self) {
-		self.edges.borrow_mut().outbound.clear();
+		self.edges.write().unwrap().outbound.clear();
 	}
 }
 
