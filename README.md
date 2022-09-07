@@ -1,6 +1,6 @@
 # Graph Data Structure Library
 
-[![Rust](tests)](https://github.com/juliuskoskela/gdsl/actions/workflows/build.yml) [![crates][]](https://crates.io/crates/gdsl/) ![license][] ![code_size][]
+[![Rust][]](https://github.com/juliuskoskela/gdsl/actions/workflows/build.yml) [![crates][]](https://crates.io/crates/gdsl/) ![license][] ![code_size][]
 
 You can find the [API Documentation here](https://docs.rs/gdsl/latest/gdsl/)
 
