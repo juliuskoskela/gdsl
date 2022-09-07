@@ -1,6 +1,6 @@
 # Graph Data Structure Library
 
-[![crates][]](https://crates.io/crates/gdsl/) [![license][]]
+[![crates][]](https://crates.io/crates/gdsl/) ![license][]
 
 You can find the [API Documentation here](https://docs.rs/gdsl/latest/gdsl/)
 
