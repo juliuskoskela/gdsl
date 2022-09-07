@@ -50,7 +50,7 @@
 //! // in a `Cell` to allow for mutable access. We initialize the distance to
 //! // `std::u64::MAX` to indicate that the node is not part of the shortest
 //! // path.
-//! let g = digraph![
+//! let g = ungraph![
 //! 	(char, Cell<u64>) => [u64]
 //! 	('A', Cell::new(u64::MAX)) => [ ('B', 4), ('H', 8) ]
 //! 	('B', Cell::new(u64::MAX)) => [ ('A', 4), ('H', 11), ('C', 8) ]
