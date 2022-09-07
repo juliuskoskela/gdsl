@@ -35,6 +35,8 @@
 //! # Examples
 //!
 //! ```
+//! use gdsl::*;
+//!
 //! // We create a directed graph using the `digraph![]` macro. In the macro
 //! // invocation we specify the type of the nodes and the type of the edges
 //! // by specifying the type-signature `(NodeKey, NodeValue) => [EdgeValue]`.
