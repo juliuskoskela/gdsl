@@ -1,24 +1,5 @@
-#![allow(unused)]
 use criterion::Throughput;
 use criterion::{criterion_group, criterion_main, black_box, BenchmarkId, Criterion};
-use gdsl::*;
-use rand::*;
-use std::cell::Cell;
-use std::cmp::{max, min};
-use std::collections::HashSet;
-use gdsl::digraph::*;
-use gdsl::sync_digraph:: {
-	Node as AsyncNode,
-	Edge as AsyncEdge,
-};
-
-use gdsl::{
-	digraph_node as node,
-	digraph_connect as connect,
-	sync_digraph_connect as async_connect,
-	sync_digraph_node as async_node,
-};
-
 mod test_graphs;
 use test_graphs::*;
 
@@ -146,6 +127,49 @@ fn digraph_scc(c: &mut Criterion) {
     group.finish();
 }
 
+fn digraph_serde(c: &mut Criterion) {
+	use gdsl::digraph::*;
+	let b = 1000;
+
+	let mut group = c.benchmark_group("digraph serde");
+	for (i, size) in [b, 2 * b, 4 * b]
+		.iter()
+		.enumerate()
+	{
+		group.throughput(Throughput::Elements(*size as u64));
+
+		let g = create_graph_simple_1(*size, size / 10);
+		let json = serde_json::to_vec(&g).unwrap();
+		let cbor = serde_cbor::to_vec(&g).unwrap();
+
+		group.bench_with_input(BenchmarkId::new("serialize JSON", size), &i, |b, _| {
+			b.iter(|| {
+				black_box(serde_json::to_vec(&g).unwrap());
+			})
+		});
+
+		group.bench_with_input(BenchmarkId::new("deserialize JSON", size), &i, |b, _| {
+			b.iter(|| {
+				black_box(serde_json::from_slice::<Graph<usize, (), ()>>(&json).unwrap());
+			})
+		});
+
+		group.bench_with_input(BenchmarkId::new("serialize CBOR", size), &i, |b, _| {
+			b.iter(|| {
+				black_box(serde_cbor::to_vec(&g).unwrap());
+			})
+		});
+
+		group.bench_with_input(BenchmarkId::new("deserialize CBOR", size), &i, |b, _| {
+			b.iter(|| {
+				black_box(serde_cbor::from_slice::<Graph<usize, (), ()>>(&cbor).unwrap());
+			})
+		});
+	}
+
+	group.finish();
+}
+
 
 criterion_group!(
     benches,
@@ -153,5 +177,6 @@ criterion_group!(
 	digraph_dfs,
 	digraph_bfs,
 	digraph_scc,
+	digraph_serde
 );
 criterion_main!(benches);

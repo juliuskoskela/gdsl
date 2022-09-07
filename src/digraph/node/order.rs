@@ -1,16 +1,6 @@
-//==== Includes ===============================================================
-
-use std::{
-    fmt::Display,
-    hash::Hash,
-};
-
+use std::{fmt::Display, hash::Hash};
+use super::{*, method::*};
 use ahash::AHashSet as HashSet;
-
-use super::*;
-use super::method::*;
-
-//==== Ordering ===============================================================
 
 pub struct Order<'a, K, N, E>
 where
@@ -31,7 +21,7 @@ where
 	N: Clone,
 	E: Clone,
 {
-	pub fn new(root: &'a Node<K, N, E>) -> Self {
+	pub fn preorder(root: &'a Node<K, N, E>) -> Self {
 		Self {
 			root,
 			method: Method::NullMethod,
@@ -40,14 +30,13 @@ where
 		}
 	}
 
-	pub fn pre(mut self) -> Self {
-		self.order = Ordering::Pre;
-		self
-	}
-
-	pub fn post(mut self) -> Self {
-		self.order = Ordering::Post;
-		self
+	pub fn postroder(root: &'a Node<K, N, E>) -> Self {
+		Self {
+			root,
+			method: Method::NullMethod,
+			order: Ordering::Post,
+			transpose: Transposition::Outbound,
+		}
 	}
 
 	pub fn transpose(mut self) -> Self {
@@ -64,7 +53,6 @@ where
 		self.method = Method::Filter(f);
 		self
 	}
-
 
 	pub fn filter_map(mut self, f: FilterMap<'a, K, N, E>) -> Self {
 		self.method = Method::FilterMap(f);

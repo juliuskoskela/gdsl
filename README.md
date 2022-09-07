@@ -1,8 +1,5 @@
 # Graph Data Structure Library
 
-**This library is still in early development and the API might experience breaking
-changes.**
-
 GDSL is a graph data structure library providing efficient and easy-to-use
 abstractions for working with connected nodes and graphs. Contrary to many other
 graph implementations, in GDSL a graph is mostly just a container and the
@@ -10,11 +7,22 @@ functionality is in the `Node<K, N, E>` structure which can then be used to
 create different graph representations or be used more freely as a part of
 some other data structure.
 
-The library provides both directed and undirected graphs and nodes.
+- Directed and undirected graph and node types.
+
+- Normal and sync versions of the node and graph types. Normally a node is
+wrapped in a `Rc` pointer and adjacent edges in a `RefCell`. In the sync
+versions these are `Arc` and `RwLock` respectively.
+
+- Nodes implement building blocks for algorithms in the form of breadth-first,
+depth-firs and priority-first traversals as well as post- and preordering.
+
+- Macros for creating inline graphs in an easy-to-read style.
+
+- Graphs implement Serde's serialization and deserialization.
 
 Motivation for creating this library has been to explore the idea of graphs and
 connected nodes as more generic data-structures that store data without
-depending on a central data-container which in turn implements the graph-logic.
+depending on a central graph-container which in turn implements the graph-logic.
 
 Commented examples of algorithms implemented with GDSL can be found from the `examples` folder.
 

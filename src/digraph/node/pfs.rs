@@ -1,17 +1,12 @@
-//==== Includes ===============================================================
-
 use std::{
     fmt::Display,
     hash::Hash,
+	collections::BinaryHeap,
+	cmp::Reverse
 };
-
+use super::{*, method::*, path::*};
 use ahash::AHashSet as HashSet;
-// use min_max_heap::BinaryHeap;
-use std::collections::BinaryHeap;
-use std::cmp::Reverse;
-use crate::digraph::node::*;
-use self::method::*;
-use self::path::*;
+
 
 enum Priority {
 	Min,

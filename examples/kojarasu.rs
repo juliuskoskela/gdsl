@@ -22,8 +22,7 @@ fn ordering(graph: &G) -> G {
 	for next in graph.iter() {
 		if !visited.contains(next.key()) {
 			let partition = next
-				.order()
-				.post()
+				.postorder()
 				.filter(&|_, v, _| !visited.contains(v.key()))
 				.search_nodes();
 			for node in &partition {

@@ -4,6 +4,7 @@
 
 mod node;
 mod graph_macros;
+mod graph_serde;
 
 //==== Includes ===============================================================
 
@@ -36,7 +37,7 @@ where
 	/// # Examples
 	///
 	/// ```
-	/// use gdsl::ungraph::*;
+	/// use gdsl::sync_ungraph::*;
 	///
 	/// let mut g = Graph::<&str, u64, u64>::new();
 	/// ```
@@ -47,7 +48,7 @@ where
 	/// # Examples
 	///
 	/// ```
-	/// use gdsl::ungraph::*;
+	/// use gdsl::sync_ungraph::*;
 	///
 	/// let mut g = Graph::<&str, u64, u64>::new();
 	///
@@ -62,7 +63,7 @@ where
 	/// # Examples
 	///
 	/// ```
-	/// use gdsl::ungraph::*;
+	/// use gdsl::sync_ungraph::*;
 	///
 	/// let mut g = Graph::<&str, u64, u64>::new();
 	///
@@ -80,7 +81,7 @@ where
 	/// # Examples
 	///
 	/// ```
-	/// use gdsl::ungraph::*;
+	/// use gdsl::sync_ungraph::*;
 	///
 	/// let mut g = Graph::<&str, u64, u64>::new();
 	///
@@ -99,7 +100,7 @@ where
 	/// # Examples
 	///
 	/// ```
-	/// use gdsl::ungraph::*;
+	/// use gdsl::sync_ungraph::*;
 	///
 	/// let mut g = Graph::<&str, u64, u64>::new();
 	///
@@ -112,7 +113,7 @@ where
 	/// # Examples
 	///
 	/// ```
-	/// use gdsl::ungraph::*;
+	/// use gdsl::sync_ungraph::*;
 	///
 	/// let mut g = Graph::<&str, u64, u64>::new();
 	///
@@ -135,7 +136,7 @@ where
 	/// # Examples
 	///
 	/// ```
-	/// use gdsl::ungraph::*;
+	/// use gdsl::sync_ungraph::*;
 	///
 	/// let mut g = Graph::<&str, u64, u64>::new();
 	///
@@ -157,7 +158,7 @@ where
 	/// # Examples
 	///
 	/// ```
-	/// use gdsl::ungraph::*;
+	/// use gdsl::sync_ungraph::*;
 	///
 	/// let mut g = Graph::<&str, u64, u64>::new();
 	///
@@ -178,7 +179,7 @@ where
 	/// # Examples
 	///
 	/// ```
-	/// use gdsl::ungraph::*;
+	/// use gdsl::sync_ungraph::*;
 	///
 	/// let mut g = Graph::<&str, u64, u64>::new();
 	///
@@ -206,7 +207,7 @@ where
 	/// # Examples
 	///
 	/// ```
-	/// use gdsl::ungraph::*;
+	/// use gdsl::sync_ungraph::*;
 	///
 	/// let mut g = Graph::<&str, u64, u64>::new();
 	///

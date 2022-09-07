@@ -16,7 +16,7 @@
 //!   and is used to store data associated with the edge.
 //!
 //! ```
-//! use gdsl::ungraph::*;
+//! use gdsl::sync_ungraph::*;
 //!
 //! type N<'a> = Node<usize, &'a str, f64>;
 //!
@@ -69,7 +69,7 @@ pub type Edge<K, N, E> = (Node<K, N, E>, Node<K, N, E>, E);
 /// # Example
 ///
 /// ```
-/// use gdsl::ungraph::*;
+/// use gdsl::sync_ungraph::*;
 ///
 /// let a = Node::new(0x1, "A");
 /// let b = Node::new(0x2, "B");
@@ -110,7 +110,7 @@ where
 	/// # Example
 	///
 	/// ```
-	///	use gdsl::ungraph::*;
+	///	use gdsl::sync_ungraph::*;
 	///
 	///	let n1 = Node::<i32, char, ()>::new(1, 'A');
 	///
@@ -132,7 +132,7 @@ where
 	/// # Example
 	///
 	/// ```
-	///	use gdsl::ungraph::*;
+	///	use gdsl::sync_ungraph::*;
 	///
 	///	let n1 = Node::<i32, (), ()>::new(1, ());
 	///
@@ -147,7 +147,7 @@ where
 	/// # Example
 	///
 	/// ```
-	///	use gdsl::ungraph::*;
+	///	use gdsl::sync_ungraph::*;
 	///
 	///	let n1 = Node::<i32, char, ()>::new(1, 'A');
 	///
@@ -165,7 +165,7 @@ where
 	/// # Example
 	///
 	/// ```
-	/// use gdsl::ungraph::*;
+	/// use gdsl::sync_ungraph::*;
 	///
 	///	let n1 = Node::new(1, ());
 	///	let n2 = Node::new(2, ());
@@ -190,7 +190,7 @@ where
 	/// # Example
 	///
 	/// ```
-	///	use gdsl::ungraph::*;
+	///	use gdsl::sync_ungraph::*;
 	///
 	///	let n1 = Node::new(1, ());
 	///	let n2 = Node::new(2, ());
@@ -221,7 +221,7 @@ where
 	/// # Example
 	///
 	/// ```
-	///	use gdsl::ungraph::*;
+	///	use gdsl::sync_ungraph::*;
 	///
 	///	let n1 = Node::new(1, ());
 	///	let n2 = Node::new(2, ());
@@ -256,7 +256,7 @@ where
 	/// # Example
 	///
 	/// ```
-	///	use gdsl::ungraph::*;
+	///	use gdsl::sync_ungraph::*;
 	///
 	///	let n1 = Node::new(1, ());
 	///	let n2 = Node::new(2, ());

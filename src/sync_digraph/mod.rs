@@ -4,6 +4,7 @@
 
 mod node;
 mod graph_macros;
+mod graph_serde;
 
 //==== Includes ===============================================================
 

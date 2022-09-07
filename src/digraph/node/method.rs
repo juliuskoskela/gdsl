@@ -1,4 +1,4 @@
-use crate::digraph::node::*;
+use super::*;
 
 pub type FilterMap<'a, K, N, E> = &'a dyn Fn(&Node<K, N, E>, &Node<K, N, E>, &E) -> bool;
 pub type Filter<'a, K, N, E> = &'a dyn Fn(&Node<K, N, E>, &Node<K, N, E>, &E) -> bool;

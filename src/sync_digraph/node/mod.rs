@@ -52,8 +52,6 @@ use self::{
 	order::*,
 };
 
-// pub use self::path::Path;
-
 //==== PUBLIC =================================================================
 
 /// An edge between nodes is a tuple `(u, v, e)` where `u` is the
@@ -175,10 +173,8 @@ where
 	///	assert!(n1.is_connected(n2.key()));
 	/// ```
 	pub fn connect(&self, other: &Node<K, N, E>, value: E) {
-	    let edge = EdgeInner::new(other, value.clone());
-		let rev_edge = EdgeInner::new(&self, value);
-	    self.inner.edges.push_outbound(edge);
-	    other.inner.edges.push_inbound(rev_edge);
+	    self.inner.edges.push_outbound((other.clone(), value.clone()));
+	    other.inner.edges.push_inbound((self.clone(), value));
 	}
 
 	/// Connects this node to another node. The connection is created in both
@@ -317,7 +313,7 @@ where
 	pub fn find_outbound(&self, other: &K) -> Option<Node<K, N, E>> {
 		let edge = self.inner.edges.find_outbound(other);
 		if let Some(edge) = edge {
-			Some(edge.target().clone())
+			Some(edge.0.clone())
 		} else {
 			None
 		}
@@ -326,7 +322,7 @@ where
 	pub fn find_inbound(&self, other: &K) -> Option<Node<K, N, E>> {
 		let edge = self.inner.edges.find_inbound(other);
 		if let Some(edge) = edge {
-			Some(edge.target().clone())
+			Some(edge.0.clone())
 		} else {
 			None
 		}
@@ -472,8 +468,8 @@ where
 				self.position += 1;
 				Some((
 					self.node.clone(),
-					current.target().clone(),
-					current.value.clone()
+					current.0,
+					current.1
 				))
 			}
 			None => None,
@@ -504,9 +500,9 @@ where
 			Some(current) => {
 				self.position += 1;
 				Some((
-					current.target().clone(),
+					current.0,
 					self.node.clone(),
-					current.value.clone()
+					current.1
 				))
 			}
 			None => None,
@@ -574,30 +570,15 @@ where
 	}
 }
 
-impl<K, N, E> Deref for EdgeInner<K, N, E>
-where
-	K: Clone + Hash + PartialEq + Eq + Display,
-	N: Clone,
-	E: Clone,
-{
-	type Target = E;
-
-	fn deref(&self) -> &Self::Target {
-		self.value()
-	}
-}
-
-#[derive(Clone)]
 struct Adjacent<K, N, E>
 where
 	K: Clone + Hash + PartialEq + Eq + Display,
 	N: Clone,
 	E: Clone,
 {
-	edges: Arc<RwLock<AdjacentInner<K, N, E>>>,
+	edges: RwLock<AdjacentInner<K, N, E>>,
 }
 
-#[derive(Clone)]
 struct AdjacentInner<K, N, E>
 where
 	K: Clone + Hash + PartialEq + Eq + Display,
@@ -616,31 +597,47 @@ where
 {
 	fn new() -> Self {
 		Self {
-			edges: Arc::new(RwLock::new(AdjacentInner {
+			edges: RwLock::new(AdjacentInner {
 				outbound: Vec::new(),
 				inbound: Vec::new(),
-			})),
+			}),
 		}
 	}
 
-	fn get_outbound(&self, idx: usize) -> Option<EdgeInner<K, N, E>> {
+	fn get_outbound(&self, idx: usize) -> Option<(Node<K, N, E>, E)> {
 		let edges = self.edges.read().unwrap();
-		edges.outbound.get(idx).cloned()
+		match edges.outbound.get(idx) {
+			Some(edge) => Some((edge.target(), edge.value.clone())),
+			None => None,
+		}
 	}
 
-	fn get_inbound(&self, idx: usize) -> Option<EdgeInner<K, N, E>> {
+	fn get_inbound(&self, idx: usize) -> Option<(Node<K, N, E>, E)> {
 		let edges = self.edges.read().unwrap();
-		edges.inbound.get(idx).cloned()
+		match edges.inbound.get(idx) {
+			Some(edge) => Some((edge.target(), edge.value.clone())),
+			None => None,
+		}
 	}
 
-	fn find_outbound(&self, node: &K) -> Option<EdgeInner<K, N, E>> {
+	fn find_outbound(&self, node: &K) -> Option<(Node<K, N, E>, E)> {
 		let edges = self.edges.read().unwrap();
-		edges.outbound.iter().find(|edge| edge.target().key() == node).cloned()
+		for edge in edges.outbound.iter() {
+			if edge.target.key() == node {
+				return Some((edge.target(), edge.value.clone()));
+			}
+		}
+		None
 	}
 
-	fn find_inbound(&self, node: &K) -> Option<EdgeInner<K, N, E>> {
+	fn find_inbound(&self, node: &K) -> Option<(Node<K, N, E>, E)> {
 		let edges = self.edges.read().unwrap();
-		edges.inbound.iter().find(|edge| edge.target().key() == node).cloned()
+		for edge in edges.inbound.iter() {
+			if edge.target.key() == node {
+				return Some((edge.target(), edge.value.clone()));
+			}
+		}
+		None
 	}
 
 	fn len_outbound(&self) -> usize {
@@ -653,11 +650,13 @@ where
 		edges.inbound.len()
 	}
 
-	fn push_inbound(&self, edge: EdgeInner<K, N, E>) {
+	fn push_inbound(&self, edge: (Node<K, N, E>, E)) {
+		let edge = EdgeInner::new(&edge.0, edge.1);
 		self.edges.write().unwrap().inbound.push(edge);
 	}
 
-	fn push_outbound(&self, edge: EdgeInner<K, N, E>) {
+	fn push_outbound(&self, edge: (Node<K, N, E>, E)) {
+		let edge = EdgeInner::new(&edge.0, edge.1);
 		self.edges.write().unwrap().outbound.push(edge);
 	}
 

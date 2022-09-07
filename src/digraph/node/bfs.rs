@@ -1,15 +1,6 @@
-//==== Includes ===============================================================
-
-use std::{
-    fmt::Display,
-    hash::Hash,
-	collections::VecDeque
-};
-
+use std::{fmt::Display, hash::Hash, collections::VecDeque};
+use super::{*, method::*, path::*};
 use ahash::AHashSet as HashSet;
-
-use crate::digraph::node::*;
-use self::{method::*, path::*};
 
 pub struct BFS<'a, K, N, E>
 where
