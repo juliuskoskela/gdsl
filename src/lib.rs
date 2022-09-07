@@ -36,6 +36,7 @@
 //!
 //! ```
 //! use gdsl::*;
+//! use std::cell::Cell;
 //!
 //! // We create a directed graph using the `digraph![]` macro. In the macro
 //! // invocation we specify the type of the nodes and the type of the edges
@@ -52,15 +53,15 @@
 //! // path.
 //! let g = digraph![
 //! 	(char, Cell<u64>) => [u64]
-//! 	('A', std::cell::Cell::new(u64::MAX)) => [ ('B', 4), ('H', 8) ]
-//! 	('B', std::cell::Cell::new(u64::MAX)) => [ ('A', 4), ('H', 11), ('C', 8) ]
-//! 	('C', std::cell::Cell::new(u64::MAX)) => [ ('B', 8), ('C', 2), ('F', 4), ('D', 7) ]
-//! 	('D', std::cell::Cell::new(u64::MAX)) => [ ('C', 7), ('F', 14), ('E', 9) ]
-//! 	('E', std::cell::Cell::new(u64::MAX)) => [ ('D', 9), ('F', 10) ]
-//! 	('F', std::cell::Cell::new(u64::MAX)) => [ ('G', 2), ('C', 4), ('D', 14), ('E', 10) ]
-//! 	('G', std::cell::Cell::new(u64::MAX)) => [ ('H', 1), ('I', 6), ('F', 2) ]
-//! 	('H', std::cell::Cell::new(u64::MAX)) => [ ('A', 8), ('B', 11), ('I', 7), ('G', 1) ]
-//! 	('I', std::cell::Cell::new(u64::MAX)) => [ ('H', 7), ('C', 2), ('G', 6) ]
+//! 	('A', Cell::new(u64::MAX)) => [ ('B', 4), ('H', 8) ]
+//! 	('B', Cell::new(u64::MAX)) => [ ('A', 4), ('H', 11), ('C', 8) ]
+//! 	('C', Cell::new(u64::MAX)) => [ ('B', 8), ('C', 2), ('F', 4), ('D', 7) ]
+//! 	('D', Cell::new(u64::MAX)) => [ ('C', 7), ('F', 14), ('E', 9) ]
+//! 	('E', Cell::new(u64::MAX)) => [ ('D', 9), ('F', 10) ]
+//! 	('F', Cell::new(u64::MAX)) => [ ('G', 2), ('C', 4), ('D', 14), ('E', 10) ]
+//! 	('G', Cell::new(u64::MAX)) => [ ('H', 1), ('I', 6), ('F', 2) ]
+//! 	('H', Cell::new(u64::MAX)) => [ ('A', 8), ('B', 11), ('I', 7), ('G', 1) ]
+//! 	('I', Cell::new(u64::MAX)) => [ ('H', 7), ('C', 2), ('G', 6) ]
 //! ];
 //!
 //! // In order to find the shortest path we need to specify the source node and
