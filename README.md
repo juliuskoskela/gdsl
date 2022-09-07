@@ -1,6 +1,6 @@
 # Graph Data Structure Library
 
-[![Rust](https://github.com/juliuskoskela/gdsl/actions/workflows/build.yml/badge.svg)](https://github.com/juliuskoskela/gdsl/actions/workflows/build.yml) [![crates][]](https://crates.io/crates/gdsl/) ![license][] ![code_size][]
+[![Rust](https://github.com/juliuskoskela/gdsl/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/juliuskoskela/gdsl/actions/workflows/build.yml) [![crates][]](https://crates.io/crates/gdsl/) ![license][]
 
 You can find the [API Documentation here](https://docs.rs/gdsl/latest/gdsl/)
 
@@ -277,4 +277,3 @@ me@juliuskoskela.dev
 
 [crates]: https://img.shields.io/crates/v/gdsl
 [license]: https://img.shields.io/apm/l/vim-mode
-[code_size]: https://img.shields.io/tokei/lines/github/juliuskoskela/gdsl
