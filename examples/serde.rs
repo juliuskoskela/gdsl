@@ -34,7 +34,7 @@ fn main() {
 
 	for (a, b) in graph_cbor_vec.iter().zip(graph_json_vec.iter()) {
 		assert!(a == b);
-		for ((u, v, e), (uu, vv, ee)) in a.iter_out().zip(b.iter_out()) {
+		for (Edge(u, v, e), Edge(uu, vv, ee)) in a.iter_out().zip(b.iter_out()) {
 			assert!(u == uu);
 			assert!(v == vv);
 			assert!(e == ee);

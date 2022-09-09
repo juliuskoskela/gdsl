@@ -86,11 +86,12 @@ where
 	) -> bool {
 		while let Some(node) = queue.pop() {
 			let node = node.0;
-			for (u, v, e) in node.iter_out() {
-				if !visited.contains(v.key()) {
-					if self.method.exec(&u, &v, &e) {
+			for edge in node.iter_out() {
+				let v = edge.1.clone();
+				if self.method.exec(&edge) {
+					if !visited.contains(v.key()) {
 						visited.insert(v.key().clone());
-						result.push((u, v.clone(), e));
+						result.push(edge);
 						if self.target.is_some() && self.target.unwrap() == v.key() {
 							return true;
 						}
@@ -110,11 +111,13 @@ where
 	) -> bool {
 		while let Some(node) = queue.pop() {
 			let node = node.0;
-			for (v, u, e) in node.iter_in() {
-				if self.method.exec(&u, &v, &e) {
+			for edge in node.iter_out() {
+				let edge = edge.reverse();
+				let v = edge.1.clone();
+				if self.method.exec(&edge) {
 					if !visited.contains(v.key()) {
 						visited.insert(v.key().clone());
-						result.push((u, v.clone(), e));
+						result.push(edge);
 						if self.target.is_some() && self.target.unwrap() == v.key() {
 							return true;
 						}
@@ -133,11 +136,12 @@ where
 		queue: &mut BinaryHeap<Node<K, N, E>>,
 	) -> bool {
 		while let Some(node) = queue.pop() {
-			for (u, v, e) in node.iter_out() {
-				if self.method.exec(&u, &v, &e) {
+			for edge in node.iter_out() {
+				let v = edge.1.clone();
+				if self.method.exec(&edge) {
 					if !visited.contains(v.key()) {
 						visited.insert(v.key().clone());
-						result.push((u, v.clone(), e));
+						result.push(edge);
 						if self.target.is_some() && self.target.unwrap() == v.key() {
 							return true;
 						}
@@ -156,11 +160,13 @@ where
 		queue: &mut BinaryHeap<Node<K, N, E>>,
 	) -> bool {
 		while let Some(node) = queue.pop() {
-			for (v, u, e) in node.iter_in() {
-				if self.method.exec(&u, &v, &e) {
+			for edge in node.iter_in() {
+				let edge = edge.reverse();
+				let v = edge.1.clone();
+				if self.method.exec(&edge) {
 					if !visited.contains(v.key()) {
 						visited.insert(v.key().clone());
-						result.push((u, v.clone(), e));
+						result.push(edge);
 						if self.target.is_some() && self.target.unwrap() == v.key() {
 							return true;
 						}

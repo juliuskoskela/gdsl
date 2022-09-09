@@ -5,8 +5,8 @@
 //!
 //! - `Graph` is a container type for a directed graph.
 //! - `Node` is a node type for a directed graph.
-//! - An edge is denoted by a tuple `(u, v, e)` where `u` and `v` are the
-//!  source and target node and `e` is the edge parameter.
+//! - An edge is denoted by a tuple struct `Edge(u, v, e)` where`u` and `v` are
+//! the source and target node and `e` is the edge parameter.
 //!
 //! # Example
 //!
@@ -320,7 +320,7 @@ where
     /// g.insert(Node::new("B", 0));
     /// g.insert(Node::new("C", 0));
     ///
-    /// for (key, _)in g.iter() {
+    /// for (key, _) in g.iter() {
     ///    println!("{}", key);
     /// }
     /// ```
@@ -383,7 +383,7 @@ where
                 let cycle = node
                     .dfs()
                     .transpose()
-                    .filter(&|_, v, _| !invariant.contains(v.key()))
+                    .filter(&|Edge(_, v, _)| !invariant.contains(v.key()))
                     .search_cycle();
                 match cycle {
                     Some(cycle) => {
@@ -412,7 +412,7 @@ where
             if !visited.contains(next.key()) {
                 let partition = next
                     .postorder()
-                    .filter(&|_, v, _| !visited.contains(v.key()))
+                    .filter(&|Edge(_, v, _)| !visited.contains(v.key()))
                     .search_nodes();
                 for node in &partition {
                     visited.insert(node.key().clone());
@@ -428,7 +428,7 @@ where
         s.push_str("digraph {\n");
         for (u_key, node) in self.iter() {
             s.push_str(&format!("    {}", u_key.clone()));
-            for (_, v, _) in node {
+            for Edge(_, v, _) in node {
                 s.push_str(&format!("\n    {} -> {}", u_key, v.key()));
             }
             s.push_str("\n");
@@ -466,9 +466,9 @@ where
             s.push_str("\n");
         }
         for (_, node) in self.iter() {
-            for (u, v, edge) in node {
+            for Edge(u, v, e) in node {
                 s.push_str(&format!("\t{} -> {}", u.key(), v.key()));
-                if let Some(eattrs) = eattr(&u, &v, &edge) {
+                if let Some(eattrs) = eattr(&u, &v, &e) {
                     s.push_str(&format!(" {}", Self::fmt_attr(eattrs)));
                 }
                 s.push_str("\n");

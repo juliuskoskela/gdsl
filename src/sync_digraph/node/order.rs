@@ -74,12 +74,12 @@ where
 					Ordering::Pre => {
 						self.preorder_forward(&mut edges, &mut visited, &mut queue);
 						nodes.push(self.root.clone());
-						let mut coll = edges.iter().map(|(_, v, _)| v.clone()).collect();
+						let mut coll = edges.iter().map(|Edge(_, v, _)| v.clone()).collect();
 						nodes.append(&mut coll);
 					},
 					Ordering::Post => {
 						self.postorder_forward(&mut edges, &mut visited, &mut queue);
-						let mut coll = edges.iter().map(|(_, v, _)| v.clone()).collect();
+						let mut coll = edges.iter().map(|Edge(_, v, _)| v.clone()).collect();
 						nodes.append(&mut coll);
 						nodes.push(self.root.clone());
 					},
@@ -90,12 +90,12 @@ where
 					Ordering::Pre => {
 						self.preorder_backward(&mut edges, &mut visited, &mut queue);
 						nodes.push(self.root.clone());
-						let mut coll = edges.iter().map(|(_, v, _)| v.clone()).collect();
+						let mut coll = edges.iter().map(|Edge(_, v, _)| v.clone()).collect();
 						nodes.append(&mut coll);
 					},
 					Ordering::Post => {
 						self.postorder_backward(&mut edges, &mut visited, &mut queue);
-						let mut coll = edges.iter().map(|(_, v, _)| v.clone()).collect();
+						let mut coll = edges.iter().map(|Edge(_, v, _)| v.clone()).collect();
 						nodes.append(&mut coll);
 						nodes.push(self.root.clone());
 					},
@@ -145,12 +145,12 @@ where
 		queue: &mut Vec<Node<K, N, E>>,
 	) -> bool {
 		if let Some(node) = queue.pop() {
-			for (u, v, e) in node.iter_out() {
+			for Edge(u, v, e) in node.iter_out() {
 				if visited.contains(v.key()) == false {
 					if self.method.exec(&u, &v, &e) {
 						visited.insert(v.key().clone());
 						queue.push(v.clone());
-						result.push((u, v.clone(), e));
+						result.push(Edge(u, v.clone(), e));
 						self.preorder_forward(
 							result,
 							visited,
@@ -169,12 +169,12 @@ where
 		queue: &mut Vec<Node<K, N, E>>,
 	) -> bool {
 		if let Some(node) = queue.pop() {
-			for (v, u, e) in node.iter_in() {
+			for Edge(v, u, e) in node.iter_in() {
 				if visited.contains(v.key()) == false {
 					if self.method.exec(&u, &v, &e) {
 						visited.insert(v.key().clone());
 						queue.push(v.clone());
-						result.push((u, v.clone(), e));
+						result.push(Edge(u, v.clone(), e));
 						self.preorder_forward(
 							result,
 							visited,
@@ -193,7 +193,7 @@ where
 		queue: &mut Vec<Node<K, N, E>>,
 	) -> bool {
 		if let Some(node) = queue.pop() {
-			for (u, v, e) in node.iter_out() {
+			for Edge(u, v, e) in node.iter_out() {
 				if visited.contains(v.key()) == false {
 					if self.method.exec(&u, &v, &e) {
 						visited.insert(v.key().clone());
@@ -202,7 +202,7 @@ where
 							result,
 							visited,
 							queue);
-						result.push((u, v.clone(), e));
+						result.push(Edge(u, v.clone(), e));
 					}
 				}
 			}
@@ -217,7 +217,7 @@ where
 		queue: &mut Vec<Node<K, N, E>>,
 	) -> bool {
 		if let Some(node) = queue.pop() {
-			for (v, u, e) in node.iter_in() {
+			for Edge(v, u, e) in node.iter_in() {
 				if visited.contains(v.key()) == false {
 					if self.method.exec(&u, &v, &e) {
 						visited.insert(v.key().clone());
@@ -226,7 +226,7 @@ where
 							result,
 							visited,
 							queue);
-						result.push((u, v.clone(), e));
+						result.push(Edge(u, v.clone(), e));
 					}
 				}
 			}

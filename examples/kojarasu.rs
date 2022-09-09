@@ -23,7 +23,7 @@ fn ordering(graph: &G) -> G {
 		if !visited.contains(next.key()) {
 			let partition = next
 				.postorder()
-				.filter(&|_, v, _| !visited.contains(v.key()))
+				.filter(&|Edge(_, v, _)| !visited.contains(v.key()))
 				.search_nodes();
 			for node in &partition {
 				visited.insert(node.key().clone());
@@ -44,7 +44,7 @@ fn kojarasu(graph: &G) -> Vec<G> {
 			let cycle = node
 				.dfs()
 				.transpose()
-				.filter(&|_, v, _| !invariant.contains(v.key()))
+				.filter(&|Edge(_, v, _)| !invariant.contains(v.key()))
 				.search_cycle();
 			match cycle {
 				Some(cycle) => {
@@ -94,7 +94,7 @@ fn ex1() {
 	];
 
 	let mut g = g.to_vec();
-	g.sort();
+	g.sort_by(|a, b| a.key().cmp(&b.key()));
 	let mut components = kojarasu(&g);
 
 	for (i, component) in components.iter_mut().enumerate() {
@@ -135,7 +135,7 @@ fn ex2() {
 	];
 
 	let mut g = g.to_vec();
-	g.sort();
+	g.sort_by(|a, b| a.key().cmp(&b.key()));
 	let mut components = kojarasu(&g);
 
 	for (i, component) in components.iter_mut().enumerate() {
@@ -174,7 +174,7 @@ fn ex3() {
 	];
 
 	let mut g = g.to_vec();
-	g.sort();
+	g.sort_by(|a, b| a.key().cmp(&b.key()));
 	let mut components = kojarasu(&g);
 
 	for (i, component) in components.iter_mut().enumerate() {
@@ -213,7 +213,7 @@ fn ex4() {
 	];
 
 	let mut g = g.to_vec();
-	g.sort();
+	g.sort_by(|a, b| a.key().cmp(&b.key()));
 	let mut components = kojarasu(&g);
 
 	for (i, component) in components.iter_mut().enumerate() {

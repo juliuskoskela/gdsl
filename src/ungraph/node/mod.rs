@@ -57,9 +57,17 @@ use self::{
 
 //==== PUBLIC =================================================================
 
-/// An edge between nodes is a tuple `(u, v, e)` where `u` is the
+/// An edge between nodes is a tuple struct `Edge(u, v, e)` where `u` is the
 /// source node, `v` is the target node, and `e` is the edge's value.
-pub type Edge<K, N, E> = (Node<K, N, E>, Node<K, N, E>, E);
+#[derive(Clone, PartialEq)]
+pub struct Edge<K, N, E>(
+    pub Node<K, N, E>,
+    pub Node<K, N, E>,
+    pub E,
+) where
+	K: Clone + Hash + PartialEq + Eq + Display,
+	N: Clone,
+	E: Clone;
 
 /// A `Node<K, N, E>` is a key value pair smart-pointer, which includes inbound and
 /// outbound connections to other nodes. Nodes can be created individually and they
@@ -81,7 +89,7 @@ pub type Edge<K, N, E> = (Node<K, N, E>, Node<K, N, E>, E);
 /// b.connect(&c, 0.09);
 /// c.connect(&b, 12.9);
 ///
-/// let (u, v, e) = a.iter().next().unwrap();
+/// let Edge(u, v, e) = a.iter().next().unwrap();
 ///
 /// assert!(u == a);
 /// assert!(v == b);
@@ -280,7 +288,7 @@ where
 	///	assert!(n1.is_orphan());
 	/// ```
 	pub fn isolate(&self) {
-		for (_, v, _) in self.iter() {
+		for Edge(_, v, _) in self.iter() {
 			if v.inner.edges.remove_inbound(self.key()).is_err() {
 				v.inner.edges.remove_outbound(self.key()).unwrap();
 			}
@@ -429,14 +437,14 @@ where
 	N: Clone,
 	E: Clone,
 {
-	type Item = (Node<K, N, E>, Node<K, N, E>, E);
+	type Item = Edge<K, N, E>;
 
 	fn next(&mut self) -> Option<Self::Item> {
 		let adjacent = &self.node.inner.edges;
 		match adjacent.get_outbound(self.position) {
 			Some(current) => {
 				self.position += 1;
-				Some((
+				Some(Edge(
 					self.node.clone(),
 					current.target().clone(),
 					current.value.clone()
@@ -446,7 +454,7 @@ where
 				match adjacent.get_inbound(self.position - adjacent.len_outbound()) {
 					Some(current) => {
 						self.position += 1;
-						Some((
+						Some(Edge(
 							self.node.clone(),
 							current.target().clone(),
 							current.value.clone()
@@ -465,7 +473,7 @@ where
 	N: Clone,
 	E: Clone,
 {
-	type Item = (Node<K, N, E>, Node<K, N, E>, E);
+	type Item = Edge<K, N, E>;
 	type IntoIter = NodeIterator<'a, K, N, E>;
 
 	fn into_iter(self) -> Self::IntoIter {
@@ -665,5 +673,3 @@ where
 		self.edges.borrow_mut().outbound.clear();
 	}
 }
-
-//==== EOF ====================================================================

@@ -23,33 +23,33 @@ where
         })
     }
 
-    pub fn get_outbound(&self, idx: usize) -> Option<(Node<K, N, E>, E)> {
+    pub fn get_outbound(&self, idx: usize) -> Option<(&Node<K, N, E>, &E)> {
         match self.outbound.get(idx) {
-            Some(edge) => Some((edge.0.clone(), edge.1.clone())),
+            Some(edge) => Some((&edge.0, &edge.1)),
             None => None,
         }
     }
 
-    pub fn get_inbound(&self, idx: usize) -> Option<(Node<K, N, E>, E)> {
+    pub fn get_inbound(&self, idx: usize) -> Option<(&Node<K, N, E>, &E)> {
         match self.inbound.get(idx) {
-            Some(edge) => Some((edge.0.clone(), edge.1.clone())),
+            Some(edge) => Some((&edge.0, &edge.1)),
             None => None,
         }
     }
 
-    pub fn find_outbound(&self, node: &K) -> Option<(Node<K, N, E>, E)> {
+    pub fn find_outbound(&self, node: &K) -> Option<(&Node<K, N, E>, &E)> {
         for edge in self.outbound.iter() {
             if edge.0.key() == node {
-                return Some((edge.0.clone(), edge.1.clone()));
+                return Some((&edge.0, &edge.1));
             }
         }
         None
     }
 
-    pub fn find_inbound(&self, node: &K) -> Option<(Node<K, N, E>, E)> {
+    pub fn find_inbound(&self, node: &K) -> Option<(&Node<K, N, E>, &E)> {
         for edge in self.inbound.iter() {
             if edge.0.key() == node {
-                return Some((edge.0.clone(), edge.1.clone()));
+                return Some((&edge.0, &edge.1));
             }
         }
         None

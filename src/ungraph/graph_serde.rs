@@ -16,7 +16,7 @@ where
 	for (_, n) in g.iter() {
 		nodes.push((n.key().clone(), n.value().clone()));
 
-		for (u, v, e) in n.iter() {
+		for Edge(u, v, e) in n.iter() {
 			edges.push((u.key().clone(), v.key().clone(), e));
 		}
 	}

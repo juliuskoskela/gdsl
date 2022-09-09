@@ -36,6 +36,7 @@
 //!
 //! ```
 //! use gdsl::*;
+//! use gdsl::digraph::*;
 //! use std::cell::Cell;
 //!
 //! // We create a directed graph using the `digraph![]` macro. In the macro
@@ -80,7 +81,7 @@
 //! //
 //! // The search-object evaluates lazily. This means that the search is only
 //! // executed when calling either `search()` or `search_path()`.
-//! g['A'].pfs().map(&|u, v, e| {
+//! g['A'].pfs().map(&|Edge(u, v, e)| {
 //!
 //! 	// Since we are using a `Cell` to store the distance we use `get()` to
 //! 	// read the distance values.
