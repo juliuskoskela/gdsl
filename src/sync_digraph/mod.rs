@@ -429,7 +429,7 @@ where
         s.push_str("digraph {\n");
         for (u_key, node) in self.iter() {
             s.push_str(&format!("    {}", u_key.clone()));
-            for (_, v, _) in node {
+            for Edge(_, v, _) in node {
                 s.push_str(&format!("\n    {} -> {}", u_key, v.key()));
             }
             s.push_str("\n");
@@ -467,7 +467,7 @@ where
             s.push_str("\n");
         }
         for (_, node) in self.iter() {
-            for (u, v, edge) in node {
+            for Edge(u, v, edge) in node {
                 s.push_str(&format!("\t{} -> {}", u.key(), v.key()));
                 if let Some(eattrs) = eattr(&u, &v, &edge) {
                     s.push_str(&format!(" {}", Self::fmt_attr(eattrs)));

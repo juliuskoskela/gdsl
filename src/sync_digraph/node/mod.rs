@@ -45,9 +45,14 @@ mod adjacent;
 use std::{sync::{RwLock, Arc}, fmt::Display, hash::Hash, ops::Deref};
 use self::{bfs::*, dfs::*, order::*, pfs::*, adjacent::*};
 
-/// An edge between nodes is a tuple `(u, v, e)` where `u` is the
+/// An edge between nodes is a tuple struct `Edge(u, v, e)` where `u` is the
 /// source node, `v` is the target node, and `e` is the edge's value.
-pub type Edge<K, N, E> = (Node<K, N, E>, Node<K, N, E>, E);
+#[derive(Clone, PartialEq)]
+pub struct Edge<K: Clone + Hash + PartialEq + Eq + Display, N: Clone, E: Clone>(
+    pub Node<K, N, E>,
+    pub Node<K, N, E>,
+    pub E,
+);
 
 /// A `Node<K, N, E>` is a key value pair smart-pointer, which includes inbound
 /// and outbound connections to other nodes. Nodes can be created individually
@@ -69,7 +74,7 @@ pub type Edge<K, N, E> = (Node<K, N, E>, Node<K, N, E>, E);
 /// b.connect(&c, 0.09);
 /// c.connect(&b, 12.9);
 ///
-/// let (u, v, e) = a.iter_out().next().unwrap();
+/// let Edge(u, v, e) = a.iter_out().next().unwrap();
 ///
 /// assert!(u == a);
 /// assert!(v == b);
@@ -314,14 +319,14 @@ where
     ///	assert!(n1.is_orphan());
     /// ```
     pub fn isolate(&self) {
-        for (_, v, _) in self.iter_out() {
+        for Edge(_, v, _) in self.iter_out() {
             v.inner.2
                 .write()
 				.unwrap()
                 .remove_inbound(self.key())
                 .unwrap();
         }
-        for (v, _, _) in self.iter_in() {
+        for Edge(v, _, _) in self.iter_in() {
             v.inner.2
                 .write()
 				.unwrap()
@@ -615,8 +620,8 @@ where
 	/// 	.search_path()
 	/// 	.unwrap();
 	///
-	/// assert!(path[0] == (n1, n3.clone(), ()));
-	/// assert!(path[1] == (n3, n4, ()));
+	/// assert!(path[0] == Edge(n1, n3.clone(), ()));
+	/// assert!(path[1] == Edge(n3, n4, ()));
 	///```
     pub fn pfs(&self) -> PFS<K, N, E>
     where
@@ -640,8 +645,8 @@ where
 	/// n1.connect(&n3, ());
 	///
 	/// let mut iter = n1.iter_out();
-	/// assert!(iter.next().unwrap() == (n1.clone(), n2.clone(), ()));
-	/// assert!(iter.next().unwrap() == (n1, n3, ()));
+	/// assert!(iter.next().unwrap() == Edge(n1.clone(), n2.clone(), ()));
+	/// assert!(iter.next().unwrap() == Edge(n1, n3, ()));
 	/// ```
     pub fn iter_out(&self) -> IterOut<K, N, E> {
         IterOut {
@@ -666,7 +671,7 @@ where
 	///
 	/// let mut iter = n2.iter_in();
 	///
-	/// assert!(iter.next().unwrap() == (n1.clone(), n2.clone(), ()));
+	/// assert!(iter.next().unwrap() == Edge(n1.clone(), n2.clone(), ()));
 	/// assert!(iter.next().is_none());
 	/// ```
     pub fn iter_in(&self) -> IterIn<K, N, E> {
@@ -755,23 +760,22 @@ where
     N: Clone,
     E: Clone,
 {
-    type Item = (Node<K, N, E>, Node<K, N, E>, E);
+    type Item = Edge<K, N, E>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.node.inner.2.read().unwrap().get_outbound(self.position) {
             Some(current) => {
                 self.position += 1;
-                Some((self.node.clone(), current.0, current.1))
+                Some(Edge(self.node.clone(), current.0.clone(), current.1.clone()))
             }
             None => None,
         }
     }
 }
 
-/// An iterator over the node's inbound edges.
 pub struct IterIn<'a, K, N, E>
 where
-    K: Clone + Hash + Display + PartialEq + Eq,
+    K: Clone + Hash + Display + PartialEq + Eq + Display,
     N: Clone,
     E: Clone,
 {
@@ -781,17 +785,17 @@ where
 
 impl<'a, K, N, E> Iterator for IterIn<'a, K, N, E>
 where
-    K: Clone + Hash + Display + PartialEq + Eq,
+    K: Clone + Hash + Display + PartialEq + Eq + Display,
     N: Clone,
     E: Clone,
 {
-    type Item = (Node<K, N, E>, Node<K, N, E>, E);
+    type Item = Edge<K, N, E>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.node.inner.2.read().unwrap().get_inbound(self.position) {
             Some(current) => {
                 self.position += 1;
-                Some((current.0, self.node.clone(), current.1))
+                Some(Edge(current.0.clone(), self.node.clone(), current.1.clone()))
             }
             None => None,
         }
@@ -804,7 +808,7 @@ where
     N: Clone,
     E: Clone,
 {
-    type Item = (Node<K, N, E>, Node<K, N, E>, E);
+    type Item = Edge<K, N, E>;
     type IntoIter = IterOut<'a, K, N, E>;
 
     fn into_iter(self) -> Self::IntoIter {

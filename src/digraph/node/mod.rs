@@ -756,37 +756,6 @@ where
     }
 }
 
-/// An iterator over the node's outbound edges.
-// pub struct RefIterOut<'a, K, N, E>
-// where
-//     K: Clone + Hash + Display + PartialEq + Eq,
-//     N: Clone,
-//     E: Clone,
-// {
-//     node: &'a Node<K, N, E>,
-//     position: usize,
-// }
-
-// impl<'a, K, N, E> Iterator for RefIterOut<'a, K, N, E>
-// where
-//     K: Clone + Hash + Display + PartialEq + Eq,
-//     N: Clone,
-//     E: Clone,
-// {
-//     type Item = EdgeRef<'a, K, N, E>;
-
-//     fn next(&mut self) -> Option<Self::Item> {
-//         match self.node.inner.2.borrow().get_outbound(self.position) {
-//             Some(current) => {
-//                 self.position += 1;
-//                 Some(EdgeRef(self.node, current.0, current.1))
-//             }
-//             None => None,
-//         }
-//     }
-// }
-
-
 pub struct IterOut<'a, K, N, E>
 where
     K: Clone + Hash + Display + PartialEq + Eq,
@@ -815,36 +784,6 @@ where
         }
     }
 }
-
-// /// An iterator over the node's inbound edges.
-// pub struct RefIterIn<'a, K, N, E>
-// where
-//     K: Clone + Hash + Display + PartialEq + Eq + Display,
-//     N: Clone,
-//     E: Clone,
-// {
-//     node: &'a Node<K, N, E>,
-//     position: usize,
-// }
-
-// impl<'a, K, N, E> Iterator for RefIterIn<'a, K, N, E>
-// where
-//     K: Clone + Hash + Display + PartialEq + Eq + Display,
-//     N: Clone,
-//     E: Clone,
-// {
-//     type Item = EdgeRef<'a, K, N, E>;
-
-//     fn next(&mut self) -> Option<Self::Item> {
-//         match self.node.inner.2.borrow().get_inbound(self.position) {
-//             Some(current) => {
-//                 self.position += 1;
-//                 Some(EdgeRef(current.0, self.node, current.1))
-//             }
-//             None => None,
-//         }
-//     }
-// }
 
 pub struct IterIn<'a, K, N, E>
 where

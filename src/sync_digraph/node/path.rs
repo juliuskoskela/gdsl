@@ -16,10 +16,10 @@ where
 	let w = edge_tree.last().unwrap();
 	path.push(w.clone());
 	let mut i = 0;
-	for (u, v, e) in edge_tree.iter().rev() {
-		let (s, _, _) = &path[i];
+	for Edge(u, v, e) in edge_tree.iter().rev() {
+		let Edge(s, _, _) = &path[i];
 		if s == v {
-			path.push((u.clone(), v.clone(), e.clone()));
+			path.push(Edge(u.clone(), v.clone(), e.clone()));
 			i += 1;
 		}
 	}
