@@ -64,10 +64,10 @@ where
 		queue: &mut Vec<Node<K, N, E>>,
 	) -> bool {
 		if let Some(node) = queue.pop() {
-			for (u, v, e) in node.iter() {
+			for Edge(u, v, e) in node.iter() {
 				if self.method.exec(&u, &v, &e) {
 					if visited.contains(v.key()) == false {
-						result.push((u, v.clone(), e));
+						result.push(Edge(u, v.clone(), e));
 						if self.target.is_some() && self.target.unwrap() == v.key() {
 							return true;
 						}
@@ -88,7 +88,7 @@ where
 		queue: &mut Vec<Node<K, N, E>>,
 	) -> Option<Node<K, N, E>> {
 		if let Some(node) = queue.pop() {
-			for (u, v, e) in node.iter() {
+			for Edge(u, v, e) in node.iter() {
 				if self.method.exec(&u, &v, &e) {
 					if visited.contains(v.key()) == false {
 						if self.target.is_some() && self.target.unwrap() == v.key() {

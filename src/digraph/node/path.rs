@@ -16,10 +16,11 @@ where
 	let w = edge_tree.last().unwrap();
 	path.push(w.clone());
 	let mut i = 0;
-	for (u, v, e) in edge_tree.iter().rev() {
-		let (s, _, _) = &path[i];
+	for edge in edge_tree.iter().rev() {
+		let Edge(_, v, _) = edge;
+		let Edge(s, _, _) = &path[i];
 		if s == v {
-			path.push((u.clone(), v.clone(), e.clone()));
+			path.push(edge.clone());
 			i += 1;
 		}
 	}
@@ -121,13 +122,13 @@ where
 	N: Clone,
 	E: Clone,
 {
-	type Item = (Node<K, N, E>, Node<K, N, E>, E);
+	type Item = Edge<K, N, E>;
 
 	fn next(&mut self) -> Option<Self::Item> {
 		match self.path.edges.get(self.position) {
 			Some(edge) => {
 				self.position += 1;
-				Some((edge.0.clone(), edge.1.clone(), edge.2.clone()))
+				Some(Edge(edge.0.clone(), edge.1.clone(), edge.2.clone()))
 			}
 			None => None,
 		}
