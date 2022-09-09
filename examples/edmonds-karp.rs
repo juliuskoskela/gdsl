@@ -76,14 +76,14 @@ fn max_flow(g: &G) -> u64 {
 		let mut aug_flow = std::u64::MAX;
 
 		// 3. We find the minimum augmenting flow along the path.
-		for (_, _, flow) in path.iter_edges() {
+		for Edge(_, _, flow) in path.iter_edges() {
 			if flow.max() - flow.cur() < aug_flow {
 				aug_flow = flow.max() - flow.cur();
 			}
 		}
 
 		// 4. We update the flow along the path.
-		for (_, _, flow) in path.iter_edges() {
+		for Edge(_, _, flow) in path.iter_edges() {
 			flow.update(aug_flow);
 		}
 

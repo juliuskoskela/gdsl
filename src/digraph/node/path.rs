@@ -122,13 +122,13 @@ where
 	N: Clone,
 	E: Clone,
 {
-	type Item = (Node<K, N, E>, Node<K, N, E>, E);
+	type Item = Edge<K, N, E>;
 
 	fn next(&mut self) -> Option<Self::Item> {
 		match self.path.edges.get(self.position) {
 			Some(edge) => {
 				self.position += 1;
-				Some((edge.0.clone(), edge.1.clone(), edge.2.clone()))
+				Some(Edge(edge.0.clone(), edge.1.clone(), edge.2.clone()))
 			}
 			None => None,
 		}

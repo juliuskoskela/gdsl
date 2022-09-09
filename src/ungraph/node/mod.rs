@@ -60,11 +60,14 @@ use self::{
 /// An edge between nodes is a tuple struct `Edge(u, v, e)` where `u` is the
 /// source node, `v` is the target node, and `e` is the edge's value.
 #[derive(Clone, PartialEq)]
-pub struct Edge<K: Clone + Hash + PartialEq + Eq + Display, N: Clone, E: Clone>(
+pub struct Edge<K, N, E>(
     pub Node<K, N, E>,
     pub Node<K, N, E>,
     pub E,
-);
+) where
+	K: Clone + Hash + PartialEq + Eq + Display,
+	N: Clone,
+	E: Clone;
 
 /// A `Node<K, N, E>` is a key value pair smart-pointer, which includes inbound and
 /// outbound connections to other nodes. Nodes can be created individually and they
