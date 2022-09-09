@@ -23,7 +23,7 @@ fn ordering(graph: &G) -> G {
 		if !visited.contains(next.key()) {
 			let partition = next
 				.postorder()
-				.filter(&|_, v, _| !visited.contains(v.key()))
+				.filter(&|Edge(_, v, _)| !visited.contains(v.key()))
 				.search_nodes();
 			for node in &partition {
 				visited.insert(node.key().clone());
@@ -44,7 +44,7 @@ fn kojarasu(graph: &G) -> Vec<G> {
 			let cycle = node
 				.dfs()
 				.transpose()
-				.filter(&|_, v, _| !invariant.contains(v.key()))
+				.filter(&|Edge(_, v, _)| !invariant.contains(v.key()))
 				.search_cycle();
 			match cycle {
 				Some(cycle) => {

@@ -54,7 +54,7 @@ assert!(*n1 == 42);
 assert!(n2.key() == &'B');
 
 // Get the next edge from the outbound iterator.
-let (u, v, e) = n1.iter_out().next().unwrap();
+let Edge(u, v, e) = n1.iter_out().next().unwrap();
 
 assert!(u.key() == &'A');
 assert!(v == n2);
@@ -70,12 +70,12 @@ inbound edges in case of a directed graph or adjacent edges in the case of an un
 graph.
 
 ```rust
-for (u, v, e) in &node {
+for Edge(u, v, e) in &node {
     println!("{} -> {} : {}", u.key(), v.key(), e);
 }
 
 // Transposed iteration i.e. iterating the inbound edges of a node in digrap.
-for (u, v, e) in node.iter_in() {
+for Edge(v, u, e) in node.iter_in() {
     println!("{} <- {} : {}", u.key(), v.key(), e);
 }
 ```
