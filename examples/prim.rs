@@ -6,31 +6,8 @@ use std::cell::RefCell;
 
 type N = Node<usize, (), u64>;
 type E = Edge<usize, (), u64>;
-type Heap = BinaryHeap<Reverse<ForestEdge>>;
+type Heap = BinaryHeap<Reverse<E>>;
 type Forest = Vec<E>;
-
-#[derive(Clone)]
-struct ForestEdge(E);
-
-impl PartialEq for ForestEdge {
-    fn eq(&self, other: &ForestEdge) -> bool {
-        self.0.2 == other.0.2
-    }
-}
-
-impl Eq for ForestEdge {}
-
-impl PartialOrd for ForestEdge {
-    fn partial_cmp(&self, other: &ForestEdge) -> Option<std::cmp::Ordering> {
-        Some(self.0.2.cmp(&other.0.2))
-    }
-}
-
-impl Ord for ForestEdge {
-    fn cmp(&self, other: &ForestEdge) -> std::cmp::Ordering {
-        self.0.2.cmp(&other.0.2)
-    }
-}
 
 fn prim_minimum_spanning_tree(s: &N) -> Forest {
     let mut forest: Forest = vec![];
@@ -39,19 +16,20 @@ fn prim_minimum_spanning_tree(s: &N) -> Forest {
 
 	added_nodes.insert(*s.key());
 
-	s.bfs().map(&|u, v, e| {
-		heap.borrow_mut().push(Reverse(ForestEdge((u.clone(), v.clone(), *e))));
+	s.bfs().map(&|edge| {
+		heap.borrow_mut().push(Reverse(edge.clone()));
 	}).search();
 
-	let mut tmp: Vec<ForestEdge> = vec![];
+	let mut tmp: Vec<E> = vec![];
 	loop {
 		if let Some(edge) = heap.borrow_mut().pop() {
-			let Reverse(ForestEdge((u, v, e))) = edge;
-			if added_nodes.contains(u.key()) && !added_nodes.contains(v.key()) {
-				forest.push((u.clone(), v.clone(), e));
-				added_nodes.insert(*v.key());
+			let Reverse(edge) = edge;
+			if added_nodes.contains(edge.source().key())
+			&& !added_nodes.contains(edge.target().key()) {
+				forest.push(edge.clone());
+				added_nodes.insert(*edge.target().key());
 			} else {
-				tmp.push(ForestEdge((u.clone(), v.clone(), e)));
+				tmp.push(edge);
 				continue;
 			}
 		} else {
