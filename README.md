@@ -70,8 +70,15 @@ inbound edges in case of a directed graph or adjacent edges in the case of an un
 graph.
 
 ```rust
+
+// Edge is a tuple struct so can be decomposed using tuple syntax..
 for Edge(u, v, e) in &node {
     println!("{} -> {} : {}", u.key(), v.key(), e);
+}
+
+// ..or used more conventionally as one type.
+for edge in &node {
+    println!("{} -> {} : {}", edge.source().key(), edge.target().key(), edge.value());
 }
 
 // Transposed iteration i.e. iterating the inbound edges of a node in digrap.
@@ -247,7 +254,7 @@ g['A'].set(0);
 //
 // The search-object evaluates lazily. This means that the search is only
 // executed when calling either `search()` or `search_path()`.
-g['A'].pfs().map(&|u, v, e| {
+g['A'].pfs().map(&|Edge(u, v, e)| {
 
     // Since we are using a `Cell` to store the distance we use `get()` to
     // read the distance values.
