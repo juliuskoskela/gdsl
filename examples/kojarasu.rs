@@ -94,7 +94,7 @@ fn ex1() {
 	];
 
 	let mut g = g.to_vec();
-	g.sort();
+	g.sort_by(|a, b| a.key().cmp(&b.key()));
 	let mut components = kojarasu(&g);
 
 	for (i, component) in components.iter_mut().enumerate() {
@@ -135,7 +135,7 @@ fn ex2() {
 	];
 
 	let mut g = g.to_vec();
-	g.sort();
+	g.sort_by(|a, b| a.key().cmp(&b.key()));
 	let mut components = kojarasu(&g);
 
 	for (i, component) in components.iter_mut().enumerate() {
@@ -174,7 +174,7 @@ fn ex3() {
 	];
 
 	let mut g = g.to_vec();
-	g.sort();
+	g.sort_by(|a, b| a.key().cmp(&b.key()));
 	let mut components = kojarasu(&g);
 
 	for (i, component) in components.iter_mut().enumerate() {
@@ -213,7 +213,7 @@ fn ex4() {
 	];
 
 	let mut g = g.to_vec();
-	g.sort();
+	g.sort_by(|a, b| a.key().cmp(&b.key()));
 	let mut components = kojarasu(&g);
 
 	for (i, component) in components.iter_mut().enumerate() {
