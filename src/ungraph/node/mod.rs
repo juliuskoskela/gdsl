@@ -59,7 +59,7 @@ use self::{
 
 /// An edge between nodes is a tuple struct `Edge(u, v, e)` where `u` is the
 /// source node, `v` is the target node, and `e` is the edge's value.
-#[derive(Clone, PartialEq)]
+#[derive(Clone)]
 pub struct Edge<K, N, E>(
     pub Node<K, N, E>,
     pub Node<K, N, E>,
@@ -68,6 +68,73 @@ pub struct Edge<K, N, E>(
 	K: Clone + Hash + PartialEq + Eq + Display,
 	N: Clone,
 	E: Clone;
+
+	impl<K, N, E> Edge<K, N, E>
+where
+    K: Clone + Hash + PartialEq + Eq + Display,
+    N: Clone,
+    E: Clone,
+{
+    /// Returns the source node of the edge.
+    pub fn source(&self) -> &Node<K, N, E> {
+        &self.0
+    }
+
+    /// Returns the target node of the edge.
+    pub fn target(&self) -> &Node<K, N, E> {
+        &self.1
+    }
+
+    /// Returns the edge's value.
+    pub fn value(&self) -> &E {
+        &self.2
+    }
+
+    /// Reverse the edge's direction.
+    pub fn reverse(&self) -> Edge<K, N, E> {
+        Edge(self.1.clone(), self.0.clone(), self.2.clone())
+    }
+}
+
+impl<K, N, E> PartialEq for Edge<K, N, E>
+where
+	K: Clone + Hash + PartialEq + Eq + Display,
+	N: Clone,
+	E: Clone + Ord
+{
+	fn eq(&self, other: &Edge<K, N, E>) -> bool {
+		self.2 == other.2
+	}
+}
+
+impl<K, N, E> Eq for Edge<K, N, E>
+where
+	K: Clone + Hash + PartialEq + Eq + Display,
+	N: Clone,
+	E: Clone + Ord
+{}
+
+impl<K, N, E> PartialOrd for Edge<K, N, E> 
+where
+	K: Clone + Hash + PartialEq + Eq + Display,
+	N: Clone,
+	E: Clone + Ord
+{
+	fn partial_cmp(&self, other: &Edge<K, N, E>) -> Option<std::cmp::Ordering> {
+		Some(self.cmp(other))
+	}
+}
+
+impl<K, N, E> Ord for Edge<K, N, E> 
+where
+	K: Clone + Hash + PartialEq + Eq + Display,
+	N: Clone,
+	E: Clone + Ord
+{
+	fn cmp(&self, other: &Edge<K, N, E>) -> std::cmp::Ordering {
+		self.2.cmp(&other.2)
+	}
+}
 
 /// A `Node<K, N, E>` is a key value pair smart-pointer, which includes inbound and
 /// outbound connections to other nodes. Nodes can be created individually and they

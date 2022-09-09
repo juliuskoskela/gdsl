@@ -118,7 +118,7 @@ where
 		if let Some(node) = queue.pop() {
 			for Edge(u, v, e) in node.iter() {
 				if visited.contains(v.key()) == false {
-					if self.method.exec(&u, &v, &e) {
+					if self.method.exec(&Edge(u.clone(), v.clone(), e.clone())) {
 						visited.insert(v.key().clone());
 						queue.push(v.clone());
 						result.push(Edge(u, v.clone(), e));
@@ -142,7 +142,7 @@ where
 		if let Some(node) = queue.pop() {
 			for Edge(u, v, e) in node.iter() {
 				if visited.contains(v.key()) == false {
-					if self.method.exec(&u, &v, &e) {
+					if self.method.exec(&Edge(u.clone(), v.clone(), e.clone())) {
 						visited.insert(v.key().clone());
 						queue.push(v.clone());
 						self.recurse_postorder(
