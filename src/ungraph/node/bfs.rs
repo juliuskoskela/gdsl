@@ -64,7 +64,7 @@ where
 	) -> bool {
 		while let Some(node) = queue.pop_front() {
 			for Edge(u, v, e) in node.iter() {
-				if self.method.exec(&u, &v, &e) {
+				if self.method.exec(&Edge(u.clone(), v.clone(), e.clone())) {
 					if !visited.contains(v.key()) {
 						visited.insert(v.key().clone());
 						result.push(Edge(u, v.clone(), e));
@@ -86,7 +86,7 @@ where
 	) -> Option<Node<K, N, E>> {
 		while let Some(node) = queue.pop_front() {
 			for Edge(u, v, e) in node.iter() {
-				if self.method.exec(&u, &v, &e) {
+				if self.method.exec(&Edge(u.clone(), v.clone(), e.clone())) {
 					if !visited.contains(v.key()) {
 						visited.insert(v.key().clone());
 						if self.target.is_some() && self.target.unwrap() == v.key() {
