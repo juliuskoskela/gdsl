@@ -53,10 +53,7 @@ where
 	pub fn get_adjacent(&self, idx: usize) -> Option<(&WeakNode<K, N, E>, &E)> {
 		match self.outbound.get(idx) {
 			Some(edge) => Some((&edge.0, &edge.1)),
-			None => match self.inbound.get(idx - self.outbound.len()) {
-				Some(edge) => Some((&edge.0, &edge.1)),
-				None => None,
-			},
+			None => self.inbound.get(idx - self.outbound.len()).map(|edge| (&edge.0, &edge.1)),
 		}
 	}
 

@@ -23,7 +23,7 @@ where
 		DFS {
 			root: root.clone(),
 			target: None,
-			method: Method::NullMethod,
+			method: Method::Empty,
 		}
 	}
 
@@ -51,7 +51,7 @@ where
 			for edge in node.iter() {
 				if self.method.exec(&edge) {
 					let v = edge.target().clone();
-					if visited.contains(v.key()) == false {
+					if !visited.contains(v.key()) {
 						visited.insert(v.key().clone());
 						result.push(edge);
 						if let Some(ref t) = self.target {
@@ -78,7 +78,7 @@ where
 			for edge in node.iter() {
 				if self.method.exec(&edge) {
 					let v = edge.target();
-					if visited.contains(v.key()) == false {
+					if !visited.contains(v.key()) {
 						visited.insert(v.key().clone());
 						if let Some(ref t) = self.target {
 							if v.key() == t {

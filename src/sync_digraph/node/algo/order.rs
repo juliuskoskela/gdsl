@@ -29,7 +29,7 @@ where
 	pub fn preorder(root: &'a Node<K, N, E>) -> Self {
 		Self {
 			root,
-			method: Method::NullMethod,
+			method: Method::Empty,
 			order: Ordering::Pre,
 			transpose: Transposition::Outbound,
 		}
@@ -38,7 +38,7 @@ where
 	pub fn postroder(root: &'a Node<K, N, E>) -> Self {
 		Self {
 			root,
-			method: Method::NullMethod,
+			method: Method::Empty,
 			order: Ordering::Post,
 			transpose: Transposition::Outbound,
 		}
@@ -148,7 +148,7 @@ where
 			for edge in node.iter_out() {
 				let v = edge.1.clone();
 				if self.method.exec(&edge) {
-					if visited.contains(v.key()) == false {
+					if !visited.contains(v.key()) {
 						visited.insert(v.key().clone());
 						queue.push(v.clone());
 						result.push(edge);
@@ -174,7 +174,7 @@ where
 				let edge = edge.reverse();
 				let v = edge.1.clone();
 				if self.method.exec(&edge) {
-					if visited.contains(v.key()) == false {
+					if !visited.contains(v.key()) {
 						visited.insert(v.key().clone());
 						queue.push(v.clone());
 						result.push(edge);
@@ -199,7 +199,7 @@ where
 			for edge in node.iter_out() {
 				let v = edge.1.clone();
 				if self.method.exec(&edge) {
-					if visited.contains(v.key()) == false {
+					if !visited.contains(v.key()) {
 						visited.insert(v.key().clone());
 						queue.push(v.clone());
 						self.postorder_forward(
@@ -225,7 +225,7 @@ where
 				let edge = edge.reverse();
 				let v = edge.1.clone();
 				if self.method.exec(&edge) {
-					if visited.contains(v.key()) == false {
+					if !visited.contains(v.key()) {
 						visited.insert(v.key().clone());
 						queue.push(v.clone());
 						self.postorder_forward(

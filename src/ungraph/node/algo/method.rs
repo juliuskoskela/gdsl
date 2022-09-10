@@ -9,7 +9,7 @@ where
 	N: Clone,
 	E: Clone,
 {
-	NullMethod,
+	Empty,
 	Filter(Filter<'a, K, N, E>),
 	ForEach(ForEach<'a, K, N, E>),
 }
@@ -22,7 +22,7 @@ where
 {
 	pub fn exec(&mut self, e: &Edge<K, N, E>) -> bool {
 		match self {
-			Method::NullMethod => true,
+			Method::Empty => true,
 			Method::Filter(f) => f(e),
 			Method::ForEach(f) => {f(e); true},
 		}

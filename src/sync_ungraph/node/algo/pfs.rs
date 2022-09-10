@@ -34,7 +34,7 @@ where
 		PFS {
 			root: root.clone(),
 			target: None,
-			method: Method::NullMethod,
+			method: Method::Empty,
 			priority: Priority::Min,
 		}
 	}

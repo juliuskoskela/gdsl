@@ -724,7 +724,7 @@ where
 {
     type Target = N;
     fn deref(&self) -> &Self::Target {
-        &self.value()
+        self.value()
     }
 }
 

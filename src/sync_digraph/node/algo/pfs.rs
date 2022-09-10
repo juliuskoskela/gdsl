@@ -36,7 +36,7 @@ where
 		PFS {
 			root: root.clone(),
 			target: None,
-			method: Method::NullMethod,
+			method: Method::Empty,
 			transpose: Transposition::Outbound,
 			priority: Priority::Min,
 		}
@@ -191,7 +191,6 @@ where
 	pub fn search_cycle(&'a mut self) -> Option<Path<K, N, E>> {
 		let mut edges = vec![];
 		let mut visited = HashSet::default();
-		let target_found;
 
 		self.target = Some(self.root.key().clone());
 
@@ -201,12 +200,18 @@ where
 					Priority::Min => {
 						let mut queue = BinaryHeap::new();
 						queue.push(Reverse(self.root.clone()));
-						target_found = self.loop_outbound_min(&mut edges, &mut visited, &mut queue);
+						match self.loop_outbound_min(&mut edges, &mut visited, &mut queue) {
+							true => Some(Path::from_edge_tree(edges)),
+							false => None,
+						}
 					}
 					Priority::Max => {
 						let mut queue = BinaryHeap::new();
 						queue.push(self.root.clone());
-						target_found = self.loop_outbound_max(&mut edges, &mut visited, &mut queue);
+						match self.loop_outbound_max(&mut edges, &mut visited, &mut queue) {
+							true => Some(Path::from_edge_tree(edges)),
+							false => None,
+						}
 					}
 				}
 			}
@@ -215,26 +220,27 @@ where
 					Priority::Min => {
 						let mut queue = BinaryHeap::new();
 						queue.push(Reverse(self.root.clone()));
-						target_found = self.loop_inbound_min(&mut edges, &mut visited, &mut queue);
+						match self.loop_outbound_min(&mut edges, &mut visited, &mut queue) {
+							true => Some(Path::from_edge_tree(edges)),
+							false => None,
+						}
 					}
 					Priority::Max => {
 						let mut queue = BinaryHeap::new();
 						queue.push(self.root.clone());
-						target_found = self.loop_inbound_max(&mut edges, &mut visited, &mut queue);
+						match self.loop_outbound_max(&mut edges, &mut visited, &mut queue) {
+							true => Some(Path::from_edge_tree(edges)),
+							false => None,
+						}
 					}
 				}
 			}
 		}
-		if target_found {
-			return Some(Path::from_edge_tree(edges));
-		}
-		None
 	}
 
 	pub fn search_path(&mut self) -> Option<Path<K, N, E>> {
 		let mut edges = vec![];
 		let mut visited = HashSet::default();
-		let target_found;
 
 		visited.insert(self.root.key().clone());
 
@@ -244,12 +250,18 @@ where
 					Priority::Min => {
 						let mut queue = BinaryHeap::new();
 						queue.push(Reverse(self.root.clone()));
-						target_found = self.loop_outbound_min(&mut edges, &mut visited, &mut queue);
+						match self.loop_outbound_min(&mut edges, &mut visited, &mut queue) {
+							true => Some(Path::from_edge_tree(edges)),
+							false => None,
+						}
 					}
 					Priority::Max => {
 						let mut queue = BinaryHeap::new();
 						queue.push(self.root.clone());
-						target_found = self.loop_outbound_max(&mut edges, &mut visited, &mut queue);
+						match self.loop_outbound_max(&mut edges, &mut visited, &mut queue) {
+							true => Some(Path::from_edge_tree(edges)),
+							false => None,
+						}
 					}
 				}
 			}
@@ -258,19 +270,21 @@ where
 					Priority::Min => {
 						let mut queue = BinaryHeap::new();
 						queue.push(Reverse(self.root.clone()));
-						target_found = self.loop_inbound_min(&mut edges, &mut visited, &mut queue);
+						match self.loop_inbound_min(&mut edges, &mut visited, &mut queue) {
+							true => Some(Path::from_edge_tree(edges)),
+							false => None,
+						}
 					}
 					Priority::Max => {
 						let mut queue = BinaryHeap::new();
 						queue.push(self.root.clone());
-						target_found = self.loop_inbound_max(&mut edges, &mut visited, &mut queue);
+						match self.loop_inbound_max(&mut edges, &mut visited, &mut queue) {
+							true => Some(Path::from_edge_tree(edges)),
+							false => None,
+						}
 					}
 				}
 			}
 		}
-		if target_found {
-			return Some(Path::from_edge_tree(edges));
-		}
-		None
 	}
 }

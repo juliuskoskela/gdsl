@@ -38,7 +38,7 @@ where
 	pub fn new(root: &'a Node<K, N, E>) -> Self {
 		Self {
 			root,
-			method: Method::NullMethod,
+			method: Method::Empty,
 			order: Ordering::Pre,
 		}
 	}
@@ -119,7 +119,7 @@ where
 				let edge = edge.reverse();
 				let v = edge.1.clone();
 				if self.method.exec(&edge) {
-					if visited.contains(v.key()) == false {
+					if !visited.contains(v.key()) {
 						visited.insert(v.key().clone());
 						queue.push(v.clone());
 						result.push(edge);
@@ -144,7 +144,7 @@ where
 			for edge in node.iter() {
 				let v = edge.1.clone();
 				if self.method.exec(&edge) {
-					if visited.contains(v.key()) == false {
+					if !visited.contains(v.key()) {
 						visited.insert(v.key().clone());
 						queue.push(v.clone());
 						self.recurse_postorder(

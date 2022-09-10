@@ -46,7 +46,7 @@ mod node;
 
 pub use self::node::*;
 use ahash::{AHashMap as HashMap, AHashSet as HashSet};
-use std::{fmt::Display, hash::Hash};
+use std::{fmt::{Display, Write}, hash::Hash};
 
 /// A directed graph containing nodes and edges. The graph is represented as a
 /// map of nodes, where each node is identified by a unique key. Each node
@@ -138,7 +138,7 @@ where
     /// assert!(node.key() == &"A");
     /// ```
     pub fn get(&self, key: &K) -> Option<Node<K, N, E>> {
-        self.nodes.get(key).map(|node| node.clone())
+        self.nodes.get(key).cloned()
     }
 
     /// Check if Graph is empty
@@ -219,7 +219,7 @@ where
     /// assert!(nodes.len() == 3);
     /// ```
     pub fn to_vec(&self) -> Vec<Node<K, N, E>> {
-        self.nodes.values().map(|node| node.clone()).collect()
+        self.nodes.values().cloned().collect()
     }
 
     /// Collect roots into a vector
@@ -247,7 +247,7 @@ where
         self.nodes
             .values()
             .filter(|node| node.is_root())
-            .map(|node| node.clone())
+            .cloned()
             .collect()
     }
 
@@ -275,7 +275,7 @@ where
         self.nodes
             .values()
             .filter(|node| node.is_leaf())
-            .map(|node| node.clone())
+            .cloned()
             .collect()
     }
 
@@ -303,7 +303,7 @@ where
         self.nodes
             .values()
             .filter(|node| node.is_orphan())
-            .map(|node| node.clone())
+            .cloned()
             .collect()
     }
 
@@ -427,13 +427,13 @@ where
         let mut s = String::new();
         s.push_str("digraph {\n");
         for (u_key, node) in self.iter() {
-            s.push_str(&format!("    {}", u_key.clone()));
+            write!(&mut s, "    {}", u_key.clone()).unwrap();
             for Edge(_, v, _) in node {
-                s.push_str(&format!("\n    {} -> {}", u_key, v.key()));
+                write!(&mut s, "\n    {} -> {}", u_key, v.key()).unwrap();
             }
-            s.push_str("\n");
+            s.push('\n');
         }
-        s.push_str("}");
+        s.push('}');
         s
     }
 
@@ -463,7 +463,7 @@ where
             if let Some(nattr) = nattr(node) {
                 s.push_str(&format!(" {}", Self::fmt_attr(nattr)));
             }
-            s.push_str("\n");
+            s.push('\n');
         }
         for (_, node) in self.iter() {
             for Edge(u, v, e) in node {
@@ -471,10 +471,10 @@ where
                 if let Some(eattrs) = eattr(&u, &v, &e) {
                     s.push_str(&format!(" {}", Self::fmt_attr(eattrs)));
                 }
-                s.push_str("\n");
+                s.push('\n');
             }
         }
-        s.push_str("}");
+        s.push('}');
         s
     }
 
@@ -511,4 +511,15 @@ where
     fn index(&self, key: &'a K) -> &Self::Output {
         &self.nodes[key]
     }
+}
+
+impl<K, N, E> Default for Graph<K, N, E>
+where
+	K: Clone + Hash + Display + Eq,
+	N: Clone,
+	E: Clone
+{
+	fn default() -> Self {
+	    Self::new()
+	}
 }

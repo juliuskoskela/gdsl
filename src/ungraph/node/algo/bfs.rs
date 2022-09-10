@@ -23,7 +23,7 @@ where
 		BFS {
 			root: root.clone(),
 			target: None,
-			method: Method::NullMethod,
+			method: Method::Empty,
 		}
 	}
 

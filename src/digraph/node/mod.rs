@@ -484,11 +484,7 @@ where
     pub fn find_inbound(&self, other: &K) -> Option<Node<K, N, E>> {
         let edge = self.inner.2.borrow();
 		let edge = edge.find_inbound(other);
-        if let Some(edge) = edge {
-            Some(edge.0.upgrade().unwrap().clone())
-        } else {
-            None
-        }
+        edge.map(|edge| edge.0.upgrade().unwrap().clone())
     }
 
     /// Returns an iterator-like object that can be used to map, filter and
@@ -714,7 +710,7 @@ where
 {
     type Target = N;
     fn deref(&self) -> &Self::Target {
-        &self.value()
+        self.value()
     }
 }
 

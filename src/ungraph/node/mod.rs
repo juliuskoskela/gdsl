@@ -385,10 +385,7 @@ where
 	/// Get a pointer to an adjacent node with a given key. Returns None if no
 	/// node with the given key is found from the node's adjacency list.
 	pub fn find_adjacent(&self, other: &K) -> Option<Node<K, N, E>> {
-		match self.inner.2.borrow().find_adjacent(other) {
-			Some((n, _)) => Some(n.upgrade().unwrap()),
-			None => None,
-		}
+		self.inner.2.borrow().find_adjacent(other).map(|(n, _)| n.upgrade().unwrap())
 	}
 
 	/// Returns an iterator-like object that can be used to map, filter and
@@ -444,7 +441,7 @@ where
 {
     type Target = N;
     fn deref(&self) -> &Self::Target {
-        &self.value()
+        self.value()
     }
 }
 
@@ -473,7 +470,7 @@ where
     E: Clone,
 {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.value().cmp(&other.value()))
+        Some(self.value().cmp(other.value()))
     }
 }
 
@@ -484,7 +481,7 @@ where
     E: Clone,
 {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.value().cmp(&other.value())
+        self.value().cmp(other.value())
     }
 }
 

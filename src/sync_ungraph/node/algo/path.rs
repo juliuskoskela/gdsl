@@ -56,14 +56,14 @@ where
 
 	pub fn iter_nodes(&self) -> PathNodeIterator<K, N, E> {
 		PathNodeIterator {
-			path: self.clone(),
+			path: self,
 			position: 0,
 		}
 	}
 
 	pub fn iter_edges(&self) -> PathEdgeIterator<K, N, E> {
 		PathEdgeIterator {
-			path: self.clone(),
+			path: self,
 			position: 0,
 		}
 	}

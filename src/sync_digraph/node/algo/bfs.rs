@@ -24,7 +24,7 @@ where
 		BFS {
 			root: root.clone(),
 			target: None,
-			method: Method::NullMethod,
+			method: Method::Empty,
 			transpose: Transposition::Outbound,
 		}
 	}
@@ -58,10 +58,10 @@ where
 
 		match self.transpose {
 			Transposition::Outbound => {
-				return self.loop_outbound_find(&mut visited, &mut queue);
+				self.loop_outbound_find(&mut visited, &mut queue)
 			}
 			Transposition::Inbound => {
-				return self.loop_inbound_find(&mut visited, &mut queue);
+				self.loop_inbound_find(&mut visited, &mut queue)
 			}
 		}
 	}
@@ -70,46 +70,48 @@ where
 		let mut edges = vec![];
 		let mut queue = VecDeque::new();
 		let mut visited = HashSet::default();
-		let target_found;
 
 		self.target = Some(self.root.key().clone());
 		queue.push_back(self.root.clone());
 
 		match self.transpose {
 			Transposition::Outbound => {
-				target_found = self.loop_outbound(&mut edges, &mut visited, &mut queue);
+				match self.loop_outbound(&mut edges, &mut visited, &mut queue) {
+					true => Some(Path::from_edge_tree(edges)),
+					false => None,
+				}
 			}
 			Transposition::Inbound => {
-				target_found = self.loop_inbound(&mut edges, &mut visited, &mut queue);
+				match self.loop_inbound(&mut edges, &mut visited, &mut queue) {
+					true => Some(Path::from_edge_tree(edges)),
+					false => None,
+				}
 			}
 		}
-		if target_found {
-			return Some(Path::from_edge_tree(edges));
-		}
-		None
 	}
 
 	pub fn search_path(&mut self) -> Option<Path<K, N, E>> {
 		let mut edges = vec![];
 		let mut queue = VecDeque::new();
 		let mut visited = HashSet::default();
-		let target_found;
 
 		queue.push_back(self.root.clone());
 		visited.insert(self.root.key().clone());
 
 		match self.transpose {
 			Transposition::Outbound => {
-				target_found = self.loop_outbound(&mut edges, &mut visited, &mut queue);
+				match self.loop_outbound(&mut edges, &mut visited, &mut queue) {
+					true => Some(Path::from_edge_tree(edges)),
+					false => None,
+				}
 			}
 			Transposition::Inbound => {
-				target_found = self.loop_inbound(&mut edges, &mut visited, &mut queue);
+				match self.loop_inbound(&mut edges, &mut visited, &mut queue) {
+					true => Some(Path::from_edge_tree(edges)),
+					false => None,
+				}
 			}
 		}
-		if target_found {
-			return Some(Path::from_edge_tree(edges));
-		}
-		None
 	}
 
 	fn loop_outbound(

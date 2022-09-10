@@ -24,7 +24,7 @@ where
 		DFS {
 			root: root.clone(),
 			target: None,
-			method: Method::NullMethod,
+			method: Method::Empty,
 			transpose: Transposition::Outbound,
 		}
 	}
@@ -58,10 +58,10 @@ where
 
 		match self.transpose {
 			Transposition::Outbound => {
-				return self.recurse_outbound_find(&mut visited, &mut queue);
+				self.recurse_outbound_find(&mut visited, &mut queue)
 			}
 			Transposition::Inbound => {
-				return self.recurse_inbound_find(&mut visited, &mut queue);
+				self.recurse_inbound_find(&mut visited, &mut queue)
 			}
 		}
 	}
@@ -70,46 +70,48 @@ where
 		let mut edges = vec![];
 		let mut queue = vec![];
 		let mut visited = HashSet::default();
-		let target_found;
 
 		self.target = Some(self.root.key().clone());
 		queue.push(self.root.clone());
 
 		match self.transpose {
 			Transposition::Outbound => {
-				target_found = self.recurse_outbound(&mut edges, &mut visited, &mut queue);
+				match self.recurse_outbound(&mut edges, &mut visited, &mut queue) {
+					true => Some(Path::from_edge_tree(edges)),
+					false => None,
+				}
 			}
 			Transposition::Inbound => {
-				target_found = self.recurse_inbound(&mut edges, &mut visited, &mut queue);
+				match self.recurse_inbound(&mut edges, &mut visited, &mut queue) {
+					true => Some(Path::from_edge_tree(edges)),
+					false => None,
+				}
 			}
 		}
-		if target_found {
-			return Some(Path::from_edge_tree(edges));
-		}
-		None
 	}
 
 	pub fn search_path(&mut self) -> Option<Path<K, N, E>> {
 		let mut edges = vec![];
 		let mut queue = vec![];
 		let mut visited = HashSet::default();
-		let target_found;
 
 		queue.push(self.root.clone());
 		visited.insert(self.root.key().clone());
 
 		match self.transpose {
 			Transposition::Outbound => {
-				target_found = self.recurse_outbound(&mut edges, &mut visited, &mut queue);
+				match self.recurse_outbound(&mut edges, &mut visited, &mut queue) {
+					true => Some(Path::from_edge_tree(edges)),
+					false => None,
+				}
 			}
 			Transposition::Inbound => {
-				target_found = self.recurse_inbound(&mut edges, &mut visited, &mut queue);
+				match self.recurse_inbound(&mut edges, &mut visited, &mut queue) {
+					true => Some(Path::from_edge_tree(edges)),
+					false => None,
+				}
 			}
 		}
-		if target_found {
-			return Some(Path::from_edge_tree(edges));
-		}
-		None
 	}
 
 	fn recurse_outbound(&mut self,
@@ -121,7 +123,7 @@ where
 			for edge in node.iter_out() {
 				if self.method.exec(&edge) {
 					let v = edge.target().clone();
-					if visited.contains(v.key()) == false {
+					if !visited.contains(v.key()) {
 						visited.insert(v.key().clone());
 						result.push(edge);
 						if let Some(ref t) = self.target {
@@ -150,7 +152,7 @@ where
 				let edge = edge.reverse();
 				if self.method.exec(&edge) {
 					let v = edge.target().clone();
-					if visited.contains(v.key()) == false {
+					if !visited.contains(v.key()) {
 						visited.insert(v.key().clone());
 						result.push(edge);
 						if let Some(ref t) = self.target {
@@ -177,7 +179,7 @@ where
 			for edge in node.iter_out() {
 				if self.method.exec(&edge) {
 					let v = edge.target();
-					if visited.contains(v.key()) == false {
+					if !visited.contains(v.key()) {
 						visited.insert(v.key().clone());
 						if let Some(ref t) = self.target {
 							if v.key() == t {
@@ -205,7 +207,7 @@ where
 				let edge = edge.reverse();
 				if self.method.exec(&edge) {
 					let v = edge.target();
-					if visited.contains(v.key()) == false {
+					if !visited.contains(v.key()) {
 						visited.insert(v.key().clone());
 						if let Some(ref t) = self.target {
 							if v.key() == t {
