@@ -11,7 +11,7 @@ use std::{
 
 use ahash::HashMap as HashMap;
 
-pub use crate::ungraph::node::*;
+pub use self::node::*;
 
 pub struct Graph<K, N, E>
 where

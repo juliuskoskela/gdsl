@@ -1,12 +1,8 @@
 //! Undirected Graph
 
-//==== Submodules =============================================================
-
 mod node;
 mod graph_macros;
 mod graph_serde;
-
-//==== Includes ===============================================================
 
 use std::{
 	fmt::Display,
@@ -15,7 +11,7 @@ use std::{
 
 use ahash::HashMap as HashMap;
 
-pub use crate::sync_ungraph::node::*;
+pub use self::node::*;
 
 pub struct Graph<K, N, E>
 where

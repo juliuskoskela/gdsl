@@ -52,7 +52,7 @@ macro_rules! sync_digraph {
 	()
 	=> {
 		{
-			use gdsl::sync_digraph::Graph;
+			use gdsl::sync_digraph::*;
 
 			Graph::<usize, (), ()>::new()
 		}

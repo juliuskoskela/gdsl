@@ -52,8 +52,6 @@ use self::{
 	adjacent::*,
 };
 
-//==== PUBLIC =================================================================
-
 /// An edge between nodes is a tuple struct `Edge(u, v, e)` where `u` is the
 /// source node, `v` is the target node, and `e` is the edge's value.
 #[derive(Clone)]

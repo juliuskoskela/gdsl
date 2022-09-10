@@ -2,6 +2,11 @@ use std::{fmt::Display, hash::Hash};
 use super::{*, method::*};
 use ahash::AHashSet as HashSet;
 
+pub enum Ordering {
+	Pre,
+	Post,
+}
+
 pub struct Order<'a, K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
@@ -44,18 +49,13 @@ where
 		self
 	}
 
-	pub fn map(mut self, f: Map<'a, K, N, E>) -> Self {
-		self.method = Method::Map(f);
+	pub fn for_each(mut self, f: ForEach<'a, K, N, E>) -> Self {
+		self.method = Method::ForEach(f);
 		self
 	}
 
 	pub fn filter(mut self, f: Filter<'a, K, N, E>) -> Self {
 		self.method = Method::Filter(f);
-		self
-	}
-
-	pub fn filter_map(mut self, f: FilterMap<'a, K, N, E>) -> Self {
-		self.method = Method::FilterMap(f);
 		self
 	}
 
@@ -139,18 +139,19 @@ where
 	}
 
 	fn preorder_forward(
-		&self,
+		&mut self,
 		result: &mut Vec<Edge<K, N, E>>,
 		visited: &mut HashSet<K>,
 		queue: &mut Vec<Node<K, N, E>>,
 	) -> bool {
 		if let Some(node) = queue.pop() {
-			for Edge(u, v, e) in node.iter_out() {
-				if visited.contains(v.key()) == false {
-					if self.method.exec(&u, &v, &e) {
+			for edge in node.iter_out() {
+				let v = edge.1.clone();
+				if self.method.exec(&edge) {
+					if visited.contains(v.key()) == false {
 						visited.insert(v.key().clone());
 						queue.push(v.clone());
-						result.push(Edge(u, v.clone(), e));
+						result.push(edge);
 						self.preorder_forward(
 							result,
 							visited,
@@ -163,18 +164,20 @@ where
 	}
 
 	fn preorder_backward(
-		&self,
+		&mut self,
 		result: &mut Vec<Edge<K, N, E>>,
 		visited: &mut HashSet<K>,
 		queue: &mut Vec<Node<K, N, E>>,
 	) -> bool {
 		if let Some(node) = queue.pop() {
-			for Edge(v, u, e) in node.iter_in() {
-				if visited.contains(v.key()) == false {
-					if self.method.exec(&u, &v, &e) {
+			for edge in node.iter_in() {
+				let edge = edge.reverse();
+				let v = edge.1.clone();
+				if self.method.exec(&edge) {
+					if visited.contains(v.key()) == false {
 						visited.insert(v.key().clone());
 						queue.push(v.clone());
-						result.push(Edge(u, v.clone(), e));
+						result.push(edge);
 						self.preorder_forward(
 							result,
 							visited,
@@ -187,22 +190,23 @@ where
 	}
 
 	fn postorder_forward(
-		&self,
+		&mut self,
 		result: &mut Vec<Edge<K, N, E>>,
 		visited: &mut HashSet<K>,
 		queue: &mut Vec<Node<K, N, E>>,
 	) -> bool {
 		if let Some(node) = queue.pop() {
-			for Edge(u, v, e) in node.iter_out() {
-				if visited.contains(v.key()) == false {
-					if self.method.exec(&u, &v, &e) {
+			for edge in node.iter_out() {
+				let v = edge.1.clone();
+				if self.method.exec(&edge) {
+					if visited.contains(v.key()) == false {
 						visited.insert(v.key().clone());
 						queue.push(v.clone());
 						self.postorder_forward(
 							result,
 							visited,
 							queue);
-						result.push(Edge(u, v.clone(), e));
+						result.push(edge);
 					}
 				}
 			}
@@ -211,22 +215,24 @@ where
 	}
 
 	fn postorder_backward(
-		&self,
+		&mut self,
 		result: &mut Vec<Edge<K, N, E>>,
 		visited: &mut HashSet<K>,
 		queue: &mut Vec<Node<K, N, E>>,
 	) -> bool {
 		if let Some(node) = queue.pop() {
-			for Edge(v, u, e) in node.iter_in() {
-				if visited.contains(v.key()) == false {
-					if self.method.exec(&u, &v, &e) {
+			for edge in node.iter_in() {
+				let edge = edge.reverse();
+				let v = edge.1.clone();
+				if self.method.exec(&edge) {
+					if visited.contains(v.key()) == false {
 						visited.insert(v.key().clone());
 						queue.push(v.clone());
 						self.postorder_forward(
 							result,
 							visited,
 							queue);
-						result.push(Edge(u, v.clone(), e));
+						result.push(edge);
 					}
 				}
 			}

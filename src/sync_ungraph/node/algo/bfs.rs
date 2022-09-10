@@ -1,15 +1,6 @@
-//==== Includes ===============================================================
-
-use std::{
-    fmt::Display,
-    hash::Hash,
-	collections::VecDeque
-};
-
-use ahash::HashSet as HashSet;
-
-use crate::sync_ungraph::node::*;
-use self::{method::*, path::*};
+use std::{fmt::Display, hash::Hash, collections::VecDeque};
+use super::{*, method::*, path::*};
+use ahash::AHashSet as HashSet;
 
 pub struct BFS<'a, K, N, E>
 where
@@ -18,7 +9,7 @@ where
 	E: Clone,
 {
 	root: Node<K, N, E>,
-	target: Option<&'a K>,
+	target: Option<K>,
 	method: Method<'a, K, N, E>,
 }
 
@@ -37,12 +28,12 @@ where
 	}
 
 	pub fn target(mut self, target: &'a K) -> Self {
-		self.target = Some(target);
+		self.target = Some(target.clone());
 		self
 	}
 
-	pub fn map(mut self, f: Map<'a, K, N, E>) -> Self {
-		self.method = Method::Map(f);
+	pub fn for_each(mut self, f: ForEach<'a, K, N, E>) -> Self {
+		self.method = Method::ForEach(f);
 		self
 	}
 
@@ -51,25 +42,23 @@ where
 		self
 	}
 
-	pub fn filter_map(mut self, f: FilterMap<'a, K, N, E>) -> Self {
-		self.method = Method::FilterMap(f);
-		self
-	}
-
 	fn loop_adjacent(
-		&self,
+		&mut self,
 		result: &mut Vec<Edge<K, N, E>>,
 		visited: &mut HashSet<K>,
 		queue: &mut VecDeque<Node<K, N, E>>,
 	) -> bool {
 		while let Some(node) = queue.pop_front() {
-			for Edge(u, v, e) in node.iter() {
-				if self.method.exec(&u, &v, &e) {
+			for edge in node.iter() {
+				if self.method.exec(&edge) {
+					let v = edge.target().clone();
 					if !visited.contains(v.key()) {
 						visited.insert(v.key().clone());
-						result.push(Edge(u, v.clone(), e));
-						if self.target.is_some() && self.target.unwrap() == v.key() {
-							return true;
+						result.push(edge);
+						if let Some(ref t) = self.target {
+							if v.key() == t {
+								return true;
+							}
 						}
 						queue.push_back(v.clone());
 					}
@@ -80,17 +69,20 @@ where
 	}
 
 	fn loop_adjacent_find(
-		&self,
+		&mut self,
 		visited: &mut HashSet<K>,
 		queue: &mut VecDeque<Node<K, N, E>>,
 	) -> Option<Node<K, N, E>> {
 		while let Some(node) = queue.pop_front() {
-			for Edge(u, v, e) in node.iter() {
-				if self.method.exec(&u, &v, &e) {
+			for edge in node.iter() {
+				if self.method.exec(&edge) {
+					let v = edge.target();
 					if !visited.contains(v.key()) {
 						visited.insert(v.key().clone());
-						if self.target.is_some() && self.target.unwrap() == v.key() {
-							return Some(v);
+						if let Some(ref t) = self.target {
+							if v.key() == t {
+								return Some(v.clone());
+							}
 						}
 						queue.push_back(v.clone());
 					}
@@ -115,7 +107,7 @@ where
 		let mut queue = VecDeque::new();
 		let mut visited = HashSet::default();
 
-		self.target = Some(self.root.key());
+		self.target = Some(self.root.key().clone());
 		queue.push_back(self.root.clone());
 
 		if self.loop_adjacent(&mut edges, &mut visited, &mut queue) {

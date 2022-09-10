@@ -7,7 +7,7 @@ macro_rules! sync_ungraph_node {
 	// graph::Node<K, _>
 	( $key:expr ) => {
         {
-			use gdsl::sync_ungraph::*;
+			use gdsl::ungraph::*;
 
             Node::new($key, ())
         }
@@ -16,7 +16,7 @@ macro_rules! sync_ungraph_node {
 	// graph::Node<K, N>
     ( $key:expr, $param:expr ) => {
         {
-			use gdsl::sync_ungraph::*;
+			use gdsl::ungraph::*;
 
             Node::new($key, $param)
         }
@@ -30,7 +30,7 @@ macro_rules! sync_ungraph_connect {
 
 	( $s:expr => $t:expr ) => {
         {
-			use gdsl::sync_ungraph::*;
+			use gdsl::ungraph::*;
 
             Node::connect($s, $t, ())
         }
@@ -38,7 +38,7 @@ macro_rules! sync_ungraph_connect {
 
     ( $s:expr => $t:expr, $params:expr ) => {
         {
-			use gdsl::sync_ungraph::*;
+			use gdsl::ungraph::*;
 
             Node::connect($s, $t, $params)
         }
@@ -52,7 +52,7 @@ macro_rules! sync_ungraph {
 	()
 	=> {
 		{
-			use gdsl::sync_ungraph::*;
+			use gdsl::ungraph::Graph;
 
 			Graph::<usize, (), ()>::new()
 		}
@@ -62,7 +62,7 @@ macro_rules! sync_ungraph {
 	( ($K:ty) $(($NODE:expr) => $( [ $( $EDGE:expr),*] )? )* )
 	=> {
 		{
-			use gdsl::sync_ungraph::*;
+			use gdsl::ungraph::*;
 			use gdsl::*;
 
 			let mut edges = Vec::<($K, $K)>::new();
@@ -97,7 +97,7 @@ macro_rules! sync_ungraph {
 	( ($K:ty, $N:ty) $(($NODE:expr, $NPARAM:expr) => $( [$(  $EDGE:expr) ,*] )? )* )
 	=> {
 		{
-			use gdsl::sync_ungraph::*;
+			use gdsl::ungraph::*;
 			use gdsl::*;
 
 			let mut edges = Vec::<($K, $K)>::new();
@@ -132,7 +132,7 @@ macro_rules! sync_ungraph {
 	( ($K:ty) => [$E:ty] $(($NODE:expr) => $( [$( ( $EDGE:expr, $EPARAM:expr) ),*] )? )* )
 	=> {
 		{
-			use gdsl::sync_ungraph::*;
+			use gdsl::ungraph::*;
 			use gdsl::*;
 
 			let mut edges = Vec::<($K, $K, $E)>::new();
@@ -167,7 +167,7 @@ macro_rules! sync_ungraph {
 	( ($K:ty, $N:ty) => [$E:ty] $(($NODE:expr, $NPARAM:expr) => $( [$( ( $EDGE:expr, $EPARAM:expr) ),*] )? )* )
 	=> {
 		{
-			use gdsl::sync_ungraph::*;
+			use gdsl::ungraph::*;
 			use gdsl::*;
 
 			let mut edges = Vec::<($K, $K, $E)>::new();

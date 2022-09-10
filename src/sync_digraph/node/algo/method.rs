@@ -23,8 +23,8 @@ where
 	pub fn exec(&mut self, e: &Edge<K, N, E>) -> bool {
 		match self {
 			Method::NullMethod => true,
-			Method::Filter(f) => f(e),
 			Method::ForEach(f) => {f(e); true},
+			Method::Filter(f) => f(e),
 		}
 	}
 }

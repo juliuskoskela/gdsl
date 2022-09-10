@@ -1,4 +1,4 @@
-//! # Node<K, N, E> + Send + Sync
+//! # Node<K, N, E>
 //!
 //! `Node` is a key value pair smart-pointer, which includes inbound and
 //! outbound connections to other nodes. Nodes can be created
@@ -16,7 +16,7 @@
 //!   and is used to store data associated with the edge.
 //!
 //! ```
-//! use gdsl::sync_digraph::*;
+//! use gdsl::digraph::*;
 //!
 //! type N<'a> = Node<usize, &'a str, f64>;
 //!
@@ -30,20 +30,17 @@
 //! that a node can be cloned and shared among multiple owners.
 //!
 //! This node uses `Arc` for reference counting, thus it is thread-safe.
-//! This doesn't mean that all the methods on the node are atomic.
-//! The node can be shared among multiple threads, and manipulating
-//! its connections is thread-safe.
 
-mod bfs;
-mod dfs;
-mod method;
-mod order;
-mod path;
-mod pfs;
 mod adjacent;
+mod algo;
 
-use std::{sync::{RwLock, Arc}, fmt::Display, hash::Hash, ops::Deref};
-use self::{bfs::*, dfs::*, order::*, pfs::*, adjacent::*};
+use self::{adjacent::*, algo::{bfs::*, dfs::*, order::*, pfs::*}};
+use std::{fmt::Display, hash::Hash, ops::Deref, sync::{Arc, Weak, RwLock}};
+
+enum Transposition {
+	Outbound,
+	Inbound,
+}
 
 /// An edge between nodes is a tuple struct `Edge(u, v, e)` where `u` is the
 /// source node, `v` is the target node, and `e` is the edge's value.
@@ -57,6 +54,33 @@ pub struct Edge<K, N, E>(
 	N: Clone,
 	E: Clone;
 
+impl<K, N, E> Edge<K, N, E>
+where
+    K: Clone + Hash + PartialEq + Eq + Display,
+    N: Clone,
+    E: Clone,
+{
+    /// Returns the source node of the edge.
+    pub fn source(&self) -> &Node<K, N, E> {
+        &self.0
+    }
+
+    /// Returns the target node of the edge.
+    pub fn target(&self) -> &Node<K, N, E> {
+        &self.1
+    }
+
+    /// Returns the edge's value.
+    pub fn value(&self) -> &E {
+        &self.2
+    }
+
+    /// Reverse the edge's direction.
+    pub fn reverse(&self) -> Edge<K, N, E> {
+        Edge(self.1.clone(), self.0.clone(), self.2.clone())
+    }
+}
+
 /// A `Node<K, N, E>` is a key value pair smart-pointer, which includes inbound
 /// and outbound connections to other nodes. Nodes can be created individually
 /// and they don't depend on a graph container. Generic parameters include `K`
@@ -66,7 +90,7 @@ pub struct Edge<K, N, E>(
 /// # Example
 ///
 /// ```
-/// use gdsl::sync_digraph::*;
+/// use gdsl::digraph::*;
 ///
 /// let a = Node::new(0x1, "A");
 /// let b = Node::new(0x2, "B");
@@ -107,7 +131,7 @@ where
     /// # Example
     ///
     /// ```
-    ///	use gdsl::sync_digraph::*;
+    ///	use gdsl::digraph::*;
     ///
     ///	let n1 = Node::<i32, char, ()>::new(1, 'A');
     ///
@@ -125,7 +149,7 @@ where
     /// # Example
     ///
     /// ```
-    ///	use gdsl::sync_digraph::*;
+    ///	use gdsl::digraph::*;
     ///
     ///	let n1 = Node::<i32, (), ()>::new(1, ());
     ///
@@ -140,7 +164,7 @@ where
     /// # Example
     ///
     /// ```
-    ///	use gdsl::sync_digraph::*;
+    ///	use gdsl::digraph::*;
     ///
     ///	let n1 = Node::<i32, char, ()>::new(1, 'A');
     ///
@@ -150,49 +174,46 @@ where
         &self.inner.1
     }
 
-	/// Returns the out-degree of the node. The out degree is the number of
-	/// outbound edges.
-	///
-	/// # Example
-	///
-	/// ```
-	/// use gdsl::sync_digraph::*;
-	///
-	/// let a = Node::new(0x1, "A");
-	/// let b = Node::new(0x2, "B");
-	/// let c = Node::new(0x4, "C");
-	///
-	/// a.connect(&b, 0.42);
-	/// a.connect(&c, 1.7);
-	///
-	/// assert!(a.out_degree() == 2);
-	/// ```
-	pub fn out_degree(&self) -> usize {
-		self.inner.2.read().unwrap().len_outbound()
-	}
+    /// Returns the out-degree of the node. The out degree is the number of
+    /// outbound edges.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use gdsl::digraph::*;
+    ///
+    /// let a = Node::new(0x1, "A");
+    /// let b = Node::new(0x2, "B");
+    /// let c = Node::new(0x4, "C");
+    ///
+    /// a.connect(&b, 0.42);
+    /// a.connect(&c, 1.7);
+    ///
+    /// assert!(a.out_degree() == 2);
+    /// ```
+    pub fn out_degree(&self) -> usize {
+        self.inner.2.read().unwrap().len_outbound()
+    }
 
-	/// Returns the in-degree of the node. The out degree is the number of
-	/// inbound edges.
-	///
-	/// # Example
-	///
-	/// ```
-	/// use gdsl::sync_digraph::*;
-	///
-	/// let a = Node::new(0x1, "A");
-	/// let b = Node::new(0x2, "B");
-	/// let c = Node::new(0x4, "C");
-	///
-	/// b.connect(&a, 0.42);
-	/// c.connect(&a, 1.7);
-	///
-	/// assert!(a.in_degree() == 2);
-	pub fn in_degree(&self) -> usize {
-		self.inner.2
-			.read()
-			.unwrap()
-			.len_inbound()
-	}
+    /// Returns the in-degree of the node. The out degree is the number of
+    /// inbound edges.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use gdsl::digraph::*;
+    ///
+    /// let a = Node::new(0x1, "A");
+    /// let b = Node::new(0x2, "B");
+    /// let c = Node::new(0x4, "C");
+    ///
+    /// b.connect(&a, 0.42);
+    /// c.connect(&a, 1.7);
+    ///
+    /// assert!(a.in_degree() == 2);
+    pub fn in_degree(&self) -> usize {
+        self.inner.2.read().unwrap().len_inbound()
+    }
 
     /// Connects this node to another node. The connection is created in both
     /// directions. The connection is created with the given edge value and
@@ -202,7 +223,7 @@ where
     /// # Example
     ///
     /// ```
-    /// use gdsl::sync_digraph::*;
+    /// use gdsl::digraph::*;
     ///
     ///	let n1 = Node::new(1, ());
     ///	let n2 = Node::new(2, ());
@@ -212,11 +233,14 @@ where
     ///	assert!(n1.is_connected(n2.key()));
     /// ```
     pub fn connect(&self, other: &Self, value: E) {
-        self.inner.2
+        self.inner
+            .2
             .write()
 			.unwrap()
             .push_outbound((other.clone(), value.clone()));
-        other.inner.2
+        other
+            .inner
+            .2
             .write()
 			.unwrap()
             .push_inbound((self.clone(), value));
@@ -231,7 +255,7 @@ where
     /// # Example
     ///
     /// ```
-    ///	use gdsl::sync_digraph::*;
+    ///	use gdsl::digraph::*;
     ///
     ///	let n1 = Node::new(1, ());
     ///	let n2 = Node::new(2, ());
@@ -257,12 +281,12 @@ where
 
     /// Disconnect two nodes from each other. The connection is removed in both
     /// directions. Returns Ok(EdgeValue) if the connection was removed,
-	/// Err(()) if the connection doesn't exist.
+    /// Err(()) if the connection doesn't exist.
     ///
     /// # Example
     ///
     /// ```
-    ///	use gdsl::sync_digraph::*;
+    ///	use gdsl::digraph::*;
     ///
     ///	let n1 = Node::new(1, ());
     ///	let n2 = Node::new(2, ());
@@ -280,12 +304,12 @@ where
     pub fn disconnect(&self, other: &K) -> Result<E, ()> {
         match self.find_outbound(other) {
             Some(other) => match self.inner.2
-				.write().unwrap()
+				.write()
+				.unwrap()
 				.remove_outbound(other.key()) {
                 Ok(edge) => {
-                    other.inner.2
-						.write().unwrap()
-						.remove_inbound(self.key())?;
+                    other.inner.2.write()
+					.unwrap().remove_inbound(self.key())?;
                     Ok(edge)
                 }
                 Err(_) => Err(()),
@@ -299,7 +323,7 @@ where
     /// # Example
     ///
     /// ```
-    ///	use gdsl::sync_digraph::*;
+    ///	use gdsl::digraph::*;
     ///
     ///	let n1 = Node::new(1, ());
     ///	let n2 = Node::new(2, ());
@@ -323,185 +347,183 @@ where
     /// ```
     pub fn isolate(&self) {
         for Edge(_, v, _) in self.iter_out() {
-            v.inner.2
-                .write()
-				.unwrap()
-                .remove_inbound(self.key())
-                .unwrap();
+            v.inner.2.write()
+			.unwrap().remove_inbound(self.key()).unwrap();
         }
         for Edge(v, _, _) in self.iter_in() {
-            v.inner.2
-                .write()
-				.unwrap()
-                .remove_outbound(self.key())
-                .unwrap();
+            v.inner.2.write()
+			.unwrap().remove_outbound(self.key()).unwrap();
         }
-        self.inner.2.write().unwrap().clear_outbound();
-        self.inner.2.write().unwrap().clear_inbound();
+        self.inner.2.write()
+		.unwrap().clear_outbound();
+        self.inner.2.write()
+		.unwrap().clear_inbound();
     }
 
     /// Returns true if the node is a root node. Root nodes are nodes that have
     /// no incoming connections.
-	///
-	/// # Example
-	///
-	/// ```
-	/// use gdsl::sync_digraph::*;
-	///
-	/// let n1 = Node::new(1, ());
-	/// let n2 = Node::new(2, ());
-	///
-	/// n1.connect(&n2, ());
-	///
-	/// assert!(n1.is_root());
-	/// assert!(!n2.is_root());
-	/// ```
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use gdsl::digraph::*;
+    ///
+    /// let n1 = Node::new(1, ());
+    /// let n2 = Node::new(2, ());
+    ///
+    /// n1.connect(&n2, ());
+    ///
+    /// assert!(n1.is_root());
+    /// assert!(!n2.is_root());
+    /// ```
     pub fn is_root(&self) -> bool {
         self.inner.2.read().unwrap().len_inbound() == 0
     }
 
     /// Returns true if the node is a leaf node. Leaf nodes are nodes that have
     /// no outgoing connections.
-	///
-	/// # Example
-	///
-	/// ```
-	/// use gdsl::sync_digraph::*;
-	///
-	/// let n1 = Node::new(1, ());
-	/// let n2 = Node::new(2, ());
-	///
-	/// n1.connect(&n2, ());
-	///
-	/// assert!(!n1.is_leaf());
-	/// assert!(n2.is_leaf());
-	/// ```
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use gdsl::digraph::*;
+    ///
+    /// let n1 = Node::new(1, ());
+    /// let n2 = Node::new(2, ());
+    ///
+    /// n1.connect(&n2, ());
+    ///
+    /// assert!(!n1.is_leaf());
+    /// assert!(n2.is_leaf());
+    /// ```
     pub fn is_leaf(&self) -> bool {
         self.inner.2.read().unwrap().len_outbound() == 0
     }
 
     /// Returns true if the node is an oprhan. Orphan nodes are nodes that have
     /// no connections.
-	///
-	/// # Example
-	///
-	/// ```
-	/// use gdsl::sync_digraph::*;
-	///
-	/// let n1 = Node::new(1, ());
-	/// let n2 = Node::new(2, ());
-	///
-	/// n1.connect(&n2, ());
-	///
-	/// assert!(!n1.is_orphan());
-	///
-	/// n1.disconnect(n2.key()).unwrap();
-	///
-	/// assert!(n1.is_orphan());
-	/// ```
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use gdsl::digraph::*;
+    ///
+    /// let n1 = Node::new(1, ());
+    /// let n2 = Node::new(2, ());
+    ///
+    /// n1.connect(&n2, ());
+    ///
+    /// assert!(!n1.is_orphan());
+    ///
+    /// n1.disconnect(n2.key()).unwrap();
+    ///
+    /// assert!(n1.is_orphan());
+    /// ```
     pub fn is_orphan(&self) -> bool {
         self.is_root() && self.is_leaf()
     }
 
     /// Returns true if the node is connected to another node with a given key.
-	///
-	/// # Example
-	///
-	/// ```
-	/// use gdsl::sync_digraph::*;
-	///
-	/// let n1 = Node::new(1, ());
-	/// let n2 = Node::new(2, ());
-	///
-	/// n1.connect(&n2, ());
-	///
-	/// assert!(n1.is_connected(n2.key()));
-	/// ```
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use gdsl::digraph::*;
+    ///
+    /// let n1 = Node::new(1, ());
+    /// let n2 = Node::new(2, ());
+    ///
+    /// n1.connect(&n2, ());
+    ///
+    /// assert!(n1.is_connected(n2.key()));
+    /// ```
     pub fn is_connected(&self, other: &K) -> bool {
         self.find_outbound(other).is_some()
     }
 
     /// Get a pointer to an adjacent node with a given key. Returns None if no
     /// node with the given key is found from the node's adjacency list.
-	/// Outbound edges are searches, this is the default direction.
-	///
-	/// # Example
-	///
-	/// ```
-	/// use gdsl::sync_digraph::*;
-	///
-	/// let n1 = Node::new(1, ());
-	/// let n2 = Node::new(2, ());
-	/// let n3 = Node::new(3, ());
-	///
-	/// n1.connect(&n2, ());
-	/// n1.connect(&n3, ());
-	///
-	/// assert!(n1.find_outbound(n2.key()).is_some());
-	/// assert!(n1.find_outbound(n3.key()).is_some());
-	/// assert!(n1.find_outbound(&4).is_none());
-	/// ```
+    /// Outbound edges are searches, this is the default direction.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use gdsl::digraph::*;
+    ///
+    /// let n1 = Node::new(1, ());
+    /// let n2 = Node::new(2, ());
+    /// let n3 = Node::new(3, ());
+    ///
+    /// n1.connect(&n2, ());
+    /// n1.connect(&n3, ());
+    ///
+    /// assert!(n1.find_outbound(n2.key()).is_some());
+    /// assert!(n1.find_outbound(n3.key()).is_some());
+    /// assert!(n1.find_outbound(&4).is_none());
+    /// ```
     pub fn find_outbound(&self, other: &K) -> Option<Node<K, N, E>> {
-        let edge = self.inner.2.read().unwrap().find_outbound(other);
+        let edge = self.inner.2.read().unwrap();
+		let edge = edge.find_outbound(other);
         if let Some(edge) = edge {
-            Some(edge.0.clone())
+            Some(edge.0.upgrade().unwrap().clone())
         } else {
             None
         }
     }
 
-	/// Get a pointer to an adjacent node with a given key. Returns None if no
-	/// node with the given key is found from the node's adjacency list.
-	/// Inbound edges are searched ie. the transposed graph.
-	///
-	/// # Example
-	///
-	/// ```
-	/// use gdsl::sync_digraph::*;
-	///
-	/// let n1 = Node::new(1, ());
-	/// let n2 = Node::new(2, ());
-	/// let n3 = Node::new(3, ());
-	///
-	/// n1.connect(&n2, ());
-	/// n1.connect(&n3, ());
-	///
-	/// assert!(n2.find_inbound(n1.key()).is_some());
-	/// assert!(n3.find_inbound(n1.key()).is_some());
-	/// assert!(n1.find_inbound(&4).is_none());
-	/// ```
+    /// Get a pointer to an adjacent node with a given key. Returns None if no
+    /// node with the given key is found from the node's adjacency list.
+    /// Inbound edges are searched ie. the transposed graph.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use gdsl::digraph::*;
+    ///
+    /// let n1 = Node::new(1, ());
+    /// let n2 = Node::new(2, ());
+    /// let n3 = Node::new(3, ());
+    ///
+    /// n1.connect(&n2, ());
+    /// n1.connect(&n3, ());
+    ///
+    /// assert!(n2.find_inbound(n1.key()).is_some());
+    /// assert!(n3.find_inbound(n1.key()).is_some());
+    /// assert!(n1.find_inbound(&4).is_none());
+    /// ```
     pub fn find_inbound(&self, other: &K) -> Option<Node<K, N, E>> {
-        let edge = self.inner.2.read().unwrap().find_inbound(other);
+        let edge = self.inner.2.read().unwrap();
+		let edge = edge.find_inbound(other);
         if let Some(edge) = edge {
-            Some(edge.0.clone())
+            Some(edge.0.upgrade().unwrap().clone())
         } else {
             None
         }
     }
 
-	/// Returns an iterator-like object that can be used to map, filter and
+    /// Returns an iterator-like object that can be used to map, filter and
     /// collect reachable nodes or edges in different orderings such as
     /// postorder or preorder.
-	///
-	/// # Example
-	///
-	/// ```
-	/// use gdsl::sync_digraph::*;
-	///
-	/// let n1 = Node::new(1, ());
-	/// let n2 = Node::new(2, ());
-	/// let n3 = Node::new(3, ());
-	///
-	/// n1.connect(&n2, ());
-	/// n2.connect(&n3, ());
-	/// n3.connect(&n1, ());
-	///
-	/// let order = n1.preorder().search_nodes();
-	///
-	/// assert!(order[0] == n1);
-	/// assert!(order[1] == n2);
-	/// assert!(order[2] == n3);
-	/// ```
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use gdsl::digraph::*;
+    ///
+    /// let n1 = Node::new(1, ());
+    /// let n2 = Node::new(2, ());
+    /// let n3 = Node::new(3, ());
+    ///
+    /// n1.connect(&n2, ());
+    /// n2.connect(&n3, ());
+    /// n3.connect(&n1, ());
+    ///
+    /// let order = n1.preorder().search_nodes();
+    ///
+    /// assert!(order[0] == n1);
+    /// assert!(order[1] == n2);
+    /// assert!(order[2] == n3);
+    /// ```
     pub fn preorder(&self) -> Order<K, N, E> {
         Order::preorder(self)
     }
@@ -509,91 +531,91 @@ where
     /// Returns an iterator-like object that can be used to map, filter and
     /// collect reachable nodes or edges in different orderings such as
     /// postorder or preorder.
-	///
-	/// # Example
-	///
-	/// ```
-	/// use gdsl::sync_digraph::*;
-	///
-	/// let n1 = Node::new(1, ());
-	/// let n2 = Node::new(2, ());
-	/// let n3 = Node::new(3, ());
-	///
-	/// n1.connect(&n2, ());
-	/// n2.connect(&n3, ());
-	/// n3.connect(&n1, ());
-	///
-	/// let order = n1.postorder().search_nodes();
-	///
-	/// assert!(order[2] == n1);
-	/// assert!(order[1] == n2);
-	/// assert!(order[0] == n3);
-	/// ```
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use gdsl::digraph::*;
+    ///
+    /// let n1 = Node::new(1, ());
+    /// let n2 = Node::new(2, ());
+    /// let n3 = Node::new(3, ());
+    ///
+    /// n1.connect(&n2, ());
+    /// n2.connect(&n3, ());
+    /// n3.connect(&n1, ());
+    ///
+    /// let order = n1.postorder().search_nodes();
+    ///
+    /// assert!(order[2] == n1);
+    /// assert!(order[1] == n2);
+    /// assert!(order[0] == n3);
+    /// ```
     pub fn postorder(&self) -> Order<K, N, E> {
         Order::postroder(self)
     }
 
     /// Returns an iterator-like object that can be used to map, filter,
     /// search and collect nodes or edges resulting from a depth-first search.
-	///
-	/// # Example
-	///
-	/// ```
-	/// use gdsl::sync_digraph::*;
-	///
-	/// let n1 = Node::new(1, ());
-	/// let n2 = Node::new(2, ());
-	/// let n3 = Node::new(3, ());
-	///
-	/// n1.connect(&n2, ());
-	/// n2.connect(&n3, ());
-	/// n3.connect(&n1, ());
-	///
-	/// let path = n1
-	/// 	.dfs()
-	/// 	.target(&3)
-	/// 	.search_path()
-	/// 	.unwrap();
-	///
-	/// let mut iter = path.iter_nodes();
-	///
-	/// assert!(iter.next().unwrap() == n1);
-	/// assert!(iter.next().unwrap() == n2);
-	/// assert!(iter.next().unwrap() == n3);
-	/// ```
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use gdsl::digraph::*;
+    ///
+    /// let n1 = Node::new(1, ());
+    /// let n2 = Node::new(2, ());
+    /// let n3 = Node::new(3, ());
+    ///
+    /// n1.connect(&n2, ());
+    /// n2.connect(&n3, ());
+    /// n3.connect(&n1, ());
+    ///
+    /// let path = n1
+    /// 	.dfs()
+    /// 	.target(&3)
+    /// 	.search_path()
+    /// 	.unwrap();
+    ///
+    /// let mut iter = path.iter_nodes();
+    ///
+    /// assert!(iter.next().unwrap() == n1);
+    /// assert!(iter.next().unwrap() == n2);
+    /// assert!(iter.next().unwrap() == n3);
+    /// ```
     pub fn dfs(&self) -> DFS<K, N, E> {
         DFS::new(self)
     }
 
     /// Returns an iterator-like object that can be used to map, filter,
     /// search and collect nodes or edges resulting from a breadth-first
-	/// search.
-	///
-	/// # Example
-	///
-	/// ```
-	/// use gdsl::sync_digraph::*;
-	///
-	/// let n1 = Node::new(1, ());
-	/// let n2 = Node::new(2, ());
-	/// let n3 = Node::new(3, ());
-	///
-	/// n1.connect(&n2, ());
-	/// n2.connect(&n3, ());
-	/// n3.connect(&n1, ());
-	///
-	/// let path = n1
-	/// 	.bfs()
-	/// 	.target(&3)
-	/// 	.search_path()
-	/// 	.unwrap();
-	///
-	/// let mut iter = path.iter_nodes();
-	///
-	/// assert!(iter.next().unwrap() == n1);
-	/// assert!(iter.next().unwrap() == n2);
-	/// assert!(iter.next().unwrap() == n3);
-	/// ```
+    /// search.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use gdsl::digraph::*;
+    ///
+    /// let n1 = Node::new(1, ());
+    /// let n2 = Node::new(2, ());
+    /// let n3 = Node::new(3, ());
+    ///
+    /// n1.connect(&n2, ());
+    /// n2.connect(&n3, ());
+    /// n3.connect(&n1, ());
+    ///
+    /// let path = n1
+    /// 	.bfs()
+    /// 	.target(&3)
+    /// 	.search_path()
+    /// 	.unwrap();
+    ///
+    /// let mut iter = path.iter_nodes();
+    ///
+    /// assert!(iter.next().unwrap() == n1);
+    /// assert!(iter.next().unwrap() == n2);
+    /// assert!(iter.next().unwrap() == n3);
+    /// ```
     pub fn bfs(&self) -> BFS<K, N, E> {
         BFS::new(self)
     }
@@ -601,31 +623,31 @@ where
     /// Returns an iterator-like object that can be used to map, filter,
     /// search and collect nodes or edges resulting from a
     /// priority-first search.
-	///
-	/// # Example
-	///
-	/// ```
-	/// use gdsl::sync_digraph::*;
-	///
-	/// let n1 = Node::new('A', 0);
-	/// let n2 = Node::new('B', 42);
-	/// let n3 = Node::new('C', 7);
-	/// let n4 = Node::new('D', 23);
-	///
-	/// n1.connect(&n2, ());
-	/// n1.connect(&n3, ());
-	/// n2.connect(&n4, ());
-	/// n3.connect(&n4, ());
-	///
-	/// let path = n1
-	/// 	.pfs()
-	/// 	.target(&'D')
-	/// 	.search_path()
-	/// 	.unwrap();
-	///
-	/// assert!(path[0] == Edge(n1, n3.clone(), ()));
-	/// assert!(path[1] == Edge(n3, n4, ()));
-	///```
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use gdsl::digraph::*;
+    ///
+    /// let n1 = Node::new('A', 0);
+    /// let n2 = Node::new('B', 42);
+    /// let n3 = Node::new('C', 7);
+    /// let n4 = Node::new('D', 23);
+    ///
+    /// n1.connect(&n2, ());
+    /// n1.connect(&n3, ());
+    /// n2.connect(&n4, ());
+    /// n3.connect(&n4, ());
+    ///
+    /// let path = n1
+    /// 	.pfs()
+    /// 	.target(&'D')
+    /// 	.search_path()
+    /// 	.unwrap();
+    ///
+    /// assert!(path[0] == Edge(n1, n3.clone(), ()));
+    /// assert!(path[1] == Edge(n3, n4, ()));
+    ///```
     pub fn pfs(&self) -> PFS<K, N, E>
     where
         N: Ord,
@@ -633,24 +655,24 @@ where
         PFS::new(self)
     }
 
-    /// Returns an iterator over the node's outbound edges.
-	///
-	/// # Example
-	///
-	/// ```
-	/// use gdsl::sync_digraph::*;
-	///
-	/// let n1 = Node::new(1, ());
-	/// let n2 = Node::new(2, ());
-	/// let n3 = Node::new(3, ());
-	///
-	/// n1.connect(&n2, ());
-	/// n1.connect(&n3, ());
-	///
-	/// let mut iter = n1.iter_out();
-	/// assert!(iter.next().unwrap() == Edge(n1.clone(), n2.clone(), ()));
-	/// assert!(iter.next().unwrap() == Edge(n1, n3, ()));
-	/// ```
+	/// Returns an iterator over the node's outbound edges.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use gdsl::digraph::*;
+    ///
+    /// let n1 = Node::new(1, ());
+    /// let n2 = Node::new(2, ());
+    /// let n3 = Node::new(3, ());
+    ///
+    /// n1.connect(&n2, ());
+    /// n1.connect(&n3, ());
+    ///
+    /// let mut iter = n1.iter_out();
+    /// assert!(iter.next().unwrap() == Edge(n1.clone(), n2.clone(), ()));
+    /// assert!(iter.next().unwrap() == Edge(n1, n3, ()));
+    /// ```
     pub fn iter_out(&self) -> IterOut<K, N, E> {
         IterOut {
             node: self,
@@ -658,25 +680,25 @@ where
         }
     }
 
-    /// Returns an iterator over the node's inbound edges.
-	///
-	/// # Example
-	///
-	/// ```
-	/// use gdsl::sync_digraph::*;
-	///
-	/// let n1 = Node::new(1, ());
-	/// let n2 = Node::new(2, ());
-	/// let n3 = Node::new(3, ());
-	///
-	/// n1.connect(&n2, ());
-	/// n1.connect(&n3, ());
-	///
-	/// let mut iter = n2.iter_in();
-	///
-	/// assert!(iter.next().unwrap() == Edge(n1.clone(), n2.clone(), ()));
-	/// assert!(iter.next().is_none());
-	/// ```
+	/// Returns an iterator over the node's inbound edges.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use gdsl::digraph::*;
+    ///
+    /// let n1 = Node::new(1, ());
+    /// let n2 = Node::new(2, ());
+    /// let n3 = Node::new(3, ());
+    ///
+    /// n1.connect(&n2, ());
+    /// n1.connect(&n3, ());
+    ///
+    /// let mut iter = n2.iter_in();
+    ///
+    /// assert!(iter.next().unwrap() == Edge(n1.clone(), n2.clone(), ()));
+    /// assert!(iter.next().is_none());
+    /// ```
     pub fn iter_in(&self) -> IterIn<K, N, E> {
         IterIn {
             node: self,
@@ -684,13 +706,13 @@ where
         }
     }
 
-	/// Return's the node's size in bytes.
+    /// Return's the node's size in bytes.
     pub fn sizeof(&self) -> usize {
-		std::mem::size_of::<Node<K, N, E>>()
-			+ std::mem::size_of::<K>()
-			+ std::mem::size_of::<N>()
-			+ self.inner.2.read().unwrap().sizeof()
-			+ std::mem::size_of::<Self>()
+        std::mem::size_of::<Node<K, N, E>>()
+            + std::mem::size_of::<K>()
+            + std::mem::size_of::<N>()
+            + self.inner.2.read().unwrap().sizeof()
+            + std::mem::size_of::<Self>()
     }
 }
 
@@ -722,7 +744,8 @@ where
     K: Clone + Hash + Display + PartialEq + Eq,
     N: Clone,
     E: Clone,
-{}
+{
+}
 
 impl<K, N, E> PartialOrd for Node<K, N, E>
 where
@@ -746,7 +769,6 @@ where
     }
 }
 
-/// An iterator over the node's outbound edges.
 pub struct IterOut<'a, K, N, E>
 where
     K: Clone + Hash + Display + PartialEq + Eq,
@@ -769,7 +791,7 @@ where
         match self.node.inner.2.read().unwrap().get_outbound(self.position) {
             Some(current) => {
                 self.position += 1;
-                Some(Edge(self.node.clone(), current.0.clone(), current.1.clone()))
+                Some(Edge(self.node.clone(), current.0.upgrade().unwrap().clone(), current.1.clone()))
             }
             None => None,
         }
@@ -798,7 +820,7 @@ where
         match self.node.inner.2.read().unwrap().get_inbound(self.position) {
             Some(current) => {
                 self.position += 1;
-                Some(Edge(current.0.clone(), self.node.clone(), current.1.clone()))
+                Some(Edge(current.0.upgrade().unwrap().clone(), self.node.clone(), current.1.clone()))
             }
             None => None,
         }

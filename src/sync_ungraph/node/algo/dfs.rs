@@ -1,17 +1,6 @@
-//==== Includes ===============================================================
-
-use std::{
-    fmt::Display,
-    hash::Hash,
-	// collections::HashSet
-};
-
-use ahash::HashSet as HashSet;
-use crate::sync_ungraph::node::*;
-
-use self::{method::*, path::*};
-
-//==== DFS ====================================================================
+use std::{fmt::Display, hash::Hash};
+use super::{*, method::*, path::*};
+use ahash::AHashSet as HashSet;
 
 pub struct DFS<'a, K, N, E>
 where
@@ -20,7 +9,7 @@ where
 	E: Clone,
 {
 	root: Node<K, N, E>,
-	target: Option<&'a K>,
+	target: Option<K>,
 	method: Method<'a, K, N, E>,
 }
 
@@ -38,13 +27,13 @@ where
 		}
 	}
 
-	pub fn target(mut self, target: &'a K) -> Self {
-		self.target = Some(target);
+	pub fn target(mut self, target: &K) -> Self {
+		self.target = Some(target.clone());
 		self
 	}
 
-	pub fn map(mut self, f: Map<'a, K, N, E>) -> Self {
-		self.method = Method::Map(f);
+	pub fn for_each(mut self, f: ForEach<'a, K, N, E>) -> Self {
+		self.method = Method::ForEach(f);
 		self
 	}
 
@@ -53,25 +42,23 @@ where
 		self
 	}
 
-	pub fn filter_map(mut self, f: FilterMap<'a, K, N, E>) -> Self {
-		self.method = Method::FilterMap(f);
-		self
-	}
-
-	fn recurse_adjacent(&self,
+	fn recurse_adjacent(&mut self,
 		result: &mut Vec<Edge<K, N, E>>,
 		visited: &mut HashSet<K>,
 		queue: &mut Vec<Node<K, N, E>>,
 	) -> bool {
 		if let Some(node) = queue.pop() {
-			for Edge(u, v, e) in node.iter() {
-				if self.method.exec(&u, &v, &e) {
+			for edge in node.iter() {
+				if self.method.exec(&edge) {
+					let v = edge.target().clone();
 					if visited.contains(v.key()) == false {
-						result.push(Edge(u, v.clone(), e));
-						if self.target.is_some() && self.target.unwrap() == v.key() {
-							return true;
-						}
 						visited.insert(v.key().clone());
+						result.push(edge);
+						if let Some(ref t) = self.target {
+							if v.key() == t {
+								return true;
+							}
+						}
 						queue.push(v.clone());
 						if self.recurse_adjacent(result, visited, queue) {
 							return true;
@@ -83,18 +70,21 @@ where
 		false
 	}
 
-	fn recurse_adjacent_find(&self,
+	fn recurse_adjacent_find(&mut self,
 		visited: &mut HashSet<K>,
 		queue: &mut Vec<Node<K, N, E>>,
 	) -> Option<Node<K, N, E>> {
 		if let Some(node) = queue.pop() {
-			for Edge(u, v, e) in node.iter() {
-				if self.method.exec(&u, &v, &e) {
+			for edge in node.iter() {
+				if self.method.exec(&edge) {
+					let v = edge.target();
 					if visited.contains(v.key()) == false {
-						if self.target.is_some() && self.target.unwrap() == v.key() {
-							return Some(v);
-						}
 						visited.insert(v.key().clone());
+						if let Some(ref t) = self.target {
+							if v.key() == t {
+								return Some(v.clone());
+							}
+						}
 						queue.push(v.clone());
 						match self.recurse_adjacent_find(visited, queue) {
 							Some(t) => return Some(t),
@@ -122,7 +112,7 @@ where
 		let mut queue = vec![];
 		let mut visited = HashSet::default();
 
-		self.target = Some(self.root.key());
+		self.target = Some(self.root.key().clone());
 		queue.push(self.root.clone());
 
 		if self.recurse_adjacent(&mut edges, &mut visited, &mut queue) {

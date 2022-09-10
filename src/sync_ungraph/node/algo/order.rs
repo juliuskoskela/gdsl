@@ -12,6 +12,11 @@ use super::method::*;
 
 //==== Ordering ===============================================================
 
+pub enum Ordering {
+	Pre,
+	Post,
+}
+
 pub struct Order<'a, K, N, E>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
@@ -48,19 +53,13 @@ where
 		self
 	}
 
-	pub fn map(mut self, f: Map<'a, K, N, E>) -> Self {
-		self.method = Method::Map(f);
+	pub fn for_each(mut self, f: ForEach<'a, K, N, E>) -> Self {
+		self.method = Method::ForEach(f);
 		self
 	}
 
 	pub fn filter(mut self, f: Filter<'a, K, N, E>) -> Self {
 		self.method = Method::Filter(f);
-		self
-	}
-
-
-	pub fn filter_map(mut self, f: FilterMap<'a, K, N, E>) -> Self {
-		self.method = Method::FilterMap(f);
 		self
 	}
 
@@ -110,18 +109,20 @@ where
 	}
 
 	fn recurse_preorder(
-		&self,
+		&mut self,
 		result: &mut Vec<Edge<K, N, E>>,
 		visited: &mut HashSet<K>,
 		queue: &mut Vec<Node<K, N, E>>,
 	) -> bool {
 		if let Some(node) = queue.pop() {
-			for Edge(u, v, e) in node.iter() {
-				if visited.contains(v.key()) == false {
-					if self.method.exec(&u, &v, &e) {
+			for edge in node.iter() {
+				let edge = edge.reverse();
+				let v = edge.1.clone();
+				if self.method.exec(&edge) {
+					if visited.contains(v.key()) == false {
 						visited.insert(v.key().clone());
 						queue.push(v.clone());
-						result.push(Edge(u, v.clone(), e));
+						result.push(edge);
 						self.recurse_preorder(
 							result,
 							visited,
@@ -134,22 +135,23 @@ where
 	}
 
 	fn recurse_postorder(
-		&self,
+		&mut self,
 		result: &mut Vec<Edge<K, N, E>>,
 		visited: &mut HashSet<K>,
 		queue: &mut Vec<Node<K, N, E>>,
 	) -> bool {
 		if let Some(node) = queue.pop() {
-			for Edge(u, v, e) in node.iter() {
-				if visited.contains(v.key()) == false {
-					if self.method.exec(&u, &v, &e) {
+			for edge in node.iter() {
+				let v = edge.1.clone();
+				if self.method.exec(&edge) {
+					if visited.contains(v.key()) == false {
 						visited.insert(v.key().clone());
 						queue.push(v.clone());
 						self.recurse_postorder(
 							result,
 							visited,
 							queue);
-						result.push(Edge(u, v.clone(), e));
+						result.push(edge);
 					}
 				}
 			}
