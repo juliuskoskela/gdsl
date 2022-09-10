@@ -20,7 +20,7 @@ where
 	E: Clone,
 {
 	root: Node<K, N, E>,
-	target: Option<&'a K>,
+	target: Option<K>,
 	method: Method<'a, K, N, E>,
 }
 
@@ -38,8 +38,8 @@ where
 		}
 	}
 
-	pub fn target(mut self, target: &'a K) -> Self {
-		self.target = Some(target);
+	pub fn target(mut self, target: &K) -> Self {
+		self.target = Some(target.clone());
 		self
 	}
 
@@ -58,20 +58,23 @@ where
 		self
 	}
 
-	fn recurse_adjacent(&self,
+	fn recurse_adjacent(&mut self,
 		result: &mut Vec<Edge<K, N, E>>,
 		visited: &mut HashSet<K>,
 		queue: &mut Vec<Node<K, N, E>>,
 	) -> bool {
 		if let Some(node) = queue.pop() {
-			for Edge(u, v, e) in node.iter() {
-				if self.method.exec(&Edge(u.clone(), v.clone(), e.clone())) {
+			for edge in node.iter() {
+				if self.method.exec(&edge) {
+					let Edge(u, v, e) = edge;
 					if visited.contains(v.key()) == false {
-						result.push(Edge(u, v.clone(), e));
-						if self.target.is_some() && self.target.unwrap() == v.key() {
-							return true;
-						}
 						visited.insert(v.key().clone());
+						result.push(Edge(u.clone(), v.clone(), e.clone()));
+						if let Some(ref t) = self.target {
+							if v.key() == t {
+								return true;
+							}
+						}
 						queue.push(v.clone());
 						if self.recurse_adjacent(result, visited, queue) {
 							return true;
@@ -83,18 +86,21 @@ where
 		false
 	}
 
-	fn recurse_adjacent_find(&self,
+	fn recurse_adjacent_find(&mut self,
 		visited: &mut HashSet<K>,
 		queue: &mut Vec<Node<K, N, E>>,
 	) -> Option<Node<K, N, E>> {
 		if let Some(node) = queue.pop() {
-			for Edge(u, v, e) in node.iter() {
-				if self.method.exec(&Edge(u.clone(), v.clone(), e.clone())) {
+			for edge in node.iter() {
+				if self.method.exec(&edge) {
+					let Edge(_, v, _) = edge;
 					if visited.contains(v.key()) == false {
-						if self.target.is_some() && self.target.unwrap() == v.key() {
-							return Some(v);
-						}
 						visited.insert(v.key().clone());
+						if let Some(ref t) = self.target {
+							if v.key() == t {
+								return Some(v.clone());
+							}
+						}
 						queue.push(v.clone());
 						match self.recurse_adjacent_find(visited, queue) {
 							Some(t) => return Some(t),
@@ -122,7 +128,7 @@ where
 		let mut queue = vec![];
 		let mut visited = HashSet::default();
 
-		self.target = Some(self.root.key());
+		self.target = Some(self.root.key().clone());
 		queue.push(self.root.clone());
 
 		if self.recurse_adjacent(&mut edges, &mut visited, &mut queue) {

@@ -7,7 +7,7 @@
 // The algorithm operates by building this tree one vertex at a time,
 // from an arbitrary starting vertex, at each step adding the cheapest possible
 // connection from the tree to another vertex.
-// 
+//
 // https://en.wikipedia.org/wiki/Prim%27s_algorithm
 //
 
@@ -15,50 +15,73 @@ use gdsl::ungraph::*;
 use gdsl::*;
 use std::collections::{BinaryHeap, HashSet};
 use std::cmp::Reverse;
-use std::cell::RefCell;
 
 type N = Node<usize, (), u64>;
 type E = Edge<usize, (), u64>;
+
+// Standard library's BinaryHeap is a max-heap, so we need to reverse the
+// ordering of the edge weights to get a min-heap using the Reverse wrapper.
 type Heap = BinaryHeap<Reverse<E>>;
 
 fn prim_minimum_spanning_tree(s: &N) -> Vec<E> {
-    let mut forest: Vec<E> = vec![];
-    let mut added_nodes: HashSet<usize> = HashSet::new();
-	let heap = RefCell::new(Heap::new());
 
-	added_nodes.insert(*s.key());
+	// We collect the resulting MST edges in to a vector.
+    let mut mst: Vec<E> = vec![];
 
-	// Add all edges reachable from s to a Min Heap
-	s.bfs().map(&|edge| {
-		heap.borrow_mut().push(Reverse(edge.clone()));
+	// We use a HashSet to keep track of the nodes that are in the MST.
+    let mut in_mst: HashSet<usize> = HashSet::new();
+
+	// We use a BinaryHeap to keep track of all edges sorted by weight.
+	let mut heap = Heap::new();
+
+	in_mst.insert(*s.key());
+
+	// Collect all edges reachable from s to a Min Heap.
+	s.bfs().for_each(&mut |edge| {
+		heap.push(Reverse(edge.clone()));
 	}).search();
+
+	// When we pop from the min heap, we know that the edge is the cheapest
+	// edge to add to the MST, but we need to make sure that the edge
+	// connecting to a node that is not already in the MST, otherwise we
+	// we store the edge and continue to the next iteration. When we find
+	// an edge that connects to a node that is not in the MST, we add the
+	// stored edges back to the heap.
+	let mut tmp: Vec<E> = vec![];
 
 	// While the heap is not empty, search for the next edge
 	// that connects a node in the tree to a node not in the tree.
-	//
-	let mut tmp: Vec<E> = vec![];
-	loop {
-		if let Some(edge) = heap.borrow_mut().pop() {
-			let Reverse(Edge(u, v, e)) = edge;
-			let u_in_tree = added_nodes.contains(u.key());
-			let v_in_tree = added_nodes.contains(v.key());
-			if u_in_tree && !v_in_tree {
-				added_nodes.insert(*v.key());
-				forest.push(Edge(u, v, e));
-			} else if !u_in_tree && !v_in_tree {
-				tmp.push(Edge(u, v, e));
-				continue;
-			} else {
-				continue;
+	while let Some(Reverse(edge)) = heap.pop() {
+		let Edge(u, v, _) = edge.clone();
+
+		// If the edge's source node `u` is in the MST...
+		if in_mst.contains(u.key()) {
+
+			// ...and the edge's destination node `v` is not in the MST,
+			// then we add the edge to the MST and add all edges
+			// in `tmp` back to the heap.
+			if in_mst.contains(v.key()) == false {
+				in_mst.insert(*v.key());
+				mst.push(edge.clone());
+				for tmp_edge in &tmp {
+					heap.push(Reverse(tmp_edge.clone()));
+				}
 			}
 		} else {
-			break;
+
+			// The edge is the cheapest edge to add to the MST, but
+			// it's source node `u` nor it's destination node `v` are
+			// in the MST, so we store the edge and continue to the next
+			// iteration.
+			if in_mst.contains(v.key()) == false {
+				tmp.push(edge);
+			}
 		}
-		for tmp_edge in &tmp {
-			heap.borrow_mut().push(Reverse(tmp_edge.clone()));
-		}
+
+		// If neither condition is met, then the edge's destination node
+		// `v` is already in the MST, so we continue to the next iteration.
 	}
-	forest
+	mst
 }
 
 fn main() {
@@ -75,7 +98,7 @@ fn main() {
 	let forest = prim_minimum_spanning_tree(&g1[0]);
 	let sum = forest.iter().fold(0, |acc, e| acc + e.2);
 	assert!(sum == 16);
-	
+
 	// Example g2 from Figure 7.1 in https://jeffe.cs.illinois.edu/teaching/algorithms/book/07-mst.pdf
 	let g2 = ungraph![
 		(usize) => [u64]

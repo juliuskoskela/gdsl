@@ -110,18 +110,20 @@ where
 	}
 
 	fn recurse_preorder(
-		&self,
+		&mut self,
 		result: &mut Vec<Edge<K, N, E>>,
 		visited: &mut HashSet<K>,
 		queue: &mut Vec<Node<K, N, E>>,
 	) -> bool {
 		if let Some(node) = queue.pop() {
-			for Edge(u, v, e) in node.iter() {
-				if visited.contains(v.key()) == false {
-					if self.method.exec(&Edge(u.clone(), v.clone(), e.clone())) {
+			for edge in node.iter() {
+				let edge = edge.reverse();
+				let v = edge.1.clone();
+				if self.method.exec(&edge) {
+					if visited.contains(v.key()) == false {
 						visited.insert(v.key().clone());
 						queue.push(v.clone());
-						result.push(Edge(u, v.clone(), e));
+						result.push(edge);
 						self.recurse_preorder(
 							result,
 							visited,
@@ -134,22 +136,23 @@ where
 	}
 
 	fn recurse_postorder(
-		&self,
+		&mut self,
 		result: &mut Vec<Edge<K, N, E>>,
 		visited: &mut HashSet<K>,
 		queue: &mut Vec<Node<K, N, E>>,
 	) -> bool {
 		if let Some(node) = queue.pop() {
-			for Edge(u, v, e) in node.iter() {
-				if visited.contains(v.key()) == false {
-					if self.method.exec(&Edge(u.clone(), v.clone(), e.clone())) {
+			for edge in node.iter() {
+				let v = edge.1.clone();
+				if self.method.exec(&edge) {
+					if visited.contains(v.key()) == false {
 						visited.insert(v.key().clone());
 						queue.push(v.clone());
 						self.recurse_postorder(
 							result,
 							visited,
 							queue);
-						result.push(Edge(u, v.clone(), e));
+						result.push(edge);
 					}
 				}
 			}

@@ -24,7 +24,7 @@ where
 	E: Clone,
 {
 	root: Node<K, N, E>,
-	target: Option<&'a K>,
+	target: Option<K>,
 	method: Method<'a, K, N, E>,
 	priority: Priority,
 }
@@ -55,7 +55,7 @@ where
 	}
 
 	pub fn target(mut self, target: &'a K) -> Self {
-		self.target = Some(target);
+		self.target = Some(target.clone());
 		self
 	}
 
@@ -75,22 +75,25 @@ where
 		self
 	}
 
-	fn recurse_min(
-		&self,
+	fn loop_min(
+		&mut self,
 		result: &mut Vec<Edge<K, N, E>>,
 		visited: &mut HashSet<K>,
 		queue: &mut MinMaxHeap<Node<K, N, E>>,
 	) -> bool {
 		while let Some(node) = queue.pop_min() {
-			for Edge(u, v, e) in node.iter() {
-				if self.method.exec(&Edge(u.clone(), v.clone(), e.clone())) {
+			for edge in node.iter() {
+				if self.method.exec(&edge) {
+					let v = edge.1.clone();
 					if !visited.contains(v.key()) {
-						visited.insert(v.key().clone());
-						result.push(Edge(u, v.clone(), e));
-						if self.target.is_some() && self.target.unwrap() == v.key() {
-							return true;
+						if let Some(ref t) = self.target {
+							if v.key() == t {
+								return true;
+							}
 						}
-						queue.push(v.clone());
+						visited.insert(v.key().clone());
+						result.push(edge);
+						queue.push(v);
 					}
 				}
 			}
@@ -98,22 +101,25 @@ where
 		false
 	}
 
-	fn recurse_max(
-		&self,
+	fn loop_max(
+		&mut self,
 		result: &mut Vec<Edge<K, N, E>>,
 		visited: &mut HashSet<K>,
 		queue: &mut MinMaxHeap<Node<K, N, E>>,
 	) -> bool {
 		while let Some(node) = queue.pop_max() {
-			for Edge(u, v, e) in node.iter() {
-				if self.method.exec(&Edge(u.clone(), v.clone(), e.clone())) {
+			for edge in node.iter() {
+				if self.method.exec(&edge) {
+					let v = edge.1.clone();
 					if !visited.contains(v.key()) {
-						visited.insert(v.key().clone());
-						result.push(Edge(u, v.clone(), e));
-						if self.target.is_some() && self.target.unwrap() == v.key() {
-							return true;
+						if let Some(ref t) = self.target {
+							if v.key() == t {
+								return true;
+							}
 						}
-						queue.push(v.clone());
+						visited.insert(v.key().clone());
+						result.push(edge);
+						queue.push(v);
 					}
 				}
 			}
@@ -135,15 +141,15 @@ where
 		let mut visited = HashSet::default();
 		let target_found;
 
-		self.target = Some(self.root.key());
+		self.target = Some(self.root.key().clone());
 		queue.push(self.root.clone());
 
 		match self.priority {
 			Priority::Min => {
-				target_found = self.recurse_min(&mut edges, &mut visited, &mut queue);
+				target_found = self.loop_min(&mut edges, &mut visited, &mut queue);
 			}
 			Priority::Max => {
-				target_found = self.recurse_max(&mut edges, &mut visited, &mut queue);
+				target_found = self.loop_max(&mut edges, &mut visited, &mut queue);
 			}
 		}
 		if target_found {
@@ -163,10 +169,10 @@ where
 
 		match self.priority {
 			Priority::Min => {
-				target_found = self.recurse_min(&mut edges, &mut visited, &mut queue);
+				target_found = self.loop_min(&mut edges, &mut visited, &mut queue);
 			}
 			Priority::Max => {
-				target_found = self.recurse_max(&mut edges, &mut visited, &mut queue);
+				target_found = self.loop_max(&mut edges, &mut visited, &mut queue);
 			}
 		}
 		if target_found {
