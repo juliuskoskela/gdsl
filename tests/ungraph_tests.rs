@@ -28,7 +28,7 @@ fn ut_ungraph_manual_bfs()
 	visited.insert(g[0].key().clone());
 
 	while let Some(node) = queue.pop_front() {
-		for (_, v, _) in &node {
+		for Edge(_, v, _) in &node {
 			if !visited.contains(v.key()) {
 				if v == g[4] {
 					return;
@@ -80,7 +80,7 @@ fn ut_ungraph()
 	b.connect(&c, 0.09);
 	c.connect(&b, 12.9);
 
-	let (u, v, e) = a.iter().next().unwrap();
+	let Edge(u, v, e) = a.iter().next().unwrap();
 
 	assert!(u == a);
 	assert!(v == b);
@@ -328,7 +328,6 @@ fn ut_ungraph_bfs_cycle_2() {
 	assert!(cycle.last().unwrap() == &g[0]);
 }
 
-
 #[test]
 fn ut_ungraph_sizes() {
 	use gdsl::ungraph::*;
@@ -356,6 +355,6 @@ fn ut_ungraph_sizes() {
 	n1.connect(&n1t2, ());
 	n1.connect(&n1t3, ());
 
-	assert!(n1.sizeof() == 120);
-	assert!(n1t1.sizeof() == 88);
+	assert!(n1.sizeof() == 96);
+	assert!(n1t1.sizeof() == 73);
 }

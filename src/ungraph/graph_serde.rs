@@ -1,8 +1,9 @@
-use serde::Deserialize;
-use serde::ser::{Serialize, Serializer, SerializeTuple};
-use serde::de::{self, Visitor};
-use crate::ungraph::node::*;
-use crate::ungraph::*;
+use serde::{
+	Deserialize,
+	ser::{Serialize, Serializer, SerializeTuple},
+	de::{self, Visitor},
+};
+use super::*;
 
 fn graph_serde_decompose<'de, K, N, E>(g: &Graph<K, N, E>) -> (Vec<(K, N)>, Vec<(K, K, E)>)
 where
@@ -16,7 +17,7 @@ where
 	for (_, n) in g.iter() {
 		nodes.push((n.key().clone(), n.value().clone()));
 
-		for (u, v, e) in n.iter() {
+		for Edge(u, v, e) in n.iter() {
 			edges.push((u.key().clone(), v.key().clone(), e));
 		}
 	}

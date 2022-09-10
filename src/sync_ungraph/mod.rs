@@ -1,12 +1,8 @@
 //! Undirected Graph
 
-//==== Submodules =============================================================
-
 mod node;
 mod graph_macros;
 mod graph_serde;
-
-//==== Includes ===============================================================
 
 use std::{
 	fmt::Display,
@@ -15,7 +11,7 @@ use std::{
 
 use ahash::HashMap as HashMap;
 
-pub use crate::sync_ungraph::node::*;
+pub use self::node::*;
 
 pub struct Graph<K, N, E>
 where
@@ -232,7 +228,7 @@ where
 		s.push_str("digraph {\n");
 		for (u_key, node) in self.iter() {
 			s.push_str(&format!("    {}", u_key.clone()));
-			for (_, v, _) in node {
+			for Edge(_, v, _) in node {
 				s.push_str(&format!("\n    {} -> {}", u_key, v.key()));
 			}
 			s.push_str("\n");

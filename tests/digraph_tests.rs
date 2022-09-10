@@ -28,7 +28,7 @@ fn ut_digraph_manual_bfs()
 	visited.insert(g[0].key().clone());
 
 	while let Some(node) = queue.pop_front() {
-		for (_, v, _) in &node {
+		for Edge(_, v, _) in &node {
 			if !visited.contains(v.key()) {
 				if v == g[4] {
 					return;
@@ -80,7 +80,7 @@ fn ut_digraph()
 	b.connect(&c, 0.09);
 	c.connect(&b, 12.9);
 
-	let (u, v, e) = a.iter_out().next().unwrap();
+	let Edge(u, v, e) = a.iter_out().next().unwrap();
 
 	assert!(u == a);
 	assert!(v == b);
@@ -364,7 +364,7 @@ fn ut_digraph_deref_node() {
 	assert!(*n1 == 42);
 	assert!(n2.key() == &'B');
 
-	let (u, v, e) = n1.iter_out().next().unwrap();
+	let Edge(u, v, e) = n1.iter_out().next().unwrap();
 
 	assert!(u.key() == &'A');
 	assert!(v == n2);
@@ -397,7 +397,7 @@ fn ut_serde_json() {
 
 	for (a, b) in graph_vec.iter().zip(de_vec.iter()) {
 		assert!(a == b);
-		for ((u, v, e), (u2, v2, e2)) in a.iter_out().zip(b.iter_out()) {
+		for (Edge(u, v, e), Edge(u2, v2, e2)) in a.iter_out().zip(b.iter_out()) {
 			assert!(u == u2);
 			assert!(v == v2);
 			assert!(e == e2);
@@ -431,7 +431,7 @@ fn ut_serde_cbor() {
 
 	for (a, b) in graph_vec.iter().zip(de_vec.iter()) {
 		assert!(a == b);
-		for ((u, v, e), (u2, v2, e2)) in a.iter_out().zip(b.iter_out()) {
+		for (Edge(u, v, e), Edge(u2, v2, e2)) in a.iter_out().zip(b.iter_out()) {
 			assert!(u == u2);
 			assert!(v == v2);
 			assert!(e == e2);
@@ -470,7 +470,7 @@ fn ut_serde_cbor_big() {
 
 	for (a, b) in graph_vec.iter().zip(de_vec.iter()) {
 		assert!(a == b);
-		for ((u, v, e), (u2, v2, e2)) in a.iter_out().zip(b.iter_out()) {
+		for (Edge(u, v, e), Edge(u2, v2, e2)) in a.iter_out().zip(b.iter_out()) {
 			assert!(u == u2);
 			assert!(v == v2);
 			assert!(e == e2);

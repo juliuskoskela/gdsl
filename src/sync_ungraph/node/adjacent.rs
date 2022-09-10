@@ -50,19 +50,15 @@ where
         })
     }
 
-    pub fn get_outbound(&self, idx: usize) -> Option<(&WeakNode<K, N, E>, &E)> {
-        match self.outbound.get(idx) {
-            Some(edge) => Some((&edge.0, &edge.1)),
-            None => None,
-        }
-    }
-
-    pub fn get_inbound(&self, idx: usize) -> Option<(&WeakNode<K, N, E>, &E)> {
-        match self.inbound.get(idx) {
-            Some(edge) => Some((&edge.0, &edge.1)),
-            None => None,
-        }
-    }
+	pub fn get_adjacent(&self, idx: usize) -> Option<(&WeakNode<K, N, E>, &E)> {
+		match self.outbound.get(idx) {
+			Some(edge) => Some((&edge.0, &edge.1)),
+			None => match self.inbound.get(idx - self.outbound.len()) {
+				Some(edge) => Some((&edge.0, &edge.1)),
+				None => None,
+			},
+		}
+	}
 
     pub fn find_outbound(&self, node: &K) -> Option<(&WeakNode<K, N, E>, &E)> {
         for edge in self.outbound.iter() {
@@ -81,6 +77,13 @@ where
         }
         None
     }
+
+	pub fn find_adjacent(&self, node: &K) -> Option<(&WeakNode<K, N, E>, &E)> {
+		match self.find_outbound(node) {
+			Some(edge) => Some(edge),
+			None => self.find_inbound(node),
+		}
+	}
 
     pub fn len_outbound(&self) -> usize {
         self.outbound.len()
@@ -115,6 +118,13 @@ where
 		}
 		Err(())
     }
+
+	pub fn remove_undirected(&mut self, node: &K) -> Result<E, ()> {
+		match self.remove_inbound(node) {
+			Ok(edge) => Ok(edge),
+			Err(_) => self.remove_outbound(node),
+		}
+	}
 
     pub fn clear_inbound(&mut self) {
         self.inbound.clear();

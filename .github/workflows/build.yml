@@ -16,7 +16,24 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+
     - name: Build
-      run: cargo build --verbose
+      run: cargo build --verbose --examples
+
     - name: Run tests
       run: cargo test --verbose
+
+    - name: Set up environment
+      run: |
+        sudo apt update
+        sudo apt install -y libev-dev valgrind
+
+    - name: Run Tests with Valgrind
+      run: |
+        touch results
+        valgrind --leak-check=full --track-origins=yes -q ./target/debug/examples/dijkstra-shortest-path >> results
+        valgrind --leak-check=full --track-origins=yes -q ./target/debug/examples/serialization-example >> results
+        valgrind --leak-check=full --track-origins=yes -q ./target/debug/examples/edmonds-karp-maximum-flow >> results
+        valgrind --leak-check=full --track-origins=yes -q ./target/debug/examples/prim-minimum-spanning-tree >> results
+        valgrind --leak-check=full --track-origins=yes -q ./target/debug/examples/kojarasu-strongly-connected-components >> results
+        [ -s ./results ] && (cat ./results && exit -1) || echo "No leaks detected"
