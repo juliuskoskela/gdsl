@@ -247,14 +247,14 @@ g['A'].set(0);
 // by calling the `pfs()` method on the node.
 //
 // If we find a shorter distance to a node we are traversing, we need to
-// update the distance of the node. We do this by using the `map()` method
-// on the PFS search object. The `map()` method takes a closure as argument
+// update the distance of the node. We do this by using the `for_each()` method
+// on the PFS search object. The `for_each()` method takes a closure as argument
 // and calls it for each edge that is traversed. This way we can manipulate
 // the distance of the node. based on the edge that is traversed.
 //
 // The search-object evaluates lazily. This means that the search is only
 // executed when calling either `search()` or `search_path()`.
-g['A'].pfs().map(&|Edge(u, v, e)| {
+g['A'].pfs().for_each(&mut |Edge(u, v, e)| {
 
     // Since we are using a `Cell` to store the distance we use `get()` to
     // read the distance values.
