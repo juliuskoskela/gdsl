@@ -31,12 +31,7 @@
 //!
 //! This node uses `Rc` for reference counting, thus it is not thread-safe.
 
-mod method;
-mod order;
-mod bfs;
-mod dfs;
-mod pfs;
-mod path;
+mod algo;
 mod adjacent;
 
 use std::{
@@ -48,10 +43,12 @@ use std::{
 };
 
 use self::{
-	pfs::*,
-	dfs::*,
-	bfs::*,
-	order::*,
+	algo::{
+		pfs::*,
+		dfs::*,
+		bfs::*,
+		order::*,
+	},
 	adjacent::*,
 };
 
@@ -534,34 +531,5 @@ where
 
 	fn into_iter(self) -> Self::IntoIter {
 		NodeIterator { node: self, position: 0 }
-	}
-}
-
-//==== PRIVATE ================================================================
-
-#[derive(Clone)]
-pub struct WeakNode<K = usize, N = (), E = ()>
-where
-	K: Clone + Hash + Display + PartialEq + Eq,
-	N: Clone,
-	E: Clone,
-{
-	inner: Weak<(K, N, RefCell<Adjacent<K, N, E>>)>,
-}
-
-impl<K, N, E> WeakNode<K, N, E>
-where
-	K: Clone + Hash + Display + PartialEq + Eq,
-	N: Clone,
-	E: Clone,
-{
-	fn upgrade(&self) -> Option<Node<K, N, E>> {
-		self.inner.upgrade().map(|inner| Node { inner })
-	}
-
-	fn downgrade(node: &Node<K, N, E>) -> Self {
-		WeakNode {
-			inner: Rc::downgrade(&node.inner)
-		}
 	}
 }

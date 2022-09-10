@@ -575,19 +575,3 @@ fn ut_digraph_scc() {
 	assert!(scc[2].len() == 3);
 	assert!(scc[3].len() == 3);
 }
-
-#[test]
-fn ut_digraph_xx() {
-	use gdsl::digraph::*;
-	let n1 = Node::new(0, ());
-	let n2 = Node::new(1, ());
-	let n3 = Node::new(2, ());
-
-	n1.connect(&n2, ());
-	n2.connect(&n3, ());
-	n3.connect(&n1, ());
-
-	for Edge(u, v, e) in &n1 {
-		println!("{} -> {} ({:?})", u.key(), v.key(), e);
-	}
-}

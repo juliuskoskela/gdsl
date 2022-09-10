@@ -32,14 +32,9 @@
 //! This node uses `Rc` for reference counting, thus it is not thread-safe.
 
 mod adjacent;
-mod bfs;
-mod dfs;
-mod method;
-mod order;
-mod path;
-mod pfs;
+mod algo;
 
-use self::{adjacent::*, bfs::*, dfs::*, order::*, pfs::*};
+use self::{adjacent::*, algo::{bfs::*, dfs::*, order::*, pfs::*}};
 use std::{cell::RefCell, fmt::Display, hash::Hash, ops::Deref, rc::{Rc, Weak}};
 
 enum Transposition {
@@ -84,33 +79,6 @@ where
     pub fn reverse(&self) -> Edge<K, N, E> {
         Edge(self.1.clone(), self.0.clone(), self.2.clone())
     }
-}
-
-#[derive(Clone)]
-pub struct WeakNode<K = usize, N = (), E = ()>
-where
-	K: Clone + Hash + Display + PartialEq + Eq,
-	N: Clone,
-	E: Clone,
-{
-	inner: Weak<(K, N, RefCell<Adjacent<K, N, E>>)>,
-}
-
-impl<K, N, E> WeakNode<K, N, E>
-where
-	K: Clone + Hash + Display + PartialEq + Eq,
-	N: Clone,
-	E: Clone,
-{
-	fn upgrade(&self) -> Option<Node<K, N, E>> {
-		self.inner.upgrade().map(|inner| Node { inner })
-	}
-
-	fn downgrade(node: &Node<K, N, E>) -> Self {
-		WeakNode {
-			inner: Rc::downgrade(&node.inner)
-		}
-	}
 }
 
 /// A `Node<K, N, E>` is a key value pair smart-pointer, which includes inbound

@@ -1,17 +1,6 @@
-//==== Includes ===============================================================
-
-use std::{
-    fmt::Display,
-    hash::Hash,
-	// collections::HashSet
-};
-
-use ahash::HashSet as HashSet;
-use crate::ungraph::node::*;
-
-use self::{method::*, path::*};
-
-//==== DFS ====================================================================
+use std::{fmt::Display, hash::Hash};
+use super::{*, method::*, path::*};
+use ahash::AHashSet as HashSet;
 
 pub struct DFS<'a, K, N, E>
 where
