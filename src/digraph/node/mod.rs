@@ -780,10 +780,17 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         match self.node.inner.2.borrow().get_outbound(self.position) {
             Some(current) => {
-                self.position += 1;
-                Some(Edge(self.node.clone(), current.0.upgrade().unwrap().clone(), current.1.clone()))
-            }
-            None => None,
+				match current.0.upgrade() {
+					Some(node) => {
+						self.position += 1;
+						Some(Edge(self.node.clone(), node, current.1.clone()))
+					},
+					None => {
+						panic!("Target node in the adjacency list of `node = {}` has been dropped.", self.node.key());
+					}
+				}
+			}
+			None => None,
         }
     }
 }
@@ -809,10 +816,17 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         match self.node.inner.2.borrow().get_inbound(self.position) {
             Some(current) => {
-                self.position += 1;
-                Some(Edge(current.0.upgrade().unwrap().clone(), self.node.clone(), current.1.clone()))
-            }
-            None => None,
+				match current.0.upgrade() {
+					Some(node) => {
+						self.position += 1;
+						Some(Edge(node, self.node.clone(), current.1.clone()))
+					},
+					None => {
+						panic!("Target node in the adjacency list of `node = {}` has been dropped.", self.node.key());
+					}
+				}
+			}
+			None => None,
         }
     }
 }
