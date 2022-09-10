@@ -60,10 +60,10 @@ where
 		while let Some(node) = queue.pop_front() {
 			for edge in node.iter() {
 				if self.method.exec(&edge) {
-					let Edge(u, v, e) = edge;
+					let v = edge.target().clone();
 					if !visited.contains(v.key()) {
 						visited.insert(v.key().clone());
-						result.push(Edge(u.clone(), v.clone(), e.clone()));
+						result.push(edge);
 						if let Some(ref t) = self.target {
 							if v.key() == t {
 								return true;
@@ -83,8 +83,9 @@ where
 		queue: &mut VecDeque<Node<K, N, E>>,
 	) -> Option<Node<K, N, E>> {
 		while let Some(node) = queue.pop_front() {
-			for Edge(u, v, e) in node.iter() {
-				if self.method.exec(&Edge(u.clone(), v.clone(), e.clone())) {
+			for edge in node.iter() {
+				if self.method.exec(&edge) {
+					let v = edge.target();
 					if !visited.contains(v.key()) {
 						visited.insert(v.key().clone());
 						if let Some(ref t) = self.target {

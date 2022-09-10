@@ -81,7 +81,7 @@
 //! //
 //! // The search-object evaluates lazily. This means that the search is only
 //! // executed when calling either `search()` or `search_path()`.
-//! g['A'].pfs().map(&|Edge(u, v, e)| {
+//! g['A'].pfs().for_each(&mut |Edge(u, v, e)| {
 //!
 //! 	// Since we are using a `Cell` to store the distance we use `get()` to
 //! 	// read the distance values.
@@ -92,7 +92,8 @@
 //! 	// edge `e`. If this is the case we update the distance stored in the
 //! 	// node `v`.
 //! 	if v_dist > u_dist + e { v.set(u_dist + e); }
-//! }).search();
+//! }).search();	// pfs() is lazy, we need to call search() to execute the
+//! 				// traversal.
 //!
 //! // We expect that the distance to the node `E` is 21.
 //! assert!(g['E'].take() == 21);

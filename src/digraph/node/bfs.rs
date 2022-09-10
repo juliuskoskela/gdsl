@@ -9,7 +9,7 @@ where
 	E: Clone,
 {
 	root: Node<K, N, E>,
-	target: Option<&'a K>,
+	target: Option<K>,
 	method: Method<'a, K, N, E>,
 	transpose: Transposition,
 }
@@ -29,8 +29,8 @@ where
 		}
 	}
 
-	pub fn target(mut self, target: &'a K) -> Self {
-		self.target = Some(target);
+	pub fn target(mut self, target: &K) -> Self {
+		self.target = Some(target.clone());
 		self
 	}
 
@@ -39,18 +39,13 @@ where
 		self
 	}
 
-	pub fn map(mut self, f: Map<'a, K, N, E>) -> Self {
-		self.method = Method::Map(f);
+	pub fn for_each(mut self, f: ForEach<'a, K, N, E>) -> Self {
+		self.method = Method::ForEach(f);
 		self
 	}
 
 	pub fn filter(mut self, f: Filter<'a, K, N, E>) -> Self {
 		self.method = Method::Filter(f);
-		self
-	}
-
-	pub fn filter_map(mut self, f: FilterMap<'a, K, N, E>) -> Self {
-		self.method = Method::FilterMap(f);
 		self
 	}
 
@@ -77,7 +72,7 @@ where
 		let mut visited = HashSet::default();
 		let target_found;
 
-		self.target = Some(self.root.key());
+		self.target = Some(self.root.key().clone());
 		queue.push_back(self.root.clone());
 
 		match self.transpose {
@@ -118,20 +113,22 @@ where
 	}
 
 	fn loop_outbound(
-		&self,
+		&mut self,
 		result: &mut Vec<Edge<K, N, E>>,
 		visited: &mut HashSet<K>,
 		queue: &mut VecDeque<Node<K, N, E>>,
 	) -> bool {
 		while let Some(node) = queue.pop_front() {
 			for edge in node.iter_out() {
-				let v = edge.1.clone();
 				if self.method.exec(&edge) {
+					let v = edge.1.clone();
 					if !visited.contains(v.key()) {
 						visited.insert(v.key().clone());
 						result.push(edge);
-						if self.target.is_some() && self.target.unwrap() == v.key() {
-							return true;
+						if let Some(ref t) = self.target {
+							if v.key() == t {
+								return true;
+							}
 						}
 						queue.push_back(v.clone());
 					}
@@ -142,7 +139,7 @@ where
 	}
 
 	fn loop_inbound(
-		&self,
+		&mut self,
 		result: &mut Vec<Edge<K, N, E>>,
 		visited: &mut HashSet<K>,
 		queue: &mut VecDeque<Node<K, N, E>>,
@@ -150,13 +147,15 @@ where
 		while let Some(node) = queue.pop_front() {
 			for edge in node.iter_in() {
 				let edge = edge.reverse();
-				let v = edge.1.clone();
 				if self.method.exec(&edge) {
+					let v = edge.1.clone();
 					if !visited.contains(v.key()) {
 						visited.insert(v.key().clone());
 						result.push(edge);
-						if self.target.is_some() && self.target.unwrap() == v.key() {
-							return true;
+						if let Some(ref t) = self.target {
+							if v.key() == t {
+								return true;
+							}
 						}
 						queue.push_back(v.clone());
 					}
@@ -167,18 +166,20 @@ where
 	}
 
 	fn loop_outbound_find(
-		&self,
+		&mut self,
 		visited: &mut HashSet<K>,
 		queue: &mut VecDeque<Node<K, N, E>>,
 	) -> Option<Node<K, N, E>> {
 		while let Some(node) = queue.pop_front() {
 			for edge in node.iter_out() {
-				let v = edge.1.clone();
 				if self.method.exec(&edge) {
+					let Edge(_, v, _) = edge;
 					if !visited.contains(v.key()) {
 						visited.insert(v.key().clone());
-						if self.target.is_some() && self.target.unwrap() == v.key() {
-							return Some(v);
+						if let Some(ref t) = self.target {
+							if v.key() == t {
+								return Some(v.clone());
+							}
 						}
 						queue.push_back(v.clone());
 					}
@@ -189,19 +190,21 @@ where
 	}
 
 	fn loop_inbound_find(
-		&self,
+		&mut self,
 		visited: &mut HashSet<K>,
 		queue: &mut VecDeque<Node<K, N, E>>,
 	) -> Option<Node<K, N, E>> {
 		while let Some(node) = queue.pop_front() {
 			for edge in node.iter_in() {
 				let edge = edge.reverse();
-				let v = edge.1.clone();
 				if self.method.exec(&edge) {
+					let Edge(_, v, _) = edge;
 					if !visited.contains(v.key()) {
 						visited.insert(v.key().clone());
-						if self.target.is_some() && self.target.unwrap() == v.key() {
-							return Some(v);
+						if let Some(ref t) = self.target {
+							if v.key() == t {
+								return Some(v.clone());
+							}
 						}
 						queue.push_back(v.clone());
 					}

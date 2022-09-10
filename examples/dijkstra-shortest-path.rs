@@ -53,7 +53,7 @@ fn main() {
 	//
 	// The search-object evaluates lazily. This means that the search is only
 	// executed when calling either `search()` or `search_path()`.
-	g['A'].pfs().map(&|Edge(u, v, e)| {
+	g['A'].pfs().for_each(&mut |Edge(u, v, e)| {
 		// Since we are using a `Cell` to store the distance we use `get()` to
 		// read the distance values.
 		let (u_dist, v_dist) = (u.get(), v.get());

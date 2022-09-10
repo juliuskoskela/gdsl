@@ -40,7 +40,12 @@ mod path;
 mod pfs;
 
 use self::{adjacent::*, bfs::*, dfs::*, order::*, pfs::*};
-use std::{cell::RefCell, fmt::Display, hash::Hash, ops::Deref, rc::Rc};
+use std::{cell::RefCell, fmt::Display, hash::Hash, ops::Deref, rc::{Rc, Weak}};
+
+enum Transposition {
+	Outbound,
+	Inbound,
+}
 
 /// An edge between nodes is a tuple struct `Edge(u, v, e)` where `u` is the
 /// source node, `v` is the target node, and `e` is the edge's value.
@@ -79,6 +84,33 @@ where
     pub fn reverse(&self) -> Edge<K, N, E> {
         Edge(self.1.clone(), self.0.clone(), self.2.clone())
     }
+}
+
+#[derive(Clone)]
+pub struct WeakNode<K = usize, N = (), E = ()>
+where
+	K: Clone + Hash + Display + PartialEq + Eq,
+	N: Clone,
+	E: Clone,
+{
+	inner: Weak<(K, N, RefCell<Adjacent<K, N, E>>)>,
+}
+
+impl<K, N, E> WeakNode<K, N, E>
+where
+	K: Clone + Hash + Display + PartialEq + Eq,
+	N: Clone,
+	E: Clone,
+{
+	fn upgrade(&self) -> Option<Node<K, N, E>> {
+		self.inner.upgrade().map(|inner| Node { inner })
+	}
+
+	fn downgrade(node: &Node<K, N, E>) -> Self {
+		WeakNode {
+			inner: Rc::downgrade(&node.inner)
+		}
+	}
 }
 
 /// A `Node<K, N, E>` is a key value pair smart-pointer, which includes inbound
@@ -455,7 +487,7 @@ where
         let edge = self.inner.2.borrow();
 		let edge = edge.find_outbound(other);
         if let Some(edge) = edge {
-            Some(edge.0.clone())
+            Some(edge.0.upgrade().unwrap().clone())
         } else {
             None
         }
@@ -485,7 +517,7 @@ where
         let edge = self.inner.2.borrow();
 		let edge = edge.find_inbound(other);
         if let Some(edge) = edge {
-            Some(edge.0.clone())
+            Some(edge.0.upgrade().unwrap().clone())
         } else {
             None
         }
@@ -781,7 +813,7 @@ where
         match self.node.inner.2.borrow().get_outbound(self.position) {
             Some(current) => {
                 self.position += 1;
-                Some(Edge(self.node.clone(), current.0.clone(), current.1.clone()))
+                Some(Edge(self.node.clone(), current.0.upgrade().unwrap().clone(), current.1.clone()))
             }
             None => None,
         }
@@ -810,7 +842,7 @@ where
         match self.node.inner.2.borrow().get_inbound(self.position) {
             Some(current) => {
                 self.position += 1;
-                Some(Edge(current.0.clone(), self.node.clone(), current.1.clone()))
+                Some(Edge(current.0.upgrade().unwrap().clone(), self.node.clone(), current.1.clone()))
             }
             None => None,
         }

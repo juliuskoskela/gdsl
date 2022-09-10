@@ -37,6 +37,7 @@ mod bfs;
 mod dfs;
 mod pfs;
 mod path;
+mod adjacent;
 
 use std::{
     fmt::Display,
@@ -51,9 +52,8 @@ use self::{
 	dfs::*,
 	bfs::*,
 	order::*,
+	adjacent::*,
 };
-
-// pub use self::path::Path;
 
 //==== PUBLIC =================================================================
 
@@ -114,7 +114,7 @@ where
 	E: Clone + Ord
 {}
 
-impl<K, N, E> PartialOrd for Edge<K, N, E> 
+impl<K, N, E> PartialOrd for Edge<K, N, E>
 where
 	K: Clone + Hash + PartialEq + Eq + Display,
 	N: Clone,
@@ -125,7 +125,7 @@ where
 	}
 }
 
-impl<K, N, E> Ord for Edge<K, N, E> 
+impl<K, N, E> Ord for Edge<K, N, E>
 where
 	K: Clone + Hash + PartialEq + Eq + Display,
 	N: Clone,
@@ -165,11 +165,11 @@ where
 #[derive(Clone)]
 pub struct Node<K = usize, N = (), E = ()>
 where
-	K: Clone + Hash + PartialEq + Eq + Display,
+    K: Clone + Hash + PartialEq + Eq + Display,
     N: Clone,
     E: Clone,
 {
-	inner: Rc<NodeInner<K, N, E>>,
+    inner: Rc<(K, N, RefCell<Adjacent<K, N, E>>)>,
 }
 
 impl<K, N, E> Node<K, N, E>
@@ -194,13 +194,9 @@ where
 	///	assert!(*n1.value() == 'A');
 	/// ```
     pub fn new(key: K, value: N) -> Self {
-		Node {
-			inner: Rc::new(NodeInner {
-				key,
-				value,
-				edges: Adjacent::new(),
-			}),
-		}
+        Node {
+            inner: Rc::new((key, value, Adjacent::new())),
+        }
     }
 
 	/// Returns a reference to the node's key.
@@ -215,7 +211,7 @@ where
 	///	assert!(*n1.key() == 1);
 	/// ```
     pub fn key(&self) -> &K {
-        &self.inner.key
+        &self.inner.0
     }
 
 	/// Returns a reference to the node's value.
@@ -230,7 +226,29 @@ where
 	///	assert!(*n1.value() == 'A');
 	/// ```
     pub fn value(&self) -> &N {
-        &self.inner.value
+        &self.inner.1
+    }
+
+	/// Returns the degree of the node. The degree is the number of
+    /// adjacent edges.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use gdsl::digraph::*;
+    ///
+    /// let a = Node::new(0x1, "A");
+    /// let b = Node::new(0x2, "B");
+    /// let c = Node::new(0x4, "C");
+    ///
+    /// a.connect(&b, 0.42);
+    /// a.connect(&c, 1.7);
+    ///
+    /// assert!(a.out_degree() == 2);
+    /// ```
+    pub fn degree(&self) -> usize {
+        self.inner.2.borrow().len_outbound()
+		+ self.inner.2.borrow().len_inbound()
     }
 
 	/// Connects this node to another node. The connection is created in both
@@ -250,12 +268,17 @@ where
 	///
 	///	assert!(n1.is_connected(n2.key()));
 	/// ```
-	pub fn connect(&self, other: &Node<K, N, E>, value: E) {
-	    let edge = EdgeInner::new(other, value.clone());
-		let rev_edge = EdgeInner::new(&self, value);
-	    self.inner.edges.push_outbound(edge);
-	    other.inner.edges.push_inbound(rev_edge);
-	}
+	pub fn connect(&self, other: &Self, value: E) {
+        self.inner
+            .2
+            .borrow_mut()
+            .push_outbound((other.clone(), value.clone()));
+        other
+            .inner
+            .2
+            .borrow_mut()
+            .push_inbound((self.clone(), value));
+    }
 
 	/// Connects this node to another node. The connection is created in both
 	/// directions. The connection is created with the given edge value and
@@ -313,18 +336,7 @@ where
 	///	assert!(!n1.is_connected(n2.key()));
 	/// ```
 	pub fn disconnect(&self, other: &K) -> Result<E, ()> {
-		match self.find_adjacent(other) {
-			Some(other) => {
-				match self.inner.edges.remove_outbound(other.key()) {
-					Ok(edge) => {
-						other.inner.edges.remove_inbound(self.key())?;
-						Ok(edge)
-					},
-					Err(_) => Err(()),
-				}
-			},
-			None => Err(()),
-		}
+		self.inner.2.borrow_mut().remove_undirected(other)
 	}
 
 	/// Removes all inbound and outbound connections to and from the node.
@@ -356,18 +368,18 @@ where
 	/// ```
 	pub fn isolate(&self) {
 		for Edge(_, v, _) in self.iter() {
-			if v.inner.edges.remove_inbound(self.key()).is_err() {
-				v.inner.edges.remove_outbound(self.key()).unwrap();
+			if v.inner.2.borrow_mut().remove_inbound(self.key()).is_err() {
+				v.inner.2.borrow_mut().remove_outbound(self.key()).unwrap();
 			}
 		}
-		self.inner.edges.clear_outbound();
-		self.inner.edges.clear_inbound();
+		self.inner.2.borrow_mut().clear_outbound();
+		self.inner.2.borrow_mut().clear_inbound();
 	}
 
 	/// Returns true if the node is an oprhan. Orphan nodes are nodes that have
 	/// no connections.
 	pub fn is_orphan(&self) -> bool {
-		self.inner.edges.len_outbound() == 0 && self.inner.edges.len_inbound() == 0
+		self.inner.2.borrow().len_outbound() == 0 && self.inner.2.borrow().len_inbound() == 0
 	}
 
 	/// Returns true if the node is connected to another node with a given key.
@@ -378,16 +390,9 @@ where
 	/// Get a pointer to an adjacent node with a given key. Returns None if no
 	/// node with the given key is found from the node's adjacency list.
 	pub fn find_adjacent(&self, other: &K) -> Option<Node<K, N, E>> {
-		let edge = self.inner.edges.find_outbound(other);
-		if let Some(edge) = edge {
-			Some(edge.target().clone())
-		} else {
-			let edge = self.inner.edges.find_inbound(other);
-			if let Some(edge) = edge {
-				Some(edge.target().clone())
-			} else {
-				None
-			}
+		match self.inner.2.borrow().find_adjacent(other) {
+			Some((n, _)) => Some(n.upgrade().unwrap()),
+			None => None,
 		}
 	}
 
@@ -426,12 +431,12 @@ where
 	}
 
 	pub fn sizeof(&self) -> usize {
-		let len_in = self.inner.edges.len_inbound();
-		let len_out = self.inner.edges.len_outbound();
-		let size_edges = (len_in + len_out) * std::mem::size_of::<Edge<K, N, E>>();
-		let size_node_inner = std::mem::size_of::<NodeInner<K, N, E>>();
-		size_edges + size_node_inner + 8
-	}
+        std::mem::size_of::<Node<K, N, E>>()
+            + std::mem::size_of::<K>()
+            + std::mem::size_of::<N>()
+            + self.inner.2.borrow().sizeof()
+            + std::mem::size_of::<Self>()
+    }
 }
 
 //==== TRAIT IMPLEMENTATIONS ==================================================
@@ -507,29 +512,13 @@ where
 	type Item = Edge<K, N, E>;
 
 	fn next(&mut self) -> Option<Self::Item> {
-		let adjacent = &self.node.inner.edges;
-		match adjacent.get_outbound(self.position) {
-			Some(current) => {
+		let adjacent = &self.node.inner.2.borrow();
+		match adjacent.get_adjacent(self.position) {
+			Some((n, e)) => {
 				self.position += 1;
-				Some(Edge(
-					self.node.clone(),
-					current.target().clone(),
-					current.value.clone()
-				))
+				Some(Edge(self.node.clone(), n.upgrade().unwrap(), e.clone()))
 			}
-			None => {
-				match adjacent.get_inbound(self.position - adjacent.len_outbound()) {
-					Some(current) => {
-						self.position += 1;
-						Some(Edge(
-							self.node.clone(),
-							current.target().clone(),
-							current.value.clone()
-						))
-					}
-					None => None
-				}
-			},
+			None => None,
 		}
 	}
 }
@@ -550,25 +539,14 @@ where
 
 //==== PRIVATE ================================================================
 
-struct NodeInner<K = usize, N = (), E = ()>
-where
-	K: Clone + Hash + PartialEq + Eq + Display,
-    N: Clone,
-    E: Clone,
-{
-    key: K,
-    value: N,
-    edges: Adjacent<K, N, E>,
-}
-
 #[derive(Clone)]
-struct WeakNode<K = usize, N = (), E = ()>
+pub struct WeakNode<K = usize, N = (), E = ()>
 where
 	K: Clone + Hash + Display + PartialEq + Eq,
 	N: Clone,
 	E: Clone,
 {
-	inner: Weak<NodeInner<K, N, E>>,
+	inner: Weak<(K, N, RefCell<Adjacent<K, N, E>>)>,
 }
 
 impl<K, N, E> WeakNode<K, N, E>
@@ -585,158 +563,5 @@ where
 		WeakNode {
 			inner: Rc::downgrade(&node.inner)
 		}
-	}
-}
-
-#[derive(Clone)]
-struct EdgeInner<K, N = (), E = ()>
-where
-	K: Clone + Hash + PartialEq + Eq + Display,
-	N: Clone,
-	E: Clone,
-{
-    target: WeakNode<K, N, E>,
-    value: E,
-}
-
-impl<K, N, E> EdgeInner<K, N, E>
-where
-	K: Clone + Hash + PartialEq + Eq + Display,
-	N: Clone,
-	E: Clone,
-{
-    fn new(target: &Node<K, N, E>, value: E) -> Self {
-		Self {
-			value,
-			target: WeakNode::downgrade(target),
-		}
-    }
-
-	fn target(&self) -> Node<K, N, E> {
-		self.target.upgrade().unwrap()
-	}
-
-	fn value(&self) -> &E {
-		&self.value
-	}
-}
-
-impl<K, N, E> Deref for EdgeInner<K, N, E>
-where
-	K: Clone + Hash + PartialEq + Eq + Display,
-	N: Clone,
-	E: Clone,
-{
-	type Target = E;
-
-	fn deref(&self) -> &Self::Target {
-		self.value()
-	}
-}
-
-#[derive(Clone)]
-struct Adjacent<K, N, E>
-where
-	K: Clone + Hash + PartialEq + Eq + Display,
-	N: Clone,
-	E: Clone,
-{
-	edges: RefCell<AdjacentInner<K, N, E>>,
-}
-
-#[derive(Clone)]
-struct AdjacentInner<K, N, E>
-where
-	K: Clone + Hash + PartialEq + Eq + Display,
-	N: Clone,
-	E: Clone,
-{
-	outbound: Vec<EdgeInner<K, N, E>>,
-	inbound: Vec<EdgeInner<K, N, E>>,
-}
-
-impl<K, N, E> Adjacent<K, N, E>
-where
-	K: Clone + Hash + PartialEq + Eq + Display,
-	N: Clone,
-	E: Clone,
-{
-	fn new() -> Self {
-		Self {
-			edges: RefCell::new(AdjacentInner {
-				outbound: Vec::new(),
-				inbound: Vec::new(),
-			}),
-		}
-	}
-
-	fn get_outbound(&self, idx: usize) -> Option<EdgeInner<K, N, E>> {
-		let edges = self.edges.borrow();
-		edges.outbound.get(idx).cloned()
-	}
-
-	fn get_inbound(&self, idx: usize) -> Option<EdgeInner<K, N, E>> {
-		let edges = self.edges.borrow();
-		edges.inbound.get(idx).cloned()
-	}
-
-	fn find_outbound(&self, node: &K) -> Option<EdgeInner<K, N, E>> {
-		let edges = self.edges.borrow();
-		edges.outbound.iter().find(|edge| edge.target().key() == node).cloned()
-	}
-
-	fn find_inbound(&self, node: &K) -> Option<EdgeInner<K, N, E>> {
-		let edges = self.edges.borrow();
-		edges.inbound.iter().find(|edge| edge.target().key() == node).cloned()
-	}
-
-	fn len_outbound(&self) -> usize {
-		let edges = self.edges.borrow();
-		edges.outbound.len()
-	}
-
-	fn len_inbound(&self) -> usize {
-		let edges = self.edges.borrow();
-		edges.inbound.len()
-	}
-
-	fn push_inbound(&self, edge: EdgeInner<K, N, E>) {
-		self.edges.borrow_mut().inbound.push(edge);
-	}
-
-	fn push_outbound(&self, edge: EdgeInner<K, N, E>) {
-		self.edges.borrow_mut().outbound.push(edge);
-	}
-
-	fn remove_inbound(&self, source: &K) -> Result<E, ()> {
-		let mut edges = self.edges.borrow_mut();
-		let idx = edges.inbound.iter().position(|edge| edge.target().key() == source);
-		match idx {
-			Some(idx) => {
-				let edge = edges.inbound.remove(idx);
-				Ok(edge.value().clone())
-			},
-			None => Err(()),
-		}
-	}
-
-	fn remove_outbound(&self, target: &K) -> Result<E, ()> {
-		let mut edges = self.edges.borrow_mut();
-		let idx = edges.outbound.iter().position(|edge| edge.target().key() == target);
-		match idx {
-			Some(idx) => {
-				let edge = edges.outbound.remove(idx);
-				Ok(edge.value().clone())
-			},
-			None => Err(()),
-		}
-	}
-
-	fn clear_inbound(&self) {
-		self.edges.borrow_mut().inbound.clear();
-	}
-
-	fn clear_outbound(&self) {
-		self.edges.borrow_mut().outbound.clear();
 	}
 }

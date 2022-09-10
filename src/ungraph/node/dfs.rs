@@ -61,10 +61,10 @@ where
 		if let Some(node) = queue.pop() {
 			for edge in node.iter() {
 				if self.method.exec(&edge) {
-					let Edge(u, v, e) = edge;
+					let v = edge.target().clone();
 					if visited.contains(v.key()) == false {
 						visited.insert(v.key().clone());
-						result.push(Edge(u.clone(), v.clone(), e.clone()));
+						result.push(edge);
 						if let Some(ref t) = self.target {
 							if v.key() == t {
 								return true;
@@ -88,7 +88,7 @@ where
 		if let Some(node) = queue.pop() {
 			for edge in node.iter() {
 				if self.method.exec(&edge) {
-					let Edge(_, v, _) = edge;
+					let v = edge.target();
 					if visited.contains(v.key()) == false {
 						visited.insert(v.key().clone());
 						if let Some(ref t) = self.target {

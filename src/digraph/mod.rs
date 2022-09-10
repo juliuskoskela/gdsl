@@ -383,7 +383,7 @@ where
                 let cycle = node
                     .dfs()
                     .transpose()
-                    .filter(&|Edge(_, v, _)| !invariant.contains(v.key()))
+                    .filter(&mut |Edge(_, v, _)| !invariant.contains(v.key()))
                     .search_cycle();
                 match cycle {
                     Some(cycle) => {
@@ -412,7 +412,7 @@ where
             if !visited.contains(next.key()) {
                 let partition = next
                     .postorder()
-                    .filter(&|Edge(_, v, _)| !visited.contains(v.key()))
+                    .filter(&mut |Edge(_, v, _)| !visited.contains(v.key()))
                     .search_nodes();
                 for node in &partition {
                     visited.insert(node.key().clone());
