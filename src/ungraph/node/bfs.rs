@@ -41,11 +41,6 @@ where
 		self
 	}
 
-	pub fn map(mut self, f: Map<'a, K, N, E>) -> Self {
-		self.method = Method::Map(f);
-		self
-	}
-
 	pub fn for_each(mut self, f: ForEach<'a, K, N, E>) -> Self {
 		self.method = Method::ForEach(f);
 		self
@@ -53,11 +48,6 @@ where
 
 	pub fn filter(mut self, f: Filter<'a, K, N, E>) -> Self {
 		self.method = Method::Filter(f);
-		self
-	}
-
-	pub fn filter_map(mut self, f: FilterMap<'a, K, N, E>) -> Self {
-		self.method = Method::FilterMap(f);
 		self
 	}
 
