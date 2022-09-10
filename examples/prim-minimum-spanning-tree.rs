@@ -9,7 +9,6 @@
 // connection from the tree to another vertex.
 //
 // https://en.wikipedia.org/wiki/Prim%27s_algorithm
-//
 
 use gdsl::ungraph::*;
 use gdsl::*;
@@ -36,7 +35,7 @@ fn prim_minimum_spanning_tree(s: &N) -> Vec<E> {
 
 	in_mst.insert(*s.key());
 
-	// Collect all edges reachable from s to a Min Heap.
+	// Collect all edges reachable from `s` to a Min Heap.
 	s.bfs().for_each(&mut |edge| {
 		heap.push(Reverse(edge.clone()));
 	}).search();
