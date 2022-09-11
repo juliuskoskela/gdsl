@@ -27,13 +27,13 @@
 //! g[1].connect(&g[3], ());
 //! g[2].connect(&g[4], ());
 //! g[3].connect(&g[2], ());
-//! g[3].connect(&g[0], ());	// 3 points back to 0 creating a cycle
+//! g[3].connect(&g[0], ());    // 3 points back to 0 creating a cycle
 //!
-//! let cycle = g[0]			// We start at node 0
-//! 	.bfs()					// We use a breadth-first search
-//! 	.search_cycle()			// We search for a cycle
-//! 	.unwrap()				// Returns `Option<Path<usize, (), ()>>`
-//! 	.to_vec_nodes();		// Path is converted to a vector of nodes
+//! let cycle = g[0]            // We start at node 0
+//!     .bfs()                    // We use a breadth-first search
+//!     .search_cycle()            // We search for a cycle
+//!     .unwrap()                // Returns `Option<Path<usize, (), ()>>`
+//!     .to_vec_nodes();        // Path is converted to a vector of nodes
 //!
 //! assert!(cycle[0] == g[0]);
 //! assert!(cycle[1] == g[3]);
@@ -352,16 +352,16 @@ where
     /// g.insert(Node::new(8, ()));
     /// g.insert(Node::new(9, ()));
     ///
-    /// g[0].connect(&g[1], ());	// ---- C1
-    /// g[1].connect(&g[2], ());	//
-    /// g[2].connect(&g[0], ());	//
-    /// g[3].connect(&g[4], ());	// ---- C2
-    /// g[4].connect(&g[5], ());	//
-    /// g[5].connect(&g[3], ());	//
-    /// g[6].connect(&g[7], ());	// ---- C3
-    /// g[7].connect(&g[8], ());	//
-    /// g[8].connect(&g[6], ());	//
-    /// g[9].connect(&g[9], ());	// ---- C4
+    /// g[0].connect(&g[1], ());    // ---- C1
+    /// g[1].connect(&g[2], ());    //
+    /// g[2].connect(&g[0], ());    //
+    /// g[3].connect(&g[4], ());    // ---- C2
+    /// g[4].connect(&g[5], ());    //
+    /// g[5].connect(&g[3], ());    //
+    /// g[6].connect(&g[7], ());    // ---- C3
+    /// g[7].connect(&g[8], ());    //
+    /// g[8].connect(&g[6], ());    //
+    /// g[9].connect(&g[9], ());    // ---- C4
     ///
     /// let mut scc = g.scc();
     ///
@@ -443,7 +443,7 @@ where
     fn fmt_attr(attrs: Vec<(String, String)>) -> String {
         let mut s = String::new();
         for (k, v) in attrs {
-            s.push_str(&format!("[{}=\"{}\"]", k, v));
+            write!(&mut s, "[{}=\"{}\"]", k, v).unwrap();
         }
         s
     }

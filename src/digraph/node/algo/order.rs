@@ -138,13 +138,11 @@ where
         if let Some(node) = queue.pop() {
             for edge in node.iter_out() {
                 let v = edge.1.clone();
-                if self.method.exec(&edge) {
-                    if !visited.contains(v.key()) {
-                        visited.insert(v.key().clone());
-                        queue.push(v.clone());
-                        result.push(edge);
-                        self.preorder_forward(result, visited, queue);
-                    }
+                if self.method.exec(&edge) && !visited.contains(v.key()) {
+                    visited.insert(v.key().clone());
+                    queue.push(v.clone());
+                    result.push(edge);
+                    self.preorder_forward(result, visited, queue);
                 }
             }
         }
@@ -161,13 +159,11 @@ where
             for edge in node.iter_in() {
                 let edge = edge.reverse();
                 let v = edge.1.clone();
-                if self.method.exec(&edge) {
-                    if !visited.contains(v.key()) {
-                        visited.insert(v.key().clone());
-                        queue.push(v.clone());
-                        result.push(edge);
-                        self.preorder_forward(result, visited, queue);
-                    }
+                if self.method.exec(&edge) && !visited.contains(v.key()) {
+                    visited.insert(v.key().clone());
+                    queue.push(v.clone());
+                    result.push(edge);
+                    self.preorder_backward(result, visited, queue);
                 }
             }
         }
@@ -183,13 +179,11 @@ where
         if let Some(node) = queue.pop() {
             for edge in node.iter_out() {
                 let v = edge.1.clone();
-                if self.method.exec(&edge) {
-                    if !visited.contains(v.key()) {
-                        visited.insert(v.key().clone());
-                        queue.push(v.clone());
-                        self.postorder_forward(result, visited, queue);
-                        result.push(edge);
-                    }
+                if self.method.exec(&edge) && !visited.contains(v.key()) {
+                    visited.insert(v.key().clone());
+                    queue.push(v.clone());
+                    result.push(edge);
+                    self.postorder_forward(result, visited, queue);
                 }
             }
         }
@@ -206,13 +200,11 @@ where
             for edge in node.iter_in() {
                 let edge = edge.reverse();
                 let v = edge.1.clone();
-                if self.method.exec(&edge) {
-                    if !visited.contains(v.key()) {
-                        visited.insert(v.key().clone());
-                        queue.push(v.clone());
-                        self.postorder_forward(result, visited, queue);
-                        result.push(edge);
-                    }
+                if self.method.exec(&edge) && !visited.contains(v.key()) {
+                    visited.insert(v.key().clone());
+                    queue.push(v.clone());
+                    result.push(edge);
+                    self.postorder_backward(result, visited, queue);
                 }
             }
         }

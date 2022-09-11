@@ -51,17 +51,11 @@ where
     }
 
     pub fn get_outbound(&self, idx: usize) -> Option<(&WeakNode<K, N, E>, &E)> {
-        match self.outbound.get(idx) {
-            Some(edge) => Some((&edge.0, &edge.1)),
-            None => None,
-        }
+        self.outbound.get(idx).map(|edge| (&edge.0, &edge.1))
     }
 
     pub fn get_inbound(&self, idx: usize) -> Option<(&WeakNode<K, N, E>, &E)> {
-        match self.inbound.get(idx) {
-            Some(edge) => Some((&edge.0, &edge.1)),
-            None => None,
-        }
+        self.inbound.get(idx).map(|edge| (&edge.0, &edge.1))
     }
 
     pub fn find_outbound(&self, node: &K) -> Option<(&WeakNode<K, N, E>, &E)> {

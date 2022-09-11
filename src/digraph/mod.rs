@@ -443,7 +443,7 @@ where
     fn fmt_attr(attrs: Vec<(String, String)>) -> String {
         let mut s = String::new();
         for (k, v) in attrs {
-            s.push_str(&format!("[{}=\"{}\"]", k, v));
+            write!(&mut s, "[{}=\"{}\"]", k, v).unwrap();
         }
         s
     }
