@@ -46,7 +46,10 @@ mod node;
 
 pub use crate::digraph::node::*;
 use ahash::{AHashMap as HashMap, AHashSet as HashSet};
-use std::{fmt::{Display, Write}, hash::Hash};
+use std::{
+    fmt::{Display, Write},
+    hash::Hash,
+};
 
 /// A directed graph containing nodes and edges. The graph is represented as a
 /// map of nodes, where each node is identified by a unique key. Each node
@@ -62,7 +65,7 @@ where
     nodes: HashMap<K, Node<K, N, E>>,
 }
 
-impl<'a, K, N, E> Graph<K, N, E>
+impl<K, N, E> Graph<K, N, E>
 where
     K: Clone + Hash + Display + PartialEq + Eq,
     N: Clone,
@@ -328,51 +331,51 @@ where
         self.nodes.iter()
     }
 
-	/// Find the strongly connected components of the graph. Can be used to
-	/// find cycles in the graph and for topological sorting.
-	///
-	/// # Examples
-	///
-	/// ```
-	/// use gdsl::digraph::*;
-	///
-	/// let mut g: Graph<usize, (), ()> = Graph::new();
-	///
-	/// g.insert(Node::new(0, ()));
-	/// g.insert(Node::new(1, ()));
-	/// g.insert(Node::new(2, ()));
-	/// g.insert(Node::new(3, ()));
-	/// g.insert(Node::new(4, ()));
-	/// g.insert(Node::new(5, ()));
-	/// g.insert(Node::new(6, ()));
-	/// g.insert(Node::new(7, ()));
-	/// g.insert(Node::new(8, ()));
-	/// g.insert(Node::new(9, ()));
-	///
-	/// g[0].connect(&g[1], ());	// ---- C1
-	/// g[1].connect(&g[2], ());	//
-	/// g[2].connect(&g[0], ());	//
-	/// g[3].connect(&g[4], ());	// ---- C2
-	/// g[4].connect(&g[5], ());	//
-	/// g[5].connect(&g[3], ());	//
-	/// g[6].connect(&g[7], ());	// ---- C3
-	/// g[7].connect(&g[8], ());	//
-	/// g[8].connect(&g[6], ());	//
-	/// g[9].connect(&g[9], ());	// ---- C4
-	///
-	/// let mut scc = g.scc();
-	///
-	/// // Since the graph container is a hash map, the order of the SCCs is
-	/// // not deterministic. We sort the SCCs by their size to make the test
-	/// // deterministic.
-	/// scc.sort_by(|a, b| a.len().cmp(&b.len()));
-	///
-	/// assert!(scc.len() == 4);
-	/// assert!(scc[0].len() == 1);
-	/// assert!(scc[1].len() == 3);
-	/// assert!(scc[2].len() == 3);
-	/// assert!(scc[3].len() == 3);
-	/// ```
+    /// Find the strongly connected components of the graph. Can be used to
+    /// find cycles in the graph and for topological sorting.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use gdsl::digraph::*;
+    ///
+    /// let mut g: Graph<usize, (), ()> = Graph::new();
+    ///
+    /// g.insert(Node::new(0, ()));
+    /// g.insert(Node::new(1, ()));
+    /// g.insert(Node::new(2, ()));
+    /// g.insert(Node::new(3, ()));
+    /// g.insert(Node::new(4, ()));
+    /// g.insert(Node::new(5, ()));
+    /// g.insert(Node::new(6, ()));
+    /// g.insert(Node::new(7, ()));
+    /// g.insert(Node::new(8, ()));
+    /// g.insert(Node::new(9, ()));
+    ///
+    /// g[0].connect(&g[1], ());	// ---- C1
+    /// g[1].connect(&g[2], ());	//
+    /// g[2].connect(&g[0], ());	//
+    /// g[3].connect(&g[4], ());	// ---- C2
+    /// g[4].connect(&g[5], ());	//
+    /// g[5].connect(&g[3], ());	//
+    /// g[6].connect(&g[7], ());	// ---- C3
+    /// g[7].connect(&g[8], ());	//
+    /// g[8].connect(&g[6], ());	//
+    /// g[9].connect(&g[9], ());	// ---- C4
+    ///
+    /// let mut scc = g.scc();
+    ///
+    /// // Since the graph container is a hash map, the order of the SCCs is
+    /// // not deterministic. We sort the SCCs by their size to make the test
+    /// // deterministic.
+    /// scc.sort_by(|a, b| a.len().cmp(&b.len()));
+    ///
+    /// assert!(scc.len() == 4);
+    /// assert!(scc[0].len() == 1);
+    /// assert!(scc[1].len() == 3);
+    /// assert!(scc[2].len() == 3);
+    /// assert!(scc[3].len() == 3);
+    /// ```
     pub fn scc(&self) -> Vec<Vec<Node<K, N, E>>> {
         let mut invariant = HashSet::new();
         let mut components = Vec::new();
@@ -404,7 +407,7 @@ where
         components
     }
 
-	fn scc_ordering(&self) -> Vec<Node<K, N, E>> {
+    fn scc_ordering(&self) -> Vec<Node<K, N, E>> {
         let mut visited = HashSet::new();
         let mut ordering = Vec::new();
 
@@ -487,7 +490,7 @@ where
     }
 }
 
-impl<'a, K, N, E> std::ops::Index<K> for Graph<K, N, E>
+impl<K, N, E> std::ops::Index<K> for Graph<K, N, E>
 where
     K: Clone + Hash + Display + Eq,
     N: Clone,
@@ -515,11 +518,11 @@ where
 
 impl<K, N, E> Default for Graph<K, N, E>
 where
-	K: Clone + Hash + Display + Eq,
-	N: Clone,
-	E: Clone
+    K: Clone + Hash + Display + Eq,
+    N: Clone,
+    E: Clone,
 {
-	fn default() -> Self {
-	    Self::new()
-	}
+    fn default() -> Self {
+        Self::new()
+    }
 }

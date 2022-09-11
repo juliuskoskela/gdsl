@@ -2,8 +2,8 @@ use super::*;
 
 pub mod bfs;
 pub mod dfs;
-pub mod pfs;
 pub mod order;
+pub mod pfs;
 
-mod path;
 mod method;
+mod path;

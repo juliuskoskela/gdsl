@@ -34,25 +34,31 @@
 mod adjacent;
 mod algo;
 
-use self::{adjacent::*, algo::{bfs::*, dfs::*, order::*, pfs::*}};
-use std::{cell::RefCell, fmt::Display, hash::Hash, ops::Deref, rc::{Rc, Weak}};
+use self::{
+    adjacent::*,
+    algo::{bfs::*, dfs::*, order::*, pfs::*},
+};
+use std::{
+    cell::RefCell,
+    fmt::Display,
+    hash::Hash,
+    ops::Deref,
+    rc::{Rc, Weak},
+};
 
 enum Transposition {
-	Outbound,
-	Inbound,
+    Outbound,
+    Inbound,
 }
 
 /// An edge between nodes is a tuple struct `Edge(u, v, e)` where `u` is the
 /// source node, `v` is the target node, and `e` is the edge's value.
 #[derive(Clone, PartialEq)]
-pub struct Edge<K, N, E>(
-    pub Node<K, N, E>,
-    pub Node<K, N, E>,
-    pub E,
-) where
-	K: Clone + Hash + PartialEq + Eq + Display,
-	N: Clone,
-	E: Clone;
+pub struct Edge<K, N, E>(pub Node<K, N, E>, pub Node<K, N, E>, pub E)
+where
+    K: Clone + Hash + PartialEq + Eq + Display,
+    N: Clone,
+    E: Clone;
 
 impl<K, N, E> Edge<K, N, E>
 where
@@ -453,12 +459,8 @@ where
     /// ```
     pub fn find_outbound(&self, other: &K) -> Option<Node<K, N, E>> {
         let edge = self.inner.2.borrow();
-		let edge = edge.find_outbound(other);
-        if let Some(edge) = edge {
-            Some(edge.0.upgrade().unwrap().clone())
-        } else {
-            None
-        }
+        let edge = edge.find_outbound(other);
+        edge.map(|edge| edge.0.upgrade().unwrap())
     }
 
     /// Get a pointer to an adjacent node with a given key. Returns None if no
@@ -483,8 +485,8 @@ where
     /// ```
     pub fn find_inbound(&self, other: &K) -> Option<Node<K, N, E>> {
         let edge = self.inner.2.borrow();
-		let edge = edge.find_inbound(other);
-        edge.map(|edge| edge.0.upgrade().unwrap().clone())
+        let edge = edge.find_inbound(other);
+        edge.map(|edge| edge.0.upgrade().unwrap())
     }
 
     /// Returns an iterator-like object that can be used to map, filter and
@@ -569,8 +571,8 @@ where
     /// assert!(iter.next().unwrap() == n2);
     /// assert!(iter.next().unwrap() == n3);
     /// ```
-    pub fn dfs(&self) -> DFS<K, N, E> {
-        DFS::new(self)
+    pub fn dfs(&self) -> Dfs<K, N, E> {
+        Dfs::new(self)
     }
 
     /// Returns an iterator-like object that can be used to map, filter,
@@ -602,8 +604,8 @@ where
     /// assert!(iter.next().unwrap() == n2);
     /// assert!(iter.next().unwrap() == n3);
     /// ```
-    pub fn bfs(&self) -> BFS<K, N, E> {
-        BFS::new(self)
+    pub fn bfs(&self) -> Bfs<K, N, E> {
+        Bfs::new(self)
     }
 
     /// Returns an iterator-like object that can be used to map, filter,
@@ -634,14 +636,14 @@ where
     /// assert!(path[0] == Edge(n1, n3.clone(), ()));
     /// assert!(path[1] == Edge(n3, n4, ()));
     ///```
-    pub fn pfs(&self) -> PFS<K, N, E>
+    pub fn pfs(&self) -> Pfs<K, N, E>
     where
         N: Ord,
     {
-        PFS::new(self)
+        Pfs::new(self)
     }
 
-	/// Returns an iterator over the node's outbound edges.
+    /// Returns an iterator over the node's outbound edges.
     ///
     /// # Example
     ///
@@ -666,7 +668,7 @@ where
         }
     }
 
-	/// Returns an iterator over the node's inbound edges.
+    /// Returns an iterator over the node's inbound edges.
     ///
     /// # Example
     ///
@@ -740,7 +742,7 @@ where
     E: Clone,
 {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.value().cmp(&other.value()))
+        Some(self.value().cmp(other.value()))
     }
 }
 
@@ -751,7 +753,7 @@ where
     E: Clone,
 {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.value().cmp(&other.value())
+        self.value().cmp(other.value())
     }
 }
 
@@ -775,18 +777,19 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.node.inner.2.borrow().get_outbound(self.position) {
-            Some(current) => {
-				match current.0.upgrade() {
-					Some(node) => {
-						self.position += 1;
-						Some(Edge(self.node.clone(), node, current.1.clone()))
-					},
-					None => {
-						panic!("Target node in the adjacency list of `node = {}` has been dropped.", self.node.key());
-					}
-				}
-			}
-			None => None,
+            Some(current) => match current.0.upgrade() {
+                Some(node) => {
+                    self.position += 1;
+                    Some(Edge(self.node.clone(), node, current.1.clone()))
+                }
+                None => {
+                    panic!(
+                        "Target node in the adjacency list of `node = {}` has been dropped.",
+                        self.node.key()
+                    );
+                }
+            },
+            None => None,
         }
     }
 }
@@ -811,18 +814,19 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.node.inner.2.borrow().get_inbound(self.position) {
-            Some(current) => {
-				match current.0.upgrade() {
-					Some(node) => {
-						self.position += 1;
-						Some(Edge(node, self.node.clone(), current.1.clone()))
-					},
-					None => {
-						panic!("Target node in the adjacency list of `node = {}` has been dropped.", self.node.key());
-					}
-				}
-			}
-			None => None,
+            Some(current) => match current.0.upgrade() {
+                Some(node) => {
+                    self.position += 1;
+                    Some(Edge(node, self.node.clone(), current.1.clone()))
+                }
+                None => {
+                    panic!(
+                        "Target node in the adjacency list of `node = {}` has been dropped.",
+                        self.node.key()
+                    );
+                }
+            },
+            None => None,
         }
     }
 }

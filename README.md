@@ -243,12 +243,12 @@ let g = digraph![
 g['A'].set(0);
 
 // In order to perform a dijkstra's we can use the priority first search or
-// `pfs` for short. We determine a  source node create a `PFS` search-object
+// `pfs` for short. We determine a  source node create a `Pfs` search-object
 // by calling the `pfs()` method on the node.
 //
 // If we find a shorter distance to a node we are traversing, we need to
 // update the distance of the node. We do this by using the `for_each()` method
-// on the PFS search object. The `for_each()` method takes a closure as argument
+// on the Pfs search object. The `for_each()` method takes a closure as argument
 // and calls it for each edge that is traversed. This way we can manipulate
 // the distance of the node. based on the edge that is traversed.
 //

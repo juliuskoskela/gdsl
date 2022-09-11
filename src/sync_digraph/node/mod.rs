@@ -34,25 +34,30 @@
 mod adjacent;
 mod algo;
 
-use self::{adjacent::*, algo::{bfs::*, dfs::*, order::*, pfs::*}};
-use std::{fmt::Display, hash::Hash, ops::Deref, sync::{Arc, Weak, RwLock}};
+use self::{
+    adjacent::*,
+    algo::{bfs::*, dfs::*, order::*, pfs::*},
+};
+use std::{
+    fmt::Display,
+    hash::Hash,
+    ops::Deref,
+    sync::{Arc, RwLock, Weak},
+};
 
 enum Transposition {
-	Outbound,
-	Inbound,
+    Outbound,
+    Inbound,
 }
 
 /// An edge between nodes is a tuple struct `Edge(u, v, e)` where `u` is the
 /// source node, `v` is the target node, and `e` is the edge's value.
 #[derive(Clone, PartialEq)]
-pub struct Edge<K, N, E>(
-    pub Node<K, N, E>,
-    pub Node<K, N, E>,
-    pub E,
-) where
-	K: Clone + Hash + PartialEq + Eq + Display,
-	N: Clone,
-	E: Clone;
+pub struct Edge<K, N, E>(pub Node<K, N, E>, pub Node<K, N, E>, pub E)
+where
+    K: Clone + Hash + PartialEq + Eq + Display,
+    N: Clone,
+    E: Clone;
 
 impl<K, N, E> Edge<K, N, E>
 where
@@ -236,13 +241,13 @@ where
         self.inner
             .2
             .write()
-			.unwrap()
+            .unwrap()
             .push_outbound((other.clone(), value.clone()));
         other
             .inner
             .2
             .write()
-			.unwrap()
+            .unwrap()
             .push_inbound((self.clone(), value));
     }
 
@@ -303,13 +308,9 @@ where
     /// ```
     pub fn disconnect(&self, other: &K) -> Result<E, ()> {
         match self.find_outbound(other) {
-            Some(other) => match self.inner.2
-				.write()
-				.unwrap()
-				.remove_outbound(other.key()) {
+            Some(other) => match self.inner.2.write().unwrap().remove_outbound(other.key()) {
                 Ok(edge) => {
-                    other.inner.2.write()
-					.unwrap().remove_inbound(self.key())?;
+                    other.inner.2.write().unwrap().remove_inbound(self.key())?;
                     Ok(edge)
                 }
                 Err(_) => Err(()),
@@ -347,17 +348,23 @@ where
     /// ```
     pub fn isolate(&self) {
         for Edge(_, v, _) in self.iter_out() {
-            v.inner.2.write()
-			.unwrap().remove_inbound(self.key()).unwrap();
+            v.inner
+                .2
+                .write()
+                .unwrap()
+                .remove_inbound(self.key())
+                .unwrap();
         }
         for Edge(v, _, _) in self.iter_in() {
-            v.inner.2.write()
-			.unwrap().remove_outbound(self.key()).unwrap();
+            v.inner
+                .2
+                .write()
+                .unwrap()
+                .remove_outbound(self.key())
+                .unwrap();
         }
-        self.inner.2.write()
-		.unwrap().clear_outbound();
-        self.inner.2.write()
-		.unwrap().clear_inbound();
+        self.inner.2.write().unwrap().clear_outbound();
+        self.inner.2.write().unwrap().clear_inbound();
     }
 
     /// Returns true if the node is a root node. Root nodes are nodes that have
@@ -463,12 +470,8 @@ where
     /// ```
     pub fn find_outbound(&self, other: &K) -> Option<Node<K, N, E>> {
         let edge = self.inner.2.read().unwrap();
-		let edge = edge.find_outbound(other);
-        if let Some(edge) = edge {
-            Some(edge.0.upgrade().unwrap().clone())
-        } else {
-            None
-        }
+        let edge = edge.find_outbound(other);
+        edge.map(|edge| edge.0.upgrade().unwrap())
     }
 
     /// Get a pointer to an adjacent node with a given key. Returns None if no
@@ -493,12 +496,8 @@ where
     /// ```
     pub fn find_inbound(&self, other: &K) -> Option<Node<K, N, E>> {
         let edge = self.inner.2.read().unwrap();
-		let edge = edge.find_inbound(other);
-        if let Some(edge) = edge {
-            Some(edge.0.upgrade().unwrap().clone())
-        } else {
-            None
-        }
+        let edge = edge.find_inbound(other);
+        edge.map(|edge| edge.0.upgrade().unwrap())
     }
 
     /// Returns an iterator-like object that can be used to map, filter and
@@ -583,8 +582,8 @@ where
     /// assert!(iter.next().unwrap() == n2);
     /// assert!(iter.next().unwrap() == n3);
     /// ```
-    pub fn dfs(&self) -> DFS<K, N, E> {
-        DFS::new(self)
+    pub fn dfs(&self) -> Dfs<K, N, E> {
+        Dfs::new(self)
     }
 
     /// Returns an iterator-like object that can be used to map, filter,
@@ -616,8 +615,8 @@ where
     /// assert!(iter.next().unwrap() == n2);
     /// assert!(iter.next().unwrap() == n3);
     /// ```
-    pub fn bfs(&self) -> BFS<K, N, E> {
-        BFS::new(self)
+    pub fn bfs(&self) -> Bfs<K, N, E> {
+        Bfs::new(self)
     }
 
     /// Returns an iterator-like object that can be used to map, filter,
@@ -648,14 +647,14 @@ where
     /// assert!(path[0] == Edge(n1, n3.clone(), ()));
     /// assert!(path[1] == Edge(n3, n4, ()));
     ///```
-    pub fn pfs(&self) -> PFS<K, N, E>
+    pub fn pfs(&self) -> Pfs<K, N, E>
     where
         N: Ord,
     {
-        PFS::new(self)
+        Pfs::new(self)
     }
 
-	/// Returns an iterator over the node's outbound edges.
+    /// Returns an iterator over the node's outbound edges.
     ///
     /// # Example
     ///
@@ -680,7 +679,7 @@ where
         }
     }
 
-	/// Returns an iterator over the node's inbound edges.
+    /// Returns an iterator over the node's inbound edges.
     ///
     /// # Example
     ///
@@ -754,7 +753,7 @@ where
     E: Clone,
 {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.value().cmp(&other.value()))
+        Some(self.value().cmp(other.value()))
     }
 }
 
@@ -765,7 +764,7 @@ where
     E: Clone,
 {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.value().cmp(&other.value())
+        self.value().cmp(other.value())
     }
 }
 
@@ -788,10 +787,21 @@ where
     type Item = Edge<K, N, E>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        match self.node.inner.2.read().unwrap().get_outbound(self.position) {
+        match self
+            .node
+            .inner
+            .2
+            .read()
+            .unwrap()
+            .get_outbound(self.position)
+        {
             Some(current) => {
                 self.position += 1;
-                Some(Edge(self.node.clone(), current.0.upgrade().unwrap().clone(), current.1.clone()))
+                Some(Edge(
+                    self.node.clone(),
+                    current.0.upgrade().unwrap(),
+                    current.1.clone(),
+                ))
             }
             None => None,
         }
@@ -820,7 +830,11 @@ where
         match self.node.inner.2.read().unwrap().get_inbound(self.position) {
             Some(current) => {
                 self.position += 1;
-                Some(Edge(current.0.upgrade().unwrap().clone(), self.node.clone(), current.1.clone()))
+                Some(Edge(
+                    current.0.upgrade().unwrap(),
+                    self.node.clone(),
+                    current.1.clone(),
+                ))
             }
             None => None,
         }
