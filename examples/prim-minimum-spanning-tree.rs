@@ -56,6 +56,7 @@ fn prim_minimum_spanning_tree(s: &N) -> Vec<E> {
 
         // If the edge's source node `u` is in the MST...
         if in_mst.contains(u.key()) {
+
             // ...and the edge's destination node `v` is not in the MST,
             // then we add the edge to the MST and add all edges
             // in `tmp` back to the heap.
@@ -86,11 +87,11 @@ fn main() {
     // Example g1 from Wikipedia
     let g1 = ungraph![
         (usize) => [u64]
-        (0) => [ (1, 1), (3, 4), (4, 3)]
-        (1) => [ (3, 4), (4, 2)]
-        (2) => [ (4, 4), (5, 5)]
-        (3) => [ (4, 4)]
-        (4) => [ (5, 7)]
+        (0) => [ (1, 1), (3, 4), (4, 3) ]
+        (1) => [ (3, 4), (4, 2) ]
+        (2) => [ (4, 4), (5, 5) ]
+        (3) => [ (4, 4) ]
+        (4) => [ (5, 7) ]
         (5) => []
     ];
     let forest = prim_minimum_spanning_tree(&g1[0]);
@@ -100,12 +101,12 @@ fn main() {
     // Example g2 from Figure 7.1 in https://jeffe.cs.illinois.edu/teaching/algorithms/book/07-mst.pdf
     let g2 = ungraph![
         (usize) => [u64]
-        (0) => [ (1, 8), (2, 5)]
-        (1) => [ (2, 10), (3, 2), (4, 18)]
-        (2) => [ (3, 3), (5, 16)]
-        (3) => [ (4, 12), (5, 30)]
-        (4) => [ (6, 4)]
-        (5) => [ (6, 26)]
+        (0) => [ (1, 8), (2, 5) ]
+        (1) => [ (2, 10), (3, 2), (4, 18) ]
+        (2) => [ (3, 3), (5, 16) ]
+        (3) => [ (4, 12), (5, 30) ]
+        (4) => [ (6, 4) ]
+        (5) => [ (6, 26) ]
         (6) => []
     ];
     let forest = prim_minimum_spanning_tree(&g2[0]);
