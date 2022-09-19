@@ -45,6 +45,7 @@ use std::{
 	ops::Deref,
 	rc::{Rc, Weak},
 };
+use anyhow::{Result, anyhow};
 
 enum Transposition {
 	Outbound,
@@ -53,7 +54,7 @@ enum Transposition {
 
 /// An edge between nodes is a tuple struct `Edge(u, v, e)` where `u` is the
 /// source node, `v` is the target node, and `e` is the edge's value.
-#[derive(Clone, PartialEq)]
+#[derive(Clone)]
 pub struct Edge<K, N, E>(pub Node<K, N, E>, pub Node<K, N, E>, pub E)
 where
 	K: Clone + Hash + PartialEq + Eq + Display,
@@ -274,9 +275,9 @@ where
 	///		Err(_) => assert!(n1.is_connected(n2.key())),
 	///	}
 	/// ```
-	pub fn try_connect(&self, other: &Self, value: E) -> Result<(), E> {
+	pub fn try_connect(&self, other: &Self, value: E) -> Result<()> {
 		if self.is_connected(other.key()) {
-			Err(value)
+			Err(anyhow!("Node is already connected"))
 		} else {
 			self.connect(other, value);
 			Ok(())
@@ -305,16 +306,16 @@ where
 	///
 	///	assert!(!n1.is_connected(n2.key()));
 	/// ```
-	pub fn disconnect(&self, other: &K) -> Result<E, ()> {
+	pub fn disconnect(&self, other: &K) -> Result<E> {
 		match self.find_outbound(other) {
 			Some(other) => match self.inner.2.borrow_mut().remove_outbound(other.key()) {
 				Ok(edge) => {
 					other.inner.2.borrow_mut().remove_inbound(self.key())?;
 					Ok(edge)
 				}
-				Err(_) => Err(()),
+				Err(err) => Err(err),
 			},
-			None => Err(()),
+			None => Err(anyhow!("Node is not connected to other node")),
 		}
 	}
 
