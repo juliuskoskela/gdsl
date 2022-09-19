@@ -2,6 +2,8 @@ use criterion::Throughput;
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 mod test_graphs;
 use test_graphs::*;
+mod page_rank;
+use page_rank::*;
 
 // ============================================================================
 
@@ -14,7 +16,7 @@ fn digraph_creation(c: &mut Criterion) {
 
 		group.bench_with_input(BenchmarkId::new("graph", size), &i, |b, _| {
 			b.iter(|| {
-				black_box(create_graph_simple_1(*size, size / 10));
+				black_box(create_digraph_simple_1(*size, size / 10));
 			})
 		});
 
@@ -33,7 +35,8 @@ fn digraph_dfs(c: &mut Criterion) {
 	let mut group = c.benchmark_group("digraph dfs");
 	for (i, size) in [b, 2 * b, 4 * b].iter().enumerate() {
 		group.throughput(Throughput::Elements(*size as u64));
-		let g = create_graph_simple_1(*size, size / 10);
+		let g = create_digraph_simple_1(*size, size / 10);
+		let sg = create_sync_digraph_simple_1(*size, size / 10);
 
 		group.bench_with_input(BenchmarkId::new("find", size), &i, |b, _| {
 			b.iter(|| {
@@ -57,6 +60,29 @@ fn digraph_dfs(c: &mut Criterion) {
 				black_box(s.dfs().search_cycle());
 			})
 		});
+
+		group.bench_with_input(BenchmarkId::new("sync find", size), &i, |b, _| {
+			b.iter(|| {
+				let s = &sg[rand::random::<usize>() % g.len()];
+				let t = &sg[rand::random::<usize>() % g.len()];
+				black_box(s.dfs().target(t.key()).search());
+			})
+		});
+
+		group.bench_with_input(BenchmarkId::new("sync path", size), &i, |b, _| {
+			b.iter(|| {
+				let s = &sg[rand::random::<usize>() % g.len()];
+				let t = &sg[rand::random::<usize>() % g.len()];
+				black_box(s.dfs().target(t.key()).search_path());
+			})
+		});
+
+		group.bench_with_input(BenchmarkId::new("sync cycle", size), &i, |b, _| {
+			b.iter(|| {
+				let s = &sg[rand::random::<usize>() % g.len()];
+				black_box(s.dfs().search_cycle());
+			})
+		});
 	}
 
 	group.finish();
@@ -68,7 +94,7 @@ fn digraph_bfs(c: &mut Criterion) {
 	let mut group = c.benchmark_group("digraph bfs");
 	for (i, size) in [b, 2 * b, 4 * b].iter().enumerate() {
 		group.throughput(Throughput::Elements(*size as u64));
-		let g = create_graph_simple_1(*size, size / 10);
+		let g = create_digraph_simple_1(*size, size / 10);
 
 		group.bench_with_input(BenchmarkId::new("find", size), &i, |b, _| {
 			b.iter(|| {
@@ -103,7 +129,7 @@ fn digraph_scc(c: &mut Criterion) {
 	let mut group = c.benchmark_group("digraph scc");
 	for (i, size) in [b, 2 * b, 4 * b, 8 * b, 16 * b].iter().enumerate() {
 		group.throughput(Throughput::Elements(*size as u64));
-		let g = create_graph_simple_1(*size, size / 10);
+		let g = create_digraph_simple_1(*size, size / 10);
 
 		group.bench_with_input(BenchmarkId::new("find scc's", size), &i, |b, _| {
 			b.iter(|| {
@@ -123,7 +149,7 @@ fn digraph_serde(c: &mut Criterion) {
 	for (i, size) in [b, 2 * b, 4 * b].iter().enumerate() {
 		group.throughput(Throughput::Elements(*size as u64));
 
-		let g = create_graph_simple_1(*size, size / 10);
+		let g = create_digraph_simple_1(*size, size / 10);
 		let json = serde_json::to_vec(&g).unwrap();
 		let cbor = serde_cbor::to_vec(&g).unwrap();
 
@@ -155,6 +181,27 @@ fn digraph_serde(c: &mut Criterion) {
 	group.finish();
 }
 
+fn digraph_page_rank(c: &mut Criterion) {
+	let b = 10_000;
+	let α = 0.85;
+	let ε = 0.0001;
+
+	let mut group = c.benchmark_group("digraph PageRank");
+	for (i, size) in [b, 2 * b, 4 * b].iter().enumerate() {
+		group.throughput(Throughput::Elements(*size as u64));
+
+		let g = create_page_rank_dataset(*size, 10);
+
+		group.bench_with_input(BenchmarkId::new("PageRank", size), &i, |b, _| {
+			b.iter(|| {
+				black_box(page_rank(&g, α, ε));
+			})
+		});
+	}
+
+	group.finish();
+}
+
 criterion_group!(
 	benches,
 	digraph_creation,
@@ -162,5 +209,6 @@ criterion_group!(
 	digraph_bfs,
 	digraph_scc,
 	digraph_serde,
+	digraph_page_rank
 );
 criterion_main!(benches);
