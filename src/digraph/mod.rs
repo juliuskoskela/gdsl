@@ -86,6 +86,21 @@ where
 		}
 	}
 
+	/// Create a new Graph with a given capacity
+	///
+	/// # Examples
+	///
+	/// ```
+	/// use gdsl::digraph::*;
+	///
+	/// let mut g = Graph::<&str, u64, u64>::with_capacity();
+	/// ```
+	pub fn with_capacity(capacity: usize) -> Self {
+		Self {
+			nodes: HashMap::with_capacity(capacity),
+		}
+	}
+
 	/// Check if a node with the given key exists in the Graph
 	///
 	/// # Examples

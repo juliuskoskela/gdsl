@@ -569,3 +569,16 @@ fn ut_digraph_dijkstra() {
 	assert!(g['H'].get() == 8);
 	assert!(g['I'].get() == 15);
 }
+
+#[test]
+fn ttt() {
+	use gdsl::digraph::*;
+	let n1 = Node::new(1, ());
+	let n2 = Node::new(2, ());
+	let n3 = Node::new(3, ());
+	n1.connect(&n2, ());
+	n1.connect(&n3, ());
+	let mut iter = n2.iter_in();
+	assert!(iter.next().unwrap() == Edge(n1.clone(), n2.clone(), ()));
+	assert!(iter.next().is_none());
+}

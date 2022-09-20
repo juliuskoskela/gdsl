@@ -88,6 +88,46 @@ where
 	}
 }
 
+impl<K, N, E> PartialEq for Edge<K, N, E>
+where
+	K: Clone + Hash + PartialEq + Eq + Display,
+	N: Clone,
+	E: Clone,
+{
+	fn eq(&self, other: &Self) -> bool {
+		self.0 == other.0 && self.1 == other.1
+	}
+}
+
+impl<K, N, E> Eq for Edge<K, N, E>
+where
+	K: Clone + Hash + PartialEq + Eq + Display,
+	N: Clone,
+	E: Clone,
+{}
+
+impl<K, N, E> PartialOrd for Edge<K, N, E>
+where
+	K: Clone + Hash + PartialEq + Eq + Display,
+	N: Clone,
+	E: Clone + PartialOrd,
+{
+	fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+		self.2.partial_cmp(&other.2)
+	}
+}
+
+impl<K, N, E> Ord for Edge<K, N, E>
+where
+	K: Clone + Hash + PartialEq + Eq + Display,
+	N: Clone,
+	E: Clone + PartialOrd + Ord,
+{
+	fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+		self.2.cmp(&other.2)
+	}
+}
+
 /// A `Node<K, N, E>` is a key value pair smart-pointer, which includes inbound
 /// and outbound connections to other nodes. Nodes can be created individually
 /// and they don't depend on a graph container. Generic parameters include `K`

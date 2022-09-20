@@ -190,7 +190,7 @@ fn digraph_page_rank(c: &mut Criterion) {
 	for (i, size) in [b, 2 * b, 4 * b].iter().enumerate() {
 		group.throughput(Throughput::Elements(*size as u64));
 
-		let g = create_page_rank_dataset(*size, 10);
+		let g = create_page_rank_dataset(*size, 60, 0, 1000);
 
 		group.bench_with_input(BenchmarkId::new("PageRank", size), &i, |b, _| {
 			b.iter(|| {
@@ -204,11 +204,11 @@ fn digraph_page_rank(c: &mut Criterion) {
 
 criterion_group!(
 	benches,
-	digraph_creation,
-	digraph_dfs,
-	digraph_bfs,
-	digraph_scc,
-	digraph_serde,
+	// digraph_creation,
+	// digraph_dfs,
+	// digraph_bfs,
+	// digraph_scc,
+	// digraph_serde,
 	digraph_page_rank
 );
 criterion_main!(benches);

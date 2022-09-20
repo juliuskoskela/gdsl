@@ -1,8 +1,8 @@
 /// # Barabasi Albert graph
-/// 
+///
 /// Create a random graph with the Barabasi-Albert preferential
 /// attachment model.
-/// 
+///
 
 use gdsl::digraph::*;
 use gdsl::{digraph_node as node, digraph_connect as connect};
