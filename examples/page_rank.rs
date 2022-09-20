@@ -10,9 +10,7 @@ use std::cell::Cell;
 use std::rc::Rc;
 use std::fs::File;
 use std::io::Write;
-
-mod barabasi_albert_graph;
-use barabasi_albert_graph::barabasi_albert_random_graph;
+use gdsl::{digraph_node as node, digraph_connect as connect};
 
 /// Types definitions for the graph and nodes.
 type N = Node<usize, Cell<f64>, Rc<Cell<f64>>>;
@@ -50,7 +48,11 @@ pub fn page_rank(g: &G, α: f64, ε: f64) {
 		let mut leak = 0.0;
 
 		for u in g.iter() {
+
+			// Save the current rank of the node to a temporary vector.
 			nodes[*u.key()] = u.get();
+
+			// If the node has no outgoing edges, add its page rank to the leak.
 			if u.out_degree() == 0 {
 				leak += u.get();
 			}
@@ -76,6 +78,38 @@ pub fn page_rank(g: &G, α: f64, ε: f64) {
 			.map(|u| (u.get() - nodes[*u.key()]).abs())
 			.sum();
 	}
+}
+
+pub fn barabasi_albert_random_graph(size: usize, degree: usize) -> Graph<usize, Cell<f64>, Rc<Cell<f64>>> {
+	let mut g = Graph::new();
+
+	// Initialize the graph with `degree` empty nodes
+	for i in 0..degree {
+		g.insert(node!(i, Cell::new(0.0)));
+	}
+
+	// Target nodes for new edges
+	let mut targets = g.to_vec();
+
+	// List of existing nodes where each node is repeated
+	// by the number of its incoming edges
+	let mut repeated_nodes = Vec::new();
+
+	// Add `size - degree` nodes to the graph
+	for i in degree..size {
+		let new_node = node!(i, Cell::new(0.0));
+		for node in &targets {
+			connect!(&new_node => &node, Rc::new(Cell::new(1.0)));
+			repeated_nodes.push(node.clone());
+			repeated_nodes.push(new_node.clone());
+		}
+		g.insert(new_node);
+		for _ in 0..degree {
+			let node = &repeated_nodes[rand::random::<usize>() % repeated_nodes.len()];
+			targets.push(node.clone());
+		}
+	}
+	g
 }
 
 #[test]
