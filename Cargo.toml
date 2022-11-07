@@ -18,7 +18,7 @@ keywords = ["data-structures", "graphs", "algorithms", "containers", "graph-theo
 categories = ["data-structures", "algorithms", "mathematics", "science"]
 
 [dependencies]
-ahash = "0.8.0"
+ahash = "0.8.1"
 serde = "1.0.144"
 
 [dev-dependencies]
