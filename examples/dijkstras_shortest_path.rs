@@ -54,19 +54,18 @@ fn main() {
 	// The search-object evaluates lazily. This means that the search is only
 	// executed when calling either `search()` or `search_path()`.
 	g['A'].pfs().for_each(&mut |Edge(u, v, e)| {
-			// Since we are using a `Cell` to store the distance we use `get()` to
-			// read the distance values.
-			let (u_dist, v_dist) = (u.get(), v.get());
+		// Since we are using a `Cell` to store the distance we use `get()` to
+		// read the distance values.
+		let (u_dist, v_dist) = (u.get(), v.get());
 
-			// Now we check if the distance stored in the node `v` is smaller than
-			// the distance stored in the node `u` + the length (weight) of the
-			// edge `e`. If this is the case we update the distance stored in the
-			// node `v`.
-			if v_dist > u_dist + e {
-				v.set(u_dist + e);
-			}
-		})
-		.search();
+		// Now we check if the distance stored in the node `v` is smaller than
+		// the distance stored in the node `u` + the length (weight) of the
+		// edge `e`. If this is the case we update the distance stored in the
+		// node `v`.
+		if v_dist > u_dist + e {
+			v.set(u_dist + e);
+		}
+	}).search();
 
 	assert!(g['A'].get() == 0);
 	assert!(g['B'].get() == 4);
