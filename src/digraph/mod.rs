@@ -93,7 +93,7 @@ where
 	/// ```
 	/// use gdsl::digraph::*;
 	///
-	/// let mut g = Graph::<&str, u64, u64>::with_capacity();
+	/// let mut g = Graph::<&str, u64, u64>::with_capacity(42);
 	/// ```
 	pub fn with_capacity(capacity: usize) -> Self {
 		Self {
