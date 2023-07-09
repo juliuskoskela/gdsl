@@ -33,7 +33,7 @@ jobs:
         touch results
         valgrind --leak-check=full --track-origins=yes -q ./target/debug/examples/dijkstras_shortest_path >> results
         valgrind --leak-check=full --track-origins=yes -q ./target/debug/examples/serde_example >> results
-        valgrind --leak-check=full --track-origins=yes -q ./target/debug/examples/edmonds_karp_maximum_flow >> results
+        valgrind --leak-check=full --track-origins=yes -q ./target/debug/examples/edmonds_karps_maximum_flow >> results
         valgrind --leak-check=full --track-origins=yes -q ./target/debug/examples/prim_minimum_spanning_tree >> results
-        valgrind --leak-check=full --track-origins=yes -q ./target/debug/examples/kojarasu_strongly_connected_components >> results
+        valgrind --leak-check=full --track-origins=yes -q ./target/debug/examples/kojarasus_strongly_connected_components >> results
         [ -s ./results ] && (cat ./results && exit -1) || echo "No leaks detected"
