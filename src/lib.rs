@@ -98,6 +98,7 @@
 //! // We expect that the distance to the node `E` is 21.
 //! assert!(g['E'].take() == 21);
 //! ```
+#![allow(clippy::type_complexity)]
 
 pub mod digraph;
 pub mod sync_digraph;

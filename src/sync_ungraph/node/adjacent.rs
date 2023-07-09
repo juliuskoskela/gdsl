@@ -139,7 +139,7 @@ where
     pub fn sizeof(&self) -> usize {
         self.inbound.len()
             + self.outbound.len()
-                * (std::mem::size_of::<Node<K, N, E>>() + std::mem::size_of::<E>())
+            * (std::mem::size_of::<Node<K, N, E>>() + std::mem::size_of::<E>())
             + std::mem::size_of::<Self>()
     }
 }

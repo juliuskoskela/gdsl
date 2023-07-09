@@ -21,6 +21,7 @@ categories = ["data-structures", "algorithms", "mathematics", "science"]
 ahash = "0.8.0"
 serde = "1.0.144"
 anyhow = "1.0.65"
+thiserror = "1.0.43"
 
 [dev-dependencies]
 rand = "0.8.5"
