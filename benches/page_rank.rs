@@ -17,7 +17,7 @@ pub fn page_rank(g: &G, α: f64, ε: f64) {
         node.set(inverse);
     }
     let mut Δ = 1.0;
-	let mut nodes = vec![0.0; g.len()];
+    let mut nodes = vec![0.0; g.len()];
     while Δ > ε {
         let mut leak = 0.0;
         for u in g.iter() {
@@ -36,24 +36,25 @@ pub fn page_rank(g: &G, α: f64, ε: f64) {
         }
 
         Δ = g.iter().map(|u| (u.get() - nodes[*u.key()]).abs()).sum();
-		nodes.iter_mut().for_each(|x| *x = 0.0);
+        nodes.iter_mut().for_each(|x| *x = 0.0);
     }
 }
 
 pub fn create_page_rank_dataset(size: usize, avg_dgr: usize, min_dgr: usize, max_dgr: usize) -> G {
     let mut g = Vec::with_capacity(size);
-	for i in 0..size {
-		g.push(node!(i, Cell::new(0.0)));
-	}
-	for u in g.iter() {
-		// Generate a random numer from a distribution over [min_dgr, max_dgr] with
-		// an average of avg_dgr.
-		let dgr = (min_dgr as f64 + (max_dgr - min_dgr) as f64 * (avg_dgr as f64 / max_dgr as f64).ln().exp())
-			.round() as usize;
-		for _ in 0..dgr {
-			let v = g[rand::random::<usize>() % size].clone();
-			connect!(u => &v, Rc::new(Cell::new(1.0)));
-		}
-	}
+    for i in 0..size {
+        g.push(node!(i, Cell::new(0.0)));
+    }
+    for u in g.iter() {
+        // Generate a random numer from a distribution over [min_dgr, max_dgr] with
+        // an average of avg_dgr.
+        let dgr = (min_dgr as f64
+            + (max_dgr - min_dgr) as f64 * (avg_dgr as f64 / max_dgr as f64).ln().exp())
+        .round() as usize;
+        for _ in 0..dgr {
+            let v = g[rand::random::<usize>() % size].clone();
+            connect!(u => &v, Rc::new(Cell::new(1.0)));
+        }
+    }
     g
 }
