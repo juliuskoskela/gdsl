@@ -3,46 +3,35 @@
 /// Macro for creating a node.
 #[macro_export]
 macro_rules! sync_ungraph_node {
+    // graph::Node<K, _>
+    ( $key:expr ) => {{
+        use gdsl::ungraph::*;
 
-	// graph::Node<K, _>
-	( $key:expr ) => {
-        {
-			use gdsl::ungraph::*;
+        Node::new($key, ())
+    }};
 
-            Node::new($key, ())
-        }
-    };
+    // graph::Node<K, N>
+    ( $key:expr, $param:expr ) => {{
+        use gdsl::ungraph::*;
 
-	// graph::Node<K, N>
-    ( $key:expr, $param:expr ) => {
-        {
-			use gdsl::ungraph::*;
-
-            Node::new($key, $param)
-        }
-    };
-
+        Node::new($key, $param)
+    }};
 }
 
 /// Macro for connecting two nodes.
 #[macro_export]
 macro_rules! sync_ungraph_connect {
+    ( $s:expr => $t:expr ) => {{
+        use gdsl::ungraph::*;
 
-	( $s:expr => $t:expr ) => {
-        {
-			use gdsl::ungraph::*;
+        Node::connect($s, $t, ())
+    }};
 
-            Node::connect($s, $t, ())
-        }
-    };
+    ( $s:expr => $t:expr, $params:expr ) => {{
+        use gdsl::ungraph::*;
 
-    ( $s:expr => $t:expr, $params:expr ) => {
-        {
-			use gdsl::ungraph::*;
-
-            Node::connect($s, $t, $params)
-        }
-    };
+        Node::connect($s, $t, $params)
+    }};
 }
 
 /// Macro for creating a graph.

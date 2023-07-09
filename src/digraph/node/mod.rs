@@ -34,25 +34,34 @@
 mod adjacent;
 mod algo;
 
-use self::{adjacent::*, algo::{bfs::*, dfs::*, order::*, pfs::*}};
-use std::{cell::RefCell, fmt::Display, hash::Hash, ops::Deref, rc::{Rc, Weak}};
+use crate::error::Error;
+
+use self::{
+    adjacent::*,
+    algo::{bfs::*, dfs::*, order::*, pfs::*},
+};
+// use anyhow::{anyhow, Result};
+use std::{
+    cell::RefCell,
+    fmt::Display,
+    hash::Hash,
+    ops::Deref,
+    rc::{Rc, Weak},
+};
 
 enum Transposition {
-	Outbound,
-	Inbound,
+    Outbound,
+    Inbound,
 }
 
 /// An edge between nodes is a tuple struct `Edge(u, v, e)` where `u` is the
 /// source node, `v` is the target node, and `e` is the edge's value.
-#[derive(Clone, PartialEq)]
-pub struct Edge<K, N, E>(
-    pub Node<K, N, E>,
-    pub Node<K, N, E>,
-    pub E,
-) where
-	K: Clone + Hash + PartialEq + Eq + Display,
-	N: Clone,
-	E: Clone;
+#[derive(Clone)]
+pub struct Edge<K, N, E>(pub Node<K, N, E>, pub Node<K, N, E>, pub E)
+where
+    K: Clone + Hash + PartialEq + Eq + Display,
+    N: Clone,
+    E: Clone;
 
 impl<K, N, E> Edge<K, N, E>
 where
@@ -78,6 +87,47 @@ where
     /// Reverse the edge's direction.
     pub fn reverse(&self) -> Edge<K, N, E> {
         Edge(self.1.clone(), self.0.clone(), self.2.clone())
+    }
+}
+
+impl<K, N, E> PartialEq for Edge<K, N, E>
+where
+    K: Clone + Hash + PartialEq + Eq + Display,
+    N: Clone,
+    E: Clone,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0 && self.1 == other.1
+    }
+}
+
+impl<K, N, E> Eq for Edge<K, N, E>
+where
+    K: Clone + Hash + PartialEq + Eq + Display,
+    N: Clone,
+    E: Clone,
+{
+}
+
+impl<K, N, E> PartialOrd for Edge<K, N, E>
+where
+    K: Clone + Hash + PartialEq + Eq + Display,
+    N: Clone,
+    E: Clone + PartialOrd,
+{
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.2.partial_cmp(&other.2)
+    }
+}
+
+impl<K, N, E> Ord for Edge<K, N, E>
+where
+    K: Clone + Hash + PartialEq + Eq + Display,
+    N: Clone,
+    E: Clone + PartialOrd + Ord,
+{
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.2.cmp(&other.2)
     }
 }
 
@@ -114,8 +164,10 @@ where
     N: Clone,
     E: Clone,
 {
-    inner: Rc<(K, N, RefCell<Adjacent<K, N, E>>)>,
+    inner: NodeInner<K, N, E>,
 }
+
+type NodeInner<K, N, E> = Rc<(K, N, RefCell<Adjacent<K, N, E>>)>;
 
 impl<K, N, E> Node<K, N, E>
 where
@@ -131,16 +183,16 @@ where
     /// # Example
     ///
     /// ```
-    ///	use gdsl::digraph::*;
+    /// use gdsl::digraph::*;
     ///
-    ///	let n1 = Node::<i32, char, ()>::new(1, 'A');
+    /// let n1 = Node::<i32, char, ()>::new(1, 'A');
     ///
-    ///	assert!(*n1.key() == 1);
-    ///	assert!(*n1.value() == 'A');
+    /// assert!(*n1.key() == 1);
+    /// assert!(*n1.value() == 'A');
     /// ```
     pub fn new(key: K, value: N) -> Self {
         Node {
-            inner: Rc::new((key, value, Adjacent::new())),
+            inner: NodeInner::new((key, value, Adjacent::new())),
         }
     }
 
@@ -149,11 +201,11 @@ where
     /// # Example
     ///
     /// ```
-    ///	use gdsl::digraph::*;
+    /// use gdsl::digraph::*;
     ///
-    ///	let n1 = Node::<i32, (), ()>::new(1, ());
+    /// let n1 = Node::<i32, (), ()>::new(1, ());
     ///
-    ///	assert!(*n1.key() == 1);
+    /// assert!(*n1.key() == 1);
     /// ```
     pub fn key(&self) -> &K {
         &self.inner.0
@@ -164,11 +216,11 @@ where
     /// # Example
     ///
     /// ```
-    ///	use gdsl::digraph::*;
+    /// use gdsl::digraph::*;
     ///
-    ///	let n1 = Node::<i32, char, ()>::new(1, 'A');
+    /// let n1 = Node::<i32, char, ()>::new(1, 'A');
     ///
-    ///	assert!(*n1.value() == 'A');
+    /// assert!(*n1.value() == 'A');
     /// ```
     pub fn value(&self) -> &N {
         &self.inner.1
@@ -225,12 +277,12 @@ where
     /// ```
     /// use gdsl::digraph::*;
     ///
-    ///	let n1 = Node::new(1, ());
-    ///	let n2 = Node::new(2, ());
+    /// let n1 = Node::new(1, ());
+    /// let n2 = Node::new(2, ());
     ///
-    ///	n1.connect(&n2, 4.20);
+    /// n1.connect(&n2, 4.20);
     ///
-    ///	assert!(n1.is_connected(n2.key()));
+    /// assert!(n1.is_connected(n2.key()));
     /// ```
     pub fn connect(&self, other: &Self, value: E) {
         self.inner
@@ -253,24 +305,24 @@ where
     /// # Example
     ///
     /// ```
-    ///	use gdsl::digraph::*;
+    /// use gdsl::digraph::*;
     ///
-    ///	let n1 = Node::new(1, ());
-    ///	let n2 = Node::new(2, ());
+    /// let n1 = Node::new(1, ());
+    /// let n2 = Node::new(2, ());
     ///
-    ///	match n1.try_connect(&n2, ()) {
-    ///		Ok(_) => assert!(n1.is_connected(n2.key())),
-    ///		Err(_) => panic!("n1 should be connected to n2"),
-    ///	}
+    /// match n1.try_connect(&n2, ()) {
+    ///     Ok(_) => assert!(n1.is_connected(n2.key())),
+    ///     Err(_) => panic!("n1 should be connected to n2"),
+    /// }
     ///
-    ///	match n1.try_connect(&n2, ()) {
-    ///		Ok(_) => panic!("n1 should be connected to n2"),
-    ///		Err(_) => assert!(n1.is_connected(n2.key())),
-    ///	}
+    /// match n1.try_connect(&n2, ()) {
+    ///     Ok(_) => panic!("n1 should be connected to n2"),
+    ///     Err(_) => assert!(n1.is_connected(n2.key())),
+    /// }
     /// ```
-    pub fn try_connect(&self, other: &Self, value: E) -> Result<(), E> {
+    pub fn try_connect(&self, other: &Self, value: E) -> Result<(), Error> {
         if self.is_connected(other.key()) {
-            Err(value)
+            Err(Error::EdgeAlreadyExists)
         } else {
             self.connect(other, value);
             Ok(())
@@ -284,31 +336,31 @@ where
     /// # Example
     ///
     /// ```
-    ///	use gdsl::digraph::*;
+    /// use gdsl::digraph::*;
     ///
-    ///	let n1 = Node::new(1, ());
-    ///	let n2 = Node::new(2, ());
+    /// let n1 = Node::new(1, ());
+    /// let n2 = Node::new(2, ());
     ///
-    ///	n1.connect(&n2, ());
+    /// n1.connect(&n2, ());
     ///
-    ///	assert!(n1.is_connected(n2.key()));
+    /// assert!(n1.is_connected(n2.key()));
     ///
-    ///	if n1.disconnect(n2.key()).is_err() {
-    ///		panic!("n1 should be connected to n2");
-    ///	}
+    /// if n1.disconnect(n2.key()).is_err() {
+    ///     panic!("n1 should be connected to n2");
+    /// }
     ///
-    ///	assert!(!n1.is_connected(n2.key()));
+    /// assert!(!n1.is_connected(n2.key()));
     /// ```
-    pub fn disconnect(&self, other: &K) -> Result<E, ()> {
+    pub fn disconnect(&self, other: &K) -> Result<E, Error> {
         match self.find_outbound(other) {
             Some(other) => match self.inner.2.borrow_mut().remove_outbound(other.key()) {
                 Ok(edge) => {
                     other.inner.2.borrow_mut().remove_inbound(self.key())?;
                     Ok(edge)
                 }
-                Err(_) => Err(()),
+                Err(err) => Err(err),
             },
-            None => Err(()),
+            None => Err(Error::EdgeNotFound),
         }
     }
 
@@ -317,27 +369,27 @@ where
     /// # Example
     ///
     /// ```
-    ///	use gdsl::digraph::*;
+    /// use gdsl::digraph::*;
     ///
-    ///	let n1 = Node::new(1, ());
-    ///	let n2 = Node::new(2, ());
-    ///	let n3 = Node::new(3, ());
-    ///	let n4 = Node::new(4, ());
+    /// let n1 = Node::new(1, ());
+    /// let n2 = Node::new(2, ());
+    /// let n3 = Node::new(3, ());
+    /// let n4 = Node::new(4, ());
     ///
-    ///	n1.connect(&n2, ());
-    ///	n1.connect(&n3, ());
-    ///	n1.connect(&n4, ());
-    ///	n2.connect(&n1, ());
-    ///	n3.connect(&n1, ());
-    ///	n4.connect(&n1, ());
+    /// n1.connect(&n2, ());
+    /// n1.connect(&n3, ());
+    /// n1.connect(&n4, ());
+    /// n2.connect(&n1, ());
+    /// n3.connect(&n1, ());
+    /// n4.connect(&n1, ());
     ///
-    ///	assert!(n1.is_connected(n2.key()));
-    ///	assert!(n1.is_connected(n3.key()));
-    ///	assert!(n1.is_connected(n4.key()));
+    /// assert!(n1.is_connected(n2.key()));
+    /// assert!(n1.is_connected(n3.key()));
+    /// assert!(n1.is_connected(n4.key()));
     ///
-    ///	n1.isolate();
+    /// n1.isolate();
     ///
-    ///	assert!(n1.is_orphan());
+    /// assert!(n1.is_orphan());
     /// ```
     pub fn isolate(&self) {
         for Edge(_, v, _) in self.iter_out() {
@@ -453,12 +505,8 @@ where
     /// ```
     pub fn find_outbound(&self, other: &K) -> Option<Node<K, N, E>> {
         let edge = self.inner.2.borrow();
-		let edge = edge.find_outbound(other);
-        if let Some(edge) = edge {
-            Some(edge.0.upgrade().unwrap().clone())
-        } else {
-            None
-        }
+        let edge = edge.find_outbound(other);
+        edge.map(|edge| edge.0.upgrade().unwrap())
     }
 
     /// Get a pointer to an adjacent node with a given key. Returns None if no
@@ -483,12 +531,8 @@ where
     /// ```
     pub fn find_inbound(&self, other: &K) -> Option<Node<K, N, E>> {
         let edge = self.inner.2.borrow();
-		let edge = edge.find_inbound(other);
-        if let Some(edge) = edge {
-            Some(edge.0.upgrade().unwrap().clone())
-        } else {
-            None
-        }
+        let edge = edge.find_inbound(other);
+        edge.map(|edge| edge.0.upgrade().unwrap())
     }
 
     /// Returns an iterator-like object that can be used to map, filter and
@@ -562,10 +606,10 @@ where
     /// n3.connect(&n1, ());
     ///
     /// let path = n1
-    /// 	.dfs()
-    /// 	.target(&3)
-    /// 	.search_path()
-    /// 	.unwrap();
+    ///  .dfs()
+    ///  .target(&3)
+    ///  .search_path()
+    ///  .unwrap();
     ///
     /// let mut iter = path.iter_nodes();
     ///
@@ -573,8 +617,8 @@ where
     /// assert!(iter.next().unwrap() == n2);
     /// assert!(iter.next().unwrap() == n3);
     /// ```
-    pub fn dfs(&self) -> DFS<K, N, E> {
-        DFS::new(self)
+    pub fn dfs(&self) -> Dfs<K, N, E> {
+        Dfs::new(self)
     }
 
     /// Returns an iterator-like object that can be used to map, filter,
@@ -595,10 +639,10 @@ where
     /// n3.connect(&n1, ());
     ///
     /// let path = n1
-    /// 	.bfs()
-    /// 	.target(&3)
-    /// 	.search_path()
-    /// 	.unwrap();
+    ///  .bfs()
+    ///  .target(&3)
+    ///  .search_path()
+    ///  .unwrap();
     ///
     /// let mut iter = path.iter_nodes();
     ///
@@ -606,8 +650,8 @@ where
     /// assert!(iter.next().unwrap() == n2);
     /// assert!(iter.next().unwrap() == n3);
     /// ```
-    pub fn bfs(&self) -> BFS<K, N, E> {
-        BFS::new(self)
+    pub fn bfs(&self) -> Bfs<K, N, E> {
+        Bfs::new(self)
     }
 
     /// Returns an iterator-like object that can be used to map, filter,
@@ -630,22 +674,22 @@ where
     /// n3.connect(&n4, ());
     ///
     /// let path = n1
-    /// 	.pfs()
-    /// 	.target(&'D')
-    /// 	.search_path()
-    /// 	.unwrap();
+    ///  .pfs()
+    ///  .target(&'D')
+    ///  .search_path()
+    ///  .unwrap();
     ///
     /// assert!(path[0] == Edge(n1, n3.clone(), ()));
     /// assert!(path[1] == Edge(n3, n4, ()));
     ///```
-    pub fn pfs(&self) -> PFS<K, N, E>
+    pub fn pfs(&self) -> Pfs<K, N, E>
     where
         N: Ord,
     {
-        PFS::new(self)
+        Pfs::new(self)
     }
 
-	/// Returns an iterator over the node's outbound edges.
+    /// Returns an iterator over the node's outbound edges.
     ///
     /// # Example
     ///
@@ -670,7 +714,7 @@ where
         }
     }
 
-	/// Returns an iterator over the node's inbound edges.
+    /// Returns an iterator over the node's inbound edges.
     ///
     /// # Example
     ///
@@ -714,7 +758,7 @@ where
 {
     type Target = N;
     fn deref(&self) -> &Self::Target {
-        &self.value()
+        self.value()
     }
 }
 
@@ -744,7 +788,7 @@ where
     E: Clone,
 {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.value().cmp(&other.value()))
+        Some(self.value().cmp(other.value()))
     }
 }
 
@@ -755,7 +799,7 @@ where
     E: Clone,
 {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.value().cmp(&other.value())
+        self.value().cmp(other.value())
     }
 }
 
@@ -779,18 +823,19 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.node.inner.2.borrow().get_outbound(self.position) {
-            Some(current) => {
-				match current.0.upgrade() {
-					Some(node) => {
-						self.position += 1;
-						Some(Edge(self.node.clone(), node, current.1.clone()))
-					},
-					None => {
-						panic!("Target node in the adjacency list of `node = {}` has been dropped.", self.node.key());
-					}
-				}
-			}
-			None => None,
+            Some(current) => match current.0.upgrade() {
+                Some(node) => {
+                    self.position += 1;
+                    Some(Edge(self.node.clone(), node, current.1.clone()))
+                }
+                None => {
+                    panic!(
+                        "Target node in the adjacency list of `node = {}` has been dropped.",
+                        self.node.key()
+                    );
+                }
+            },
+            None => None,
         }
     }
 }
@@ -815,18 +860,19 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.node.inner.2.borrow().get_inbound(self.position) {
-            Some(current) => {
-				match current.0.upgrade() {
-					Some(node) => {
-						self.position += 1;
-						Some(Edge(node, self.node.clone(), current.1.clone()))
-					},
-					None => {
-						panic!("Target node in the adjacency list of `node = {}` has been dropped.", self.node.key());
-					}
-				}
-			}
-			None => None,
+            Some(current) => match current.0.upgrade() {
+                Some(node) => {
+                    self.position += 1;
+                    Some(Edge(node, self.node.clone(), current.1.clone()))
+                }
+                None => {
+                    panic!(
+                        "Target node in the adjacency list of `node = {}` has been dropped.",
+                        self.node.key()
+                    );
+                }
+            },
+            None => None,
         }
     }
 }

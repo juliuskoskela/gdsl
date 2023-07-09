@@ -1,6 +1,6 @@
 [package]
 name = "gdsl"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 readme = "README.md"
 license = "MIT/Apache-2.0"
@@ -20,13 +20,20 @@ categories = ["data-structures", "algorithms", "mathematics", "science"]
 [dependencies]
 ahash = "0.8.0"
 serde = "1.0.144"
+thiserror = "1.0.43"
 
 [dev-dependencies]
-rand = "0.8.4"
-criterion = "0.3.6"
+rand = "0.8.5"
+criterion = "0.4.0"
 serde_json = "1.0.85"
 serde_cbor = "0.11.2"
+petgraph = "0.6.2"
+once_cell = "1.8.0"
+rayon = "1.5.3"
 
 [[bench]]
 name = "graph_benchmark"
 harness = false
+
+[profile.release]
+debug = true

@@ -27,13 +27,13 @@
 //! g[1].connect(&g[3], ());
 //! g[2].connect(&g[4], ());
 //! g[3].connect(&g[2], ());
-//! g[3].connect(&g[0], ());	// 3 points back to 0 creating a cycle
+//! g[3].connect(&g[0], ());    // 3 points back to 0 creating a cycle
 //!
-//! let cycle = g[0]			// We start at node 0
-//! 	.bfs()					// We use a breadth-first search
-//! 	.search_cycle()			// We search for a cycle
-//! 	.unwrap()				// Returns `Option<Path<usize, (), ()>>`
-//! 	.to_vec_nodes();		// Path is converted to a vector of nodes
+//! let cycle = g[0]            // We start at node 0
+//!     .bfs()                    // We use a breadth-first search
+//!     .search_cycle()            // We search for a cycle
+//!     .unwrap()                // Returns `Option<Path<usize, (), ()>>`
+//!     .to_vec_nodes();        // Path is converted to a vector of nodes
 //!
 //! assert!(cycle[0] == g[0]);
 //! assert!(cycle[1] == g[3]);
@@ -46,7 +46,10 @@ mod node;
 
 pub use self::node::*;
 use ahash::{AHashMap as HashMap, AHashSet as HashSet};
-use std::{fmt::Display, hash::Hash};
+use std::{
+    fmt::{Display, Write},
+    hash::Hash,
+};
 
 /// A directed graph containing nodes and edges. The graph is represented as a
 /// map of nodes, where each node is identified by a unique key. Each node
@@ -62,7 +65,7 @@ where
     nodes: HashMap<K, Node<K, N, E>>,
 }
 
-impl<'a, K, N, E> Graph<K, N, E>
+impl<K, N, E> Graph<K, N, E>
 where
     K: Clone + Hash + Display + PartialEq + Eq,
     N: Clone,
@@ -138,7 +141,7 @@ where
     /// assert!(node.key() == &"A");
     /// ```
     pub fn get(&self, key: &K) -> Option<Node<K, N, E>> {
-        self.nodes.get(key).map(|node| node.clone())
+        self.nodes.get(key).cloned()
     }
 
     /// Check if Graph is empty
@@ -219,7 +222,7 @@ where
     /// assert!(nodes.len() == 3);
     /// ```
     pub fn to_vec(&self) -> Vec<Node<K, N, E>> {
-        self.nodes.values().map(|node| node.clone()).collect()
+        self.nodes.values().cloned().collect()
     }
 
     /// Collect roots into a vector
@@ -247,7 +250,7 @@ where
         self.nodes
             .values()
             .filter(|node| node.is_root())
-            .map(|node| node.clone())
+            .cloned()
             .collect()
     }
 
@@ -275,7 +278,7 @@ where
         self.nodes
             .values()
             .filter(|node| node.is_leaf())
-            .map(|node| node.clone())
+            .cloned()
             .collect()
     }
 
@@ -303,7 +306,7 @@ where
         self.nodes
             .values()
             .filter(|node| node.is_orphan())
-            .map(|node| node.clone())
+            .cloned()
             .collect()
     }
 
@@ -328,51 +331,51 @@ where
         self.nodes.iter()
     }
 
-	/// Find the strongly connected components of the graph. Can be used to
-	/// find cycles in the graph and for topological sorting.
-	///
-	/// # Examples
-	///
-	/// ```
-	/// use gdsl::sync_digraph::*;
-	///
-	/// let mut g: Graph<usize, (), ()> = Graph::new();
-	///
-	/// g.insert(Node::new(0, ()));
-	/// g.insert(Node::new(1, ()));
-	/// g.insert(Node::new(2, ()));
-	/// g.insert(Node::new(3, ()));
-	/// g.insert(Node::new(4, ()));
-	/// g.insert(Node::new(5, ()));
-	/// g.insert(Node::new(6, ()));
-	/// g.insert(Node::new(7, ()));
-	/// g.insert(Node::new(8, ()));
-	/// g.insert(Node::new(9, ()));
-	///
-	/// g[0].connect(&g[1], ());	// ---- C1
-	/// g[1].connect(&g[2], ());	//
-	/// g[2].connect(&g[0], ());	//
-	/// g[3].connect(&g[4], ());	// ---- C2
-	/// g[4].connect(&g[5], ());	//
-	/// g[5].connect(&g[3], ());	//
-	/// g[6].connect(&g[7], ());	// ---- C3
-	/// g[7].connect(&g[8], ());	//
-	/// g[8].connect(&g[6], ());	//
-	/// g[9].connect(&g[9], ());	// ---- C4
-	///
-	/// let mut scc = g.scc();
-	///
-	/// // Since the graph container is a hash map, the order of the SCCs is
-	/// // not deterministic. We sort the SCCs by their size to make the test
-	/// // deterministic.
-	/// scc.sort_by(|a, b| a.len().cmp(&b.len()));
-	///
-	/// assert!(scc.len() == 4);
-	/// assert!(scc[0].len() == 1);
-	/// assert!(scc[1].len() == 3);
-	/// assert!(scc[2].len() == 3);
-	/// assert!(scc[3].len() == 3);
-	/// ```
+    /// Find the strongly connected components of the graph. Can be used to
+    /// find cycles in the graph and for topological sorting.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use gdsl::sync_digraph::*;
+    ///
+    /// let mut g: Graph<usize, (), ()> = Graph::new();
+    ///
+    /// g.insert(Node::new(0, ()));
+    /// g.insert(Node::new(1, ()));
+    /// g.insert(Node::new(2, ()));
+    /// g.insert(Node::new(3, ()));
+    /// g.insert(Node::new(4, ()));
+    /// g.insert(Node::new(5, ()));
+    /// g.insert(Node::new(6, ()));
+    /// g.insert(Node::new(7, ()));
+    /// g.insert(Node::new(8, ()));
+    /// g.insert(Node::new(9, ()));
+    ///
+    /// g[0].connect(&g[1], ());    // ---- C1
+    /// g[1].connect(&g[2], ());    //
+    /// g[2].connect(&g[0], ());    //
+    /// g[3].connect(&g[4], ());    // ---- C2
+    /// g[4].connect(&g[5], ());    //
+    /// g[5].connect(&g[3], ());    //
+    /// g[6].connect(&g[7], ());    // ---- C3
+    /// g[7].connect(&g[8], ());    //
+    /// g[8].connect(&g[6], ());    //
+    /// g[9].connect(&g[9], ());    // ---- C4
+    ///
+    /// let mut scc = g.scc();
+    ///
+    /// // Since the graph container is a hash map, the order of the SCCs is
+    /// // not deterministic. We sort the SCCs by their size to make the test
+    /// // deterministic.
+    /// scc.sort_by(|a, b| a.len().cmp(&b.len()));
+    ///
+    /// assert!(scc.len() == 4);
+    /// assert!(scc[0].len() == 1);
+    /// assert!(scc[1].len() == 3);
+    /// assert!(scc[2].len() == 3);
+    /// assert!(scc[3].len() == 3);
+    /// ```
     pub fn scc(&self) -> Vec<Vec<Node<K, N, E>>> {
         let mut invariant = HashSet::new();
         let mut components = Vec::new();
@@ -404,7 +407,7 @@ where
         components
     }
 
-	fn scc_ordering(&self) -> Vec<Node<K, N, E>> {
+    fn scc_ordering(&self) -> Vec<Node<K, N, E>> {
         let mut visited = HashSet::new();
         let mut ordering = Vec::new();
 
@@ -427,20 +430,20 @@ where
         let mut s = String::new();
         s.push_str("digraph {\n");
         for (u_key, node) in self.iter() {
-            s.push_str(&format!("    {}", u_key.clone()));
+            write!(&mut s, "    {}", u_key.clone()).unwrap();
             for Edge(_, v, _) in node {
-                s.push_str(&format!("\n    {} -> {}", u_key, v.key()));
+                write!(&mut s, "\n    {} -> {}", u_key, v.key()).unwrap();
             }
-            s.push_str("\n");
+            s.push('\n');
         }
-        s.push_str("}");
+        s.push('}');
         s
     }
 
     fn fmt_attr(attrs: Vec<(String, String)>) -> String {
         let mut s = String::new();
         for (k, v) in attrs {
-            s.push_str(&format!("[{}=\"{}\"]", k, v));
+            write!(&mut s, "[{}=\"{}\"]", k, v).unwrap();
         }
         s
     }
@@ -463,7 +466,7 @@ where
             if let Some(nattr) = nattr(node) {
                 s.push_str(&format!(" {}", Self::fmt_attr(nattr)));
             }
-            s.push_str("\n");
+            s.push('\n');
         }
         for (_, node) in self.iter() {
             for Edge(u, v, e) in node {
@@ -471,10 +474,10 @@ where
                 if let Some(eattrs) = eattr(&u, &v, &e) {
                     s.push_str(&format!(" {}", Self::fmt_attr(eattrs)));
                 }
-                s.push_str("\n");
+                s.push('\n');
             }
         }
-        s.push_str("}");
+        s.push('}');
         s
     }
 
@@ -487,7 +490,7 @@ where
     }
 }
 
-impl<'a, K, N, E> std::ops::Index<K> for Graph<K, N, E>
+impl<K, N, E> std::ops::Index<K> for Graph<K, N, E>
 where
     K: Clone + Hash + Display + Eq,
     N: Clone,
@@ -510,5 +513,16 @@ where
 
     fn index(&self, key: &'a K) -> &Self::Output {
         &self.nodes[key]
+    }
+}
+
+impl<K, N, E> Default for Graph<K, N, E>
+where
+    K: Clone + Hash + Display + Eq,
+    N: Clone,
+    E: Clone,
+{
+    fn default() -> Self {
+        Self::new()
     }
 }
