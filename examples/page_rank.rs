@@ -70,7 +70,6 @@ pub fn page_rank(g: &G, α: f64, ε: f64) {
 				v.set(v.get() + α * nodes[*u.key()] * e.get());
 			}
 			u.set(u.get() + (1.0 - α) * inverse + leak * inverse);
-
 		}
 
 		// Calculate the change `Δ` in node weights.
