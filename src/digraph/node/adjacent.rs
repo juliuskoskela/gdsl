@@ -1,5 +1,6 @@
 use super::*;
-use anyhow::{anyhow, Result};
+
+use crate::error::Error;
 
 type InnerEdge<K, N, E> = (WeakNode<K, N, E>, E);
 type RefInnerEdge<'a, K, N, E> = (&'a WeakNode<K, N, E>, &'a E);
@@ -97,22 +98,22 @@ where
         self.outbound.push((WeakNode::downgrade(&edge.0), edge.1));
     }
 
-    pub fn remove_inbound(&mut self, source: &K) -> Result<E> {
+    pub fn remove_inbound(&mut self, source: &K) -> Result<E, Error> {
         for (idx, edge) in self.inbound.iter().enumerate() {
             if edge.0.upgrade().unwrap().key() == source {
                 return Ok(self.inbound.remove(idx).1);
             }
         }
-        Err(anyhow!("No edge found"))
+        Err(Error::EdgeNotFound)
     }
 
-    pub fn remove_outbound(&mut self, target: &K) -> Result<E> {
+    pub fn remove_outbound(&mut self, target: &K) -> Result<E, Error> {
         for (idx, edge) in self.outbound.iter().enumerate() {
             if edge.0.upgrade().unwrap().key() == target {
                 return Ok(self.outbound.remove(idx).1);
             }
         }
-        Err(anyhow!("No edge found"))
+        Err(Error::EdgeNotFound)
     }
 
     pub fn clear_inbound(&mut self) {

@@ -34,6 +34,7 @@
 mod adjacent;
 mod algo;
 
+use crate::error::Error;
 use std::{
     fmt::Display,
     hash::Hash,
@@ -294,9 +295,9 @@ where
     ///     Err(_) => assert!(n1.is_connected(n2.key())),
     /// }
     /// ```
-    pub fn try_connect(&self, other: &Node<K, N, E>, value: E) -> Result<(), E> {
+    pub fn try_connect(&self, other: &Node<K, N, E>, value: E) -> Result<(), Error> {
         if self.is_connected(other.key()) {
-            Err(value)
+            Err(Error::EdgeAlreadyExists)
         } else {
             self.connect(other, value);
             Ok(())
@@ -325,7 +326,7 @@ where
     ///
     /// assert!(!n1.is_connected(n2.key()));
     /// ```
-    pub fn disconnect(&self, other: &K) -> Result<E, ()> {
+    pub fn disconnect(&self, other: &K) -> Result<E, Error> {
         self.inner.2.write().unwrap().remove_undirected(other)
     }
 

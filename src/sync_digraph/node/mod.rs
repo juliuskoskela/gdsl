@@ -34,6 +34,7 @@
 mod adjacent;
 mod algo;
 
+use crate::error::Error;
 use self::{
     adjacent::*,
     algo::{bfs::*, dfs::*, order::*, pfs::*},
@@ -275,9 +276,9 @@ where
     ///     Err(_) => assert!(n1.is_connected(n2.key())),
     /// }
     /// ```
-    pub fn try_connect(&self, other: &Self, value: E) -> Result<(), E> {
+    pub fn try_connect(&self, other: &Self, value: E) -> Result<(), Error> {
         if self.is_connected(other.key()) {
-            Err(value)
+            Err(Error::EdgeAlreadyExists)
         } else {
             self.connect(other, value);
             Ok(())
@@ -306,16 +307,16 @@ where
     ///
     /// assert!(!n1.is_connected(n2.key()));
     /// ```
-    pub fn disconnect(&self, other: &K) -> Result<E, ()> {
+    pub fn disconnect(&self, other: &K) -> Result<E, Error> {
         match self.find_outbound(other) {
             Some(other) => match self.inner.2.write().unwrap().remove_outbound(other.key()) {
                 Ok(edge) => {
                     other.inner.2.write().unwrap().remove_inbound(self.key())?;
                     Ok(edge)
                 }
-                Err(_) => Err(()),
+                Err(_) => Err(Error::EdgeNotFound),
             },
-            None => Err(()),
+            None => Err(Error::EdgeNotFound),
         }
     }
 

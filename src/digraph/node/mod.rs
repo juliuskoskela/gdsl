@@ -34,11 +34,13 @@
 mod adjacent;
 mod algo;
 
+use crate::error::Error;
+
 use self::{
     adjacent::*,
     algo::{bfs::*, dfs::*, order::*, pfs::*},
 };
-use anyhow::{anyhow, Result};
+// use anyhow::{anyhow, Result};
 use std::{
     cell::RefCell,
     fmt::Display,
@@ -318,9 +320,9 @@ where
     ///     Err(_) => assert!(n1.is_connected(n2.key())),
     /// }
     /// ```
-    pub fn try_connect(&self, other: &Self, value: E) -> Result<()> {
+    pub fn try_connect(&self, other: &Self, value: E) -> Result<(), Error> {
         if self.is_connected(other.key()) {
-            Err(anyhow!("Node is already connected"))
+            Err(Error::EdgeAlreadyExists)
         } else {
             self.connect(other, value);
             Ok(())
@@ -349,7 +351,7 @@ where
     ///
     /// assert!(!n1.is_connected(n2.key()));
     /// ```
-    pub fn disconnect(&self, other: &K) -> Result<E> {
+    pub fn disconnect(&self, other: &K) -> Result<E, Error> {
         match self.find_outbound(other) {
             Some(other) => match self.inner.2.borrow_mut().remove_outbound(other.key()) {
                 Ok(edge) => {
@@ -358,7 +360,7 @@ where
                 }
                 Err(err) => Err(err),
             },
-            None => Err(anyhow!("Node is not connected to other node")),
+            None => Err(Error::EdgeNotFound),
         }
     }
 
