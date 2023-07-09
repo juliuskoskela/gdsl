@@ -84,7 +84,7 @@ fn ex1() {
         (7) => []
     ];
 
-    let expect = vec![vec![0, 1, 2, 3], vec![4, 5, 6], vec![7]];
+    let expect = vec![vec![7], vec![4, 5, 6], vec![0, 1, 2, 3]];
 
     let mut g = g.to_vec();
     g.sort_by(|a, b| a.key().cmp(&b.key()));
@@ -123,7 +123,7 @@ fn ex2() {
         (8) => [5, 7, 8]
     ];
 
-    let expect = vec![vec![8], vec![4, 5], vec![6, 7], vec![1, 2, 3]];
+    let expect = vec![vec![6, 7], vec![1, 2, 3], vec![8], vec![4, 5]];
 
     let mut g = g.to_vec();
     g.sort_by(|a, b| a.key().cmp(&b.key()));
@@ -161,7 +161,7 @@ fn ex3() {
         (8) => [5]
     ];
 
-    let expect = vec![vec![1, 2, 3], vec![4], vec![5, 6, 7, 8]];
+    let expect = vec![vec![5, 6, 7, 8], vec![4], vec![1, 2, 3]];
 
     let mut g = g.to_vec();
     g.sort_by(|a, b| a.key().cmp(&b.key()));
@@ -199,7 +199,7 @@ fn ex4() {
         (7) => [3, 5]
     ];
 
-    let expect = vec![vec![3, 7], vec![4, 5, 6], vec![0, 1, 2]];
+    let expect = vec![vec![0, 1, 2], vec![3, 7], vec![4, 5, 6]];
 
     let mut g = g.to_vec();
     g.sort_by(|a, b| a.key().cmp(&b.key()));
