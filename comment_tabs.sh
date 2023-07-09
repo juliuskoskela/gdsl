@@ -16,11 +16,25 @@ while IFS= read -r -d '' file; do
     
     # Read the file line by line
     while IFS= read -r line; do
-        # Check if the line starts with '//', '///', or '//!'
-        if [[ $line =~ ^//|^///|^//! ]]; then
+        # Check if the line starts with '//'
+        if [[ $line == "//"* ]]; then
             # Convert tabs to 4 spaces
             modified_line=${line//[$'\t']/    }
             echo "$modified_line" >> "$tmp_file"
+        
+        # Check if the line starts with '///'
+        elif [[ $line == "///"* ]]; then
+            # Convert tabs to 4 spaces
+            modified_line=${line//[$'\t']/    }
+            echo "$modified_line" >> "$tmp_file"
+        
+        # Check if the line starts with '//!'
+        elif [[ $line == "//!"* ]]; then
+            # Convert tabs to 4 spaces
+            modified_line=${line//[$'\t']/    }
+            echo "$modified_line" >> "$tmp_file"
+        
+        # If none of the above conditions are met, write the line as-is
         else
             echo "$line" >> "$tmp_file"
         fi

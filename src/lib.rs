@@ -92,8 +92,8 @@
 //!     // edge `e`. If this is the case we update the distance stored in the
 //!     // node `v`.
 //!     if v_dist > u_dist + e { v.set(u_dist + e); }
-//! }).search();	// pfs() is lazy, we need to call search() to execute the
-//! 				// traversal.
+//! }).search();    // pfs() is lazy, we need to call search() to execute the
+//!                 // traversal.
 //!
 //! // We expect that the distance to the node `E` is 21.
 //! assert!(g['E'].take() == 21);

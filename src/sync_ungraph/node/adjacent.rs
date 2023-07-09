@@ -7,8 +7,10 @@ where
     N: Clone,
     E: Clone,
 {
-    inner: Weak<(K, N, RwLock<Adjacent<K, N, E>>)>,
+    inner: WeakNodeInner<K, N, E>,
 }
+
+type WeakNodeInner<K, N, E> = Weak<(K, N, RwLock<Adjacent<K, N, E>>)>;
 
 impl<K, N, E> WeakNode<K, N, E>
 where

@@ -5,7 +5,9 @@ use serde::{
     Deserialize,
 };
 
-fn graph_serde_decompose<K, N, E>(g: &Graph<K, N, E>) -> (Vec<(K, N)>, Vec<(K, K, E)>)
+type GraphDecomp<K, N, E> = (Vec<(K, N)>, Vec<(K, K, E)>);
+
+fn graph_serde_decompose<K, N, E>(g: &Graph<K, N, E>) -> GraphDecomp<K, N, E>
 where
     K: Clone + Hash + PartialEq + Eq + Display + Serialize,
     N: Clone + Serialize,

@@ -162,8 +162,10 @@ where
     N: Clone,
     E: Clone,
 {
-    inner: Rc<(K, N, RefCell<Adjacent<K, N, E>>)>,
+    inner: NodeInner<K, N, E>,
 }
+
+type NodeInner<K, N, E> = Rc<(K, N, RefCell<Adjacent<K, N, E>>)>;
 
 impl<K, N, E> Node<K, N, E>
 where
@@ -179,16 +181,16 @@ where
     /// # Example
     ///
     /// ```
-    ///	use gdsl::digraph::*;
+    /// use gdsl::digraph::*;
     ///
-    ///	let n1 = Node::<i32, char, ()>::new(1, 'A');
+    /// let n1 = Node::<i32, char, ()>::new(1, 'A');
     ///
-    ///	assert!(*n1.key() == 1);
-    ///	assert!(*n1.value() == 'A');
+    /// assert!(*n1.key() == 1);
+    /// assert!(*n1.value() == 'A');
     /// ```
     pub fn new(key: K, value: N) -> Self {
         Node {
-            inner: Rc::new((key, value, Adjacent::new())),
+            inner: NodeInner::new((key, value, Adjacent::new())),
         }
     }
 
@@ -197,11 +199,11 @@ where
     /// # Example
     ///
     /// ```
-    ///	use gdsl::digraph::*;
+    /// use gdsl::digraph::*;
     ///
-    ///	let n1 = Node::<i32, (), ()>::new(1, ());
+    /// let n1 = Node::<i32, (), ()>::new(1, ());
     ///
-    ///	assert!(*n1.key() == 1);
+    /// assert!(*n1.key() == 1);
     /// ```
     pub fn key(&self) -> &K {
         &self.inner.0
@@ -212,11 +214,11 @@ where
     /// # Example
     ///
     /// ```
-    ///	use gdsl::digraph::*;
+    /// use gdsl::digraph::*;
     ///
-    ///	let n1 = Node::<i32, char, ()>::new(1, 'A');
+    /// let n1 = Node::<i32, char, ()>::new(1, 'A');
     ///
-    ///	assert!(*n1.value() == 'A');
+    /// assert!(*n1.value() == 'A');
     /// ```
     pub fn value(&self) -> &N {
         &self.inner.1
@@ -273,12 +275,12 @@ where
     /// ```
     /// use gdsl::digraph::*;
     ///
-    ///	let n1 = Node::new(1, ());
-    ///	let n2 = Node::new(2, ());
+    /// let n1 = Node::new(1, ());
+    /// let n2 = Node::new(2, ());
     ///
-    ///	n1.connect(&n2, 4.20);
+    /// n1.connect(&n2, 4.20);
     ///
-    ///	assert!(n1.is_connected(n2.key()));
+    /// assert!(n1.is_connected(n2.key()));
     /// ```
     pub fn connect(&self, other: &Self, value: E) {
         self.inner
@@ -301,20 +303,20 @@ where
     /// # Example
     ///
     /// ```
-    ///	use gdsl::digraph::*;
+    /// use gdsl::digraph::*;
     ///
-    ///	let n1 = Node::new(1, ());
-    ///	let n2 = Node::new(2, ());
+    /// let n1 = Node::new(1, ());
+    /// let n2 = Node::new(2, ());
     ///
-    ///	match n1.try_connect(&n2, ()) {
-    ///		Ok(_) => assert!(n1.is_connected(n2.key())),
-    ///		Err(_) => panic!("n1 should be connected to n2"),
-    ///	}
+    /// match n1.try_connect(&n2, ()) {
+    ///     Ok(_) => assert!(n1.is_connected(n2.key())),
+    ///     Err(_) => panic!("n1 should be connected to n2"),
+    /// }
     ///
-    ///	match n1.try_connect(&n2, ()) {
-    ///		Ok(_) => panic!("n1 should be connected to n2"),
-    ///		Err(_) => assert!(n1.is_connected(n2.key())),
-    ///	}
+    /// match n1.try_connect(&n2, ()) {
+    ///     Ok(_) => panic!("n1 should be connected to n2"),
+    ///     Err(_) => assert!(n1.is_connected(n2.key())),
+    /// }
     /// ```
     pub fn try_connect(&self, other: &Self, value: E) -> Result<()> {
         if self.is_connected(other.key()) {
@@ -332,20 +334,20 @@ where
     /// # Example
     ///
     /// ```
-    ///	use gdsl::digraph::*;
+    /// use gdsl::digraph::*;
     ///
-    ///	let n1 = Node::new(1, ());
-    ///	let n2 = Node::new(2, ());
+    /// let n1 = Node::new(1, ());
+    /// let n2 = Node::new(2, ());
     ///
-    ///	n1.connect(&n2, ());
+    /// n1.connect(&n2, ());
     ///
-    ///	assert!(n1.is_connected(n2.key()));
+    /// assert!(n1.is_connected(n2.key()));
     ///
-    ///	if n1.disconnect(n2.key()).is_err() {
-    ///		panic!("n1 should be connected to n2");
-    ///	}
+    /// if n1.disconnect(n2.key()).is_err() {
+    ///     panic!("n1 should be connected to n2");
+    /// }
     ///
-    ///	assert!(!n1.is_connected(n2.key()));
+    /// assert!(!n1.is_connected(n2.key()));
     /// ```
     pub fn disconnect(&self, other: &K) -> Result<E> {
         match self.find_outbound(other) {
@@ -365,27 +367,27 @@ where
     /// # Example
     ///
     /// ```
-    ///	use gdsl::digraph::*;
+    /// use gdsl::digraph::*;
     ///
-    ///	let n1 = Node::new(1, ());
-    ///	let n2 = Node::new(2, ());
-    ///	let n3 = Node::new(3, ());
-    ///	let n4 = Node::new(4, ());
+    /// let n1 = Node::new(1, ());
+    /// let n2 = Node::new(2, ());
+    /// let n3 = Node::new(3, ());
+    /// let n4 = Node::new(4, ());
     ///
-    ///	n1.connect(&n2, ());
-    ///	n1.connect(&n3, ());
-    ///	n1.connect(&n4, ());
-    ///	n2.connect(&n1, ());
-    ///	n3.connect(&n1, ());
-    ///	n4.connect(&n1, ());
+    /// n1.connect(&n2, ());
+    /// n1.connect(&n3, ());
+    /// n1.connect(&n4, ());
+    /// n2.connect(&n1, ());
+    /// n3.connect(&n1, ());
+    /// n4.connect(&n1, ());
     ///
-    ///	assert!(n1.is_connected(n2.key()));
-    ///	assert!(n1.is_connected(n3.key()));
-    ///	assert!(n1.is_connected(n4.key()));
+    /// assert!(n1.is_connected(n2.key()));
+    /// assert!(n1.is_connected(n3.key()));
+    /// assert!(n1.is_connected(n4.key()));
     ///
-    ///	n1.isolate();
+    /// n1.isolate();
     ///
-    ///	assert!(n1.is_orphan());
+    /// assert!(n1.is_orphan());
     /// ```
     pub fn isolate(&self) {
         for Edge(_, v, _) in self.iter_out() {
@@ -602,10 +604,10 @@ where
     /// n3.connect(&n1, ());
     ///
     /// let path = n1
-    /// 	.dfs()
-    /// 	.target(&3)
-    /// 	.search_path()
-    /// 	.unwrap();
+    ///  .dfs()
+    ///  .target(&3)
+    ///  .search_path()
+    ///  .unwrap();
     ///
     /// let mut iter = path.iter_nodes();
     ///
@@ -635,10 +637,10 @@ where
     /// n3.connect(&n1, ());
     ///
     /// let path = n1
-    /// 	.bfs()
-    /// 	.target(&3)
-    /// 	.search_path()
-    /// 	.unwrap();
+    ///  .bfs()
+    ///  .target(&3)
+    ///  .search_path()
+    ///  .unwrap();
     ///
     /// let mut iter = path.iter_nodes();
     ///
@@ -670,10 +672,10 @@ where
     /// n3.connect(&n4, ());
     ///
     /// let path = n1
-    /// 	.pfs()
-    /// 	.target(&'D')
-    /// 	.search_path()
-    /// 	.unwrap();
+    ///  .pfs()
+    ///  .target(&'D')
+    ///  .search_path()
+    ///  .unwrap();
     ///
     /// assert!(path[0] == Edge(n1, n3.clone(), ()));
     /// assert!(path[1] == Edge(n3, n4, ()));
