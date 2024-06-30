@@ -34,11 +34,11 @@
 mod adjacent;
 mod algo;
 
-use crate::error::Error;
 use self::{
     adjacent::*,
     algo::{bfs::*, dfs::*, order::*, pfs::*},
 };
+use crate::error::Error;
 use std::{
     fmt::Display,
     hash::Hash,

@@ -1,5 +1,3 @@
-//==== Includes ===============================================================
-
 use std::{fmt::Display, hash::Hash};
 
 use ahash::HashSet;
@@ -7,11 +5,11 @@ use ahash::HashSet;
 use super::method::*;
 use super::*;
 
-//==== Ordering ===============================================================
-
 pub enum Ordering {
-    Pre,
-    Post,
+    PreOrder,
+    PostOrder,
+    InOrder,
+    LevelOrder,
 }
 
 pub struct Order<'a, K, N, E>
@@ -35,17 +33,17 @@ where
         Self {
             root,
             method: Method::Empty,
-            order: Ordering::Pre,
+            order: Ordering::PreOrder,
         }
     }
 
     pub fn pre(mut self) -> Self {
-        self.order = Ordering::Pre;
+        self.order = Ordering::PreOrder;
         self
     }
 
     pub fn post(mut self) -> Self {
-        self.order = Ordering::Post;
+        self.order = Ordering::PostOrder;
         self
     }
 
@@ -69,17 +67,23 @@ where
         visited.insert(self.root.key().clone());
 
         match self.order {
-            Ordering::Pre => {
-                self.recurse_preorder(&mut edges, &mut visited, &mut queue);
+            Ordering::PreOrder => {
+                self.iterative_preorder(&mut edges, &mut visited, &mut queue);
                 nodes.push(self.root.clone());
                 let mut coll = edges.iter().map(|Edge(_, v, _)| v.clone()).collect();
                 nodes.append(&mut coll);
             }
-            Ordering::Post => {
-                self.recurse_postorder(&mut edges, &mut visited, &mut queue);
+            Ordering::PostOrder => {
+                self.iterative_postorder(&mut edges, &mut visited, &mut queue);
                 let mut coll = edges.iter().map(|Edge(_, v, _)| v.clone()).collect();
                 nodes.append(&mut coll);
                 nodes.push(self.root.clone());
+            }
+            Ordering::InOrder => {
+                todo!()
+            }
+            Ordering::LevelOrder => {
+                todo!()
             }
         }
         nodes
@@ -94,54 +98,63 @@ where
         visited.insert(self.root.key().clone());
 
         match self.order {
-            Ordering::Pre => {
-                self.recurse_preorder(&mut edges, &mut visited, &mut queue);
+            Ordering::PreOrder => {
+                self.iterative_preorder(&mut edges, &mut visited, &mut queue);
             }
-            Ordering::Post => {
-                self.recurse_postorder(&mut edges, &mut visited, &mut queue);
+            Ordering::PostOrder => {
+                self.iterative_postorder(&mut edges, &mut visited, &mut queue);
+            }
+            Ordering::InOrder => {
+                todo!()
+            }
+            Ordering::LevelOrder => {
+                todo!()
             }
         }
+
         edges
     }
 
-    fn recurse_preorder(
+    fn iterative_preorder(
         &mut self,
-        result: &mut Vec<Edge<K, N, E>>,
+        edges: &mut Vec<Edge<K, N, E>>,
         visited: &mut HashSet<K>,
         queue: &mut Vec<Node<K, N, E>>,
-    ) -> bool {
-        if let Some(node) = queue.pop() {
-            for edge in node.iter() {
+    ) {
+        while let Some(node) = queue.pop() {
+            for edge in node.iter().rev() {
                 let edge = edge.reverse();
                 let v = edge.1.clone();
-                if self.method.exec(&edge) && !visited.contains(v.key()) {
-                    visited.insert(v.key().clone());
+                if self.method.exec(&edge) && visited.insert(v.key().clone()) {
                     queue.push(v.clone());
-                    self.recurse_preorder(result, visited, queue);
-                    result.push(edge);
+                    edges.push(edge);
                 }
             }
         }
-        false
     }
 
-    fn recurse_postorder(
+    fn iterative_postorder(
         &mut self,
-        result: &mut Vec<Edge<K, N, E>>,
+        edges: &mut Vec<Edge<K, N, E>>,
         visited: &mut HashSet<K>,
         queue: &mut Vec<Node<K, N, E>>,
-    ) -> bool {
-        if let Some(node) = queue.pop() {
+    ) {
+        let mut stack = Vec::new();
+
+        while let Some(node) = queue.pop() {
+            stack.push(node.clone());
             for edge in node.iter() {
                 let v = edge.1.clone();
-                if self.method.exec(&edge) && !visited.contains(v.key()) {
-                    visited.insert(v.key().clone());
-                    queue.push(v.clone());
-                    self.recurse_postorder(result, visited, queue);
-                    result.push(edge);
+                if self.method.exec(&edge) && visited.insert(v.key().clone()) {
+                    queue.push(v);
                 }
             }
         }
-        false
+
+        while let Some(node) = stack.pop() {
+            for edge in node.iter().rev() {
+                edges.push(edge.reverse());
+            }
+        }
     }
 }

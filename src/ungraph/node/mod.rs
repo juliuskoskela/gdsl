@@ -516,6 +516,23 @@ where
     }
 }
 
+impl<'a, K, N, E> DoubleEndedIterator for NodeIterator<'a, K, N, E>
+where
+    K: Clone + Hash + Display + PartialEq + Eq,
+    N: Clone,
+    E: Clone,
+{
+    fn next_back(&mut self) -> Option<Self::Item> {
+        let adjacent = &self.node.inner.2.borrow();
+        if self.position >= adjacent.len_outbound() + adjacent.len_inbound() {
+            return None;
+        }
+        adjacent.get_adjacent(self.position).map(|(n, e)| {
+            self.position -= 1;
+            Edge(self.node.clone(), n.upgrade().unwrap(), e.clone())
+        })
+    }
+}
 impl<'a, K, N, E> IntoIterator for &'a Node<K, N, E>
 where
     K: Clone + Hash + Display + PartialEq + Eq,
