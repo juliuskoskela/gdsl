@@ -100,6 +100,7 @@
 //! ```
 #![allow(clippy::type_complexity)]
 
+pub mod core;
 pub mod digraph;
 pub mod error;
 pub mod sync_digraph;
