@@ -101,7 +101,7 @@
 #![allow(clippy::type_complexity)]
 
 pub mod digraph;
+pub mod error;
 pub mod sync_digraph;
 pub mod sync_ungraph;
 pub mod ungraph;
-pub mod error;

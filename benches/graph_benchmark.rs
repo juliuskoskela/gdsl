@@ -204,11 +204,11 @@ fn digraph_page_rank(c: &mut Criterion) {
 
 criterion_group!(
     benches,
-    digraph_creation,
+    // digraph_creation,
     digraph_dfs,
-    digraph_bfs,
-    digraph_scc,
-    digraph_serde,
-    digraph_page_rank
+    // digraph_bfs,
+    // digraph_scc,
+    // digraph_serde,
+    // digraph_page_rank
 );
 criterion_main!(benches);
