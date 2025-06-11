@@ -99,8 +99,6 @@
 //! assert!(g['E'].take() == 21);
 //! ```
 #![allow(clippy::type_complexity)]
-#![feature(associated_type_defaults)]
-#![feature(trait_upcasting)]
 
 pub mod digraph;
 pub mod error;

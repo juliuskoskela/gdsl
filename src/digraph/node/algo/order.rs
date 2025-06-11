@@ -2,6 +2,7 @@ use super::{method::*, *};
 use ahash::AHashSet as HashSet;
 use std::{fmt::Display, hash::Hash};
 
+#[derive(Clone, Copy)]
 pub enum Ordering {
     Pre,
     Post,
@@ -34,7 +35,7 @@ where
         }
     }
 
-    pub fn postroder(root: &'a Node<K, N, E>) -> Self {
+    pub fn postorder(root: &'a Node<K, N, E>) -> Self {
         Self {
             root,
             method: Method::Empty,
@@ -60,154 +61,144 @@ where
 
     pub fn search_nodes(&mut self) -> Vec<Node<K, N, E>> {
         let mut nodes = vec![];
-        let mut edges = vec![];
-        let mut queue = vec![];
-        let mut visited = HashSet::default();
-
-        queue.push(self.root.clone());
-        visited.insert(self.root.key().clone());
-
-        match self.transpose {
-            Transposition::Outbound => match self.order {
-                Ordering::Pre => {
-                    self.preorder_forward(&mut edges, &mut visited, &mut queue);
-                    nodes.push(self.root.clone());
-                    let mut coll = edges.iter().map(|Edge(_, v, _)| v.clone()).collect();
-                    nodes.append(&mut coll);
-                }
-                Ordering::Post => {
-                    self.postorder_forward(&mut edges, &mut visited, &mut queue);
-                    let mut coll = edges.iter().map(|Edge(_, v, _)| v.clone()).collect();
-                    nodes.append(&mut coll);
-                    nodes.push(self.root.clone());
-                }
-            },
-            Transposition::Inbound => match self.order {
-                Ordering::Pre => {
-                    self.preorder_backward(&mut edges, &mut visited, &mut queue);
-                    nodes.push(self.root.clone());
-                    let mut coll = edges.iter().map(|Edge(_, v, _)| v.clone()).collect();
-                    nodes.append(&mut coll);
-                }
-                Ordering::Post => {
-                    self.postorder_backward(&mut edges, &mut visited, &mut queue);
-                    let mut coll = edges.iter().map(|Edge(_, v, _)| v.clone()).collect();
-                    nodes.append(&mut coll);
-                    nodes.push(self.root.clone());
-                }
-            },
+        let edges = self.search_edges();
+        
+        match (self.transpose, self.order) {
+            (Transposition::Outbound, Ordering::Pre) => {
+                // Preorder: root first, then children
+                nodes.push(self.root.clone());
+                let mut coll = edges.iter().map(|Edge(_, v, _)| v.clone()).collect();
+                nodes.append(&mut coll);
+            }
+            (Transposition::Outbound, Ordering::Post) => {
+                // Postorder: children first, then root
+                let mut coll = edges.iter().map(|Edge(_, v, _)| v.clone()).collect();
+                nodes.append(&mut coll);
+                nodes.push(self.root.clone());
+            }
+            (Transposition::Inbound, Ordering::Pre) => {
+                // Preorder: root first, then children
+                nodes.push(self.root.clone());
+                let mut coll = edges.iter().map(|Edge(_, v, _)| v.clone()).collect();
+                nodes.append(&mut coll);
+            }
+            (Transposition::Inbound, Ordering::Post) => {
+                // Postorder: children first, then root
+                let mut coll = edges.iter().map(|Edge(_, v, _)| v.clone()).collect();
+                nodes.append(&mut coll);
+                nodes.push(self.root.clone());
+            }
         }
+        
         nodes
     }
 
     pub fn search_edges(&mut self) -> Vec<Edge<K, N, E>> {
-        let mut edges = vec![];
-        let mut queue = vec![];
+        match (self.transpose, self.order) {
+            (Transposition::Outbound, Ordering::Pre) => self.dfs_preorder_edges_outbound(),
+            (Transposition::Outbound, Ordering::Post) => self.dfs_postorder_edges_outbound(),
+            (Transposition::Inbound, Ordering::Pre) => self.dfs_preorder_edges_inbound(),
+            (Transposition::Inbound, Ordering::Post) => self.dfs_postorder_edges_inbound(),
+        }
+    }
+
+
+    
+    // DFS Pre-order traversal for edges (outbound)
+    fn dfs_preorder_edges_outbound(&mut self) -> Vec<Edge<K, N, E>> {
+        let mut result = Vec::new();
         let mut visited = HashSet::default();
-
-        queue.push(self.root.clone());
+        let mut stack = Vec::new();
+        
+        stack.push(self.root.clone());
         visited.insert(self.root.key().clone());
-
-        match self.transpose {
-            Transposition::Outbound => match self.order {
-                Ordering::Pre => {
-                    self.preorder_forward(&mut edges, &mut visited, &mut queue);
-                }
-                Ordering::Post => {
-                    self.postorder_forward(&mut edges, &mut visited, &mut queue);
-                }
-            },
-            Transposition::Inbound => match self.order {
-                Ordering::Pre => {
-                    self.preorder_backward(&mut edges, &mut visited, &mut queue);
-                }
-                Ordering::Post => {
-                    self.postorder_backward(&mut edges, &mut visited, &mut queue);
-                }
-            },
-        }
-        edges
-    }
-
-    fn preorder_forward(
-        &mut self,
-        result: &mut Vec<Edge<K, N, E>>,
-        visited: &mut HashSet<K>,
-        queue: &mut Vec<Node<K, N, E>>,
-    ) -> bool {
-        if let Some(node) = queue.pop() {
+        
+        while let Some(node) = stack.pop() {
+            // Add neighbors to stack and collect edges
+            let mut neighbors = Vec::new();
             for edge in node.iter_out() {
-                let v = edge.1.clone();
-                if self.method.exec(&edge) && !visited.contains(v.key()) {
-                    visited.insert(v.key().clone());
-                    queue.push(v.clone());
+                let neighbor = edge.1.clone();
+                if self.method.exec(&edge) && !visited.contains(neighbor.key()) {
+                    visited.insert(neighbor.key().clone());
                     result.push(edge);
-                    self.preorder_forward(result, visited, queue);
+                    neighbors.push(neighbor);
                 }
             }
+            // Reverse to maintain consistent order
+            neighbors.reverse();
+            stack.extend(neighbors);
         }
-        false
+        
+        result
     }
-
-    fn preorder_backward(
-        &mut self,
-        result: &mut Vec<Edge<K, N, E>>,
-        visited: &mut HashSet<K>,
-        queue: &mut Vec<Node<K, N, E>>,
-    ) -> bool {
-        if let Some(node) = queue.pop() {
-            for edge in node.iter_in() {
-                let edge = edge.reverse();
-                let v = edge.1.clone();
-                if self.method.exec(&edge) && !visited.contains(v.key()) {
-                    visited.insert(v.key().clone());
-                    queue.push(v.clone());
-                    result.push(edge);
-                    self.preorder_backward(result, visited, queue);
-                }
-            }
-        }
-        false
-    }
-
-    fn postorder_forward(
-        &mut self,
-        result: &mut Vec<Edge<K, N, E>>,
-        visited: &mut HashSet<K>,
-        queue: &mut Vec<Node<K, N, E>>,
-    ) -> bool {
-        if let Some(node) = queue.pop() {
+    
+    // DFS Post-order traversal for edges (outbound)
+    fn dfs_postorder_edges_outbound(&mut self) -> Vec<Edge<K, N, E>> {
+        let mut result = Vec::new();
+        let mut visited = HashSet::default();
+        let mut stack = Vec::new();
+        let mut edge_stack = Vec::new();
+        
+        stack.push(self.root.clone());
+        visited.insert(self.root.key().clone());
+        
+        while let Some(node) = stack.pop() {
+            // Add neighbors to stack and collect edges
             for edge in node.iter_out() {
-                let v = edge.1.clone();
-                if self.method.exec(&edge) && !visited.contains(v.key()) {
-                    visited.insert(v.key().clone());
-                    queue.push(v.clone());
-                    result.push(edge);
-                    self.postorder_forward(result, visited, queue);
+                let neighbor = edge.1.clone();
+                if self.method.exec(&edge) && !visited.contains(neighbor.key()) {
+                    visited.insert(neighbor.key().clone());
+                    edge_stack.push(edge);
+                    stack.push(neighbor);
                 }
             }
         }
-        false
+        
+        // Post-order means we process edges in reverse order
+        edge_stack.reverse();
+        result.extend(edge_stack);
+        result
     }
-
-    fn postorder_backward(
-        &mut self,
-        result: &mut Vec<Edge<K, N, E>>,
-        visited: &mut HashSet<K>,
-        queue: &mut Vec<Node<K, N, E>>,
-    ) -> bool {
-        if let Some(node) = queue.pop() {
-            for edge in node.iter_in() {
-                let edge = edge.reverse();
-                let v = edge.1.clone();
-                if self.method.exec(&edge) && !visited.contains(v.key()) {
-                    visited.insert(v.key().clone());
-                    queue.push(v.clone());
-                    result.push(edge);
-                    self.postorder_backward(result, visited, queue);
-                }
+    
+    // DFS Pre-order traversal for edges (inbound) - recursive approach to match original
+    fn dfs_preorder_edges_inbound(&mut self) -> Vec<Edge<K, N, E>> {
+        let mut result = Vec::new();
+        let mut visited = HashSet::default();
+        visited.insert(self.root.key().clone());
+        self.dfs_preorder_inbound_recursive(self.root.clone(), &mut result, &mut visited);
+        result
+    }
+    
+    fn dfs_preorder_inbound_recursive(&mut self, node: Node<K, N, E>, result: &mut Vec<Edge<K, N, E>>, visited: &mut HashSet<K>) {
+        for edge in node.iter_in() {
+            let neighbor = edge.0.clone();
+            let reversed_edge = edge.reverse();
+            if self.method.exec(&reversed_edge) && !visited.contains(neighbor.key()) {
+                visited.insert(neighbor.key().clone());
+                result.push(reversed_edge);
+                self.dfs_preorder_inbound_recursive(neighbor, result, visited);
             }
         }
-        false
+    }
+    
+    // DFS Post-order traversal for edges (inbound) - recursive approach to match original
+    fn dfs_postorder_edges_inbound(&mut self) -> Vec<Edge<K, N, E>> {
+        let mut result = Vec::new();
+        let mut visited = HashSet::default();
+        visited.insert(self.root.key().clone());
+        self.dfs_postorder_inbound_recursive(self.root.clone(), &mut result, &mut visited);
+        result
+    }
+    
+    fn dfs_postorder_inbound_recursive(&mut self, node: Node<K, N, E>, result: &mut Vec<Edge<K, N, E>>, visited: &mut HashSet<K>) {
+        for edge in node.iter_in() {
+            let neighbor = edge.0.clone();
+            let reversed_edge = edge.reverse();
+            if self.method.exec(&reversed_edge) && !visited.contains(neighbor.key()) {
+                visited.insert(neighbor.key().clone());
+                result.push(reversed_edge);
+                self.dfs_postorder_inbound_recursive(neighbor, result, visited);
+            }
+        }
     }
 }

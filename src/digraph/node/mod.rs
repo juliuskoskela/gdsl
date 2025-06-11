@@ -49,6 +49,7 @@ use std::{
     rc::{Rc, Weak},
 };
 
+#[derive(Clone, Copy)]
 enum Transposition {
     Outbound,
     Inbound,
@@ -586,7 +587,7 @@ where
     /// assert!(order[0] == n3);
     /// ```
     pub fn postorder(&self) -> Order<K, N, E> {
-        Order::postroder(self)
+        Order::postorder(self)
     }
 
     /// Returns an iterator-like object that can be used to map, filter,

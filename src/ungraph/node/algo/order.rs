@@ -1,4 +1,4 @@
-use std::{fmt::Display, hash::Hash};
+use std::{fmt::Display, hash::Hash, collections::VecDeque};
 
 use ahash::HashSet;
 
@@ -58,103 +58,193 @@ where
     }
 
     pub fn search_nodes(&mut self) -> Vec<Node<K, N, E>> {
-        let mut nodes = vec![];
-        let mut edges = vec![];
-        let mut queue = vec![];
-        let mut visited = HashSet::default();
-
-        queue.push(self.root.clone());
-        visited.insert(self.root.key().clone());
-
         match self.order {
-            Ordering::PreOrder => {
-                self.iterative_preorder(&mut edges, &mut visited, &mut queue);
-                nodes.push(self.root.clone());
-                let mut coll = edges.iter().map(|Edge(_, v, _)| v.clone()).collect();
-                nodes.append(&mut coll);
-            }
-            Ordering::PostOrder => {
-                self.iterative_postorder(&mut edges, &mut visited, &mut queue);
-                let mut coll = edges.iter().map(|Edge(_, v, _)| v.clone()).collect();
-                nodes.append(&mut coll);
-                nodes.push(self.root.clone());
-            }
+            Ordering::PreOrder => self.dfs_preorder_nodes(),
+            Ordering::PostOrder => self.dfs_postorder_nodes(),
             Ordering::InOrder => {
-                todo!()
+                // For graphs, in-order doesn't have a standard definition
+                // We'll implement it as a variant of DFS
+                self.dfs_preorder_nodes()
             }
-            Ordering::LevelOrder => {
-                todo!()
-            }
+            Ordering::LevelOrder => self.bfs_levelorder_nodes(),
         }
-        nodes
     }
 
     pub fn search_edges(&mut self) -> Vec<Edge<K, N, E>> {
-        let mut edges = vec![];
-        let mut queue = vec![];
-        let mut visited = HashSet::default();
-
-        queue.push(self.root.clone());
-        visited.insert(self.root.key().clone());
-
         match self.order {
-            Ordering::PreOrder => {
-                self.iterative_preorder(&mut edges, &mut visited, &mut queue);
-            }
-            Ordering::PostOrder => {
-                self.iterative_postorder(&mut edges, &mut visited, &mut queue);
-            }
+            Ordering::PreOrder => self.dfs_preorder_edges(),
+            Ordering::PostOrder => self.dfs_postorder_edges(),
             Ordering::InOrder => {
-                todo!()
+                // For graphs, in-order doesn't have a standard definition
+                // We'll implement it as a variant of DFS
+                self.dfs_preorder_edges()
             }
-            Ordering::LevelOrder => {
-                todo!()
-            }
-        }
-
-        edges
-    }
-
-    fn iterative_preorder(
-        &mut self,
-        edges: &mut Vec<Edge<K, N, E>>,
-        visited: &mut HashSet<K>,
-        queue: &mut Vec<Node<K, N, E>>,
-    ) {
-        while let Some(node) = queue.pop() {
-            for edge in node.iter().rev() {
-                let edge = edge.reverse();
-                let v = edge.1.clone();
-                if self.method.exec(&edge) && visited.insert(v.key().clone()) {
-                    queue.push(v.clone());
-                    edges.push(edge);
-                }
-            }
+            Ordering::LevelOrder => self.bfs_levelorder_edges(),
         }
     }
 
-    fn iterative_postorder(
-        &mut self,
-        edges: &mut Vec<Edge<K, N, E>>,
-        visited: &mut HashSet<K>,
-        queue: &mut Vec<Node<K, N, E>>,
-    ) {
+    // DFS Pre-order traversal for nodes
+    fn dfs_preorder_nodes(&mut self) -> Vec<Node<K, N, E>> {
+        let mut result = Vec::new();
+        let mut visited = HashSet::default();
         let mut stack = Vec::new();
-
-        while let Some(node) = queue.pop() {
-            stack.push(node.clone());
-            for edge in node.iter() {
-                let v = edge.1.clone();
-                if self.method.exec(&edge) && visited.insert(v.key().clone()) {
-                    queue.push(v);
+        
+        stack.push(self.root.clone());
+        
+        while let Some(node) = stack.pop() {
+            if !visited.contains(node.key()) {
+                visited.insert(node.key().clone());
+                result.push(node.clone());
+                
+                // Add neighbors to stack (in reverse order for consistent traversal)
+                let mut neighbors = Vec::new();
+                for edge in node.iter() {
+                    let neighbor = edge.1.clone();
+                    if self.method.exec(&edge) && !visited.contains(neighbor.key()) {
+                        neighbors.push(neighbor);
+                    }
+                }
+                // Reverse to maintain consistent order
+                neighbors.reverse();
+                stack.extend(neighbors);
+            }
+        }
+        
+        result
+    }
+    
+    // DFS Post-order traversal for nodes
+    fn dfs_postorder_nodes(&mut self) -> Vec<Node<K, N, E>> {
+        let mut result = Vec::new();
+        let mut visited = HashSet::default();
+        let mut stack = Vec::new();
+        let mut post_stack = Vec::new();
+        
+        stack.push(self.root.clone());
+        
+        while let Some(node) = stack.pop() {
+            if !visited.contains(node.key()) {
+                visited.insert(node.key().clone());
+                post_stack.push(node.clone());
+                
+                // Add neighbors to stack
+                for edge in node.iter() {
+                    let neighbor = edge.1.clone();
+                    if self.method.exec(&edge) && !visited.contains(neighbor.key()) {
+                        stack.push(neighbor);
+                    }
                 }
             }
         }
-
-        while let Some(node) = stack.pop() {
-            for edge in node.iter().rev() {
-                edges.push(edge.reverse());
+        
+        // Post-order means we process nodes in reverse order of discovery
+        post_stack.reverse();
+        result.extend(post_stack);
+        result
+    }
+    
+    // BFS Level-order traversal for nodes
+    fn bfs_levelorder_nodes(&mut self) -> Vec<Node<K, N, E>> {
+        let mut result = Vec::new();
+        let mut visited = HashSet::default();
+        let mut queue = VecDeque::new();
+        
+        queue.push_back(self.root.clone());
+        visited.insert(self.root.key().clone());
+        
+        while let Some(node) = queue.pop_front() {
+            result.push(node.clone());
+            
+            // Add neighbors to queue
+            for edge in node.iter() {
+                let neighbor = edge.1.clone();
+                if self.method.exec(&edge) && !visited.contains(neighbor.key()) {
+                    visited.insert(neighbor.key().clone());
+                    queue.push_back(neighbor);
+                }
             }
         }
+        
+        result
+    }
+    
+    // DFS Pre-order traversal for edges
+    fn dfs_preorder_edges(&mut self) -> Vec<Edge<K, N, E>> {
+        let mut result = Vec::new();
+        let mut visited = HashSet::default();
+        let mut stack = Vec::new();
+        
+        stack.push(self.root.clone());
+        visited.insert(self.root.key().clone());
+        
+        while let Some(node) = stack.pop() {
+            // Add neighbors to stack and collect edges
+            let mut neighbors = Vec::new();
+            for edge in node.iter() {
+                let neighbor = edge.1.clone();
+                if self.method.exec(&edge) && !visited.contains(neighbor.key()) {
+                    visited.insert(neighbor.key().clone());
+                    result.push(edge.reverse());
+                    neighbors.push(neighbor);
+                }
+            }
+            // Reverse to maintain consistent order
+            neighbors.reverse();
+            stack.extend(neighbors);
+        }
+        
+        result
+    }
+    
+    // DFS Post-order traversal for edges
+    fn dfs_postorder_edges(&mut self) -> Vec<Edge<K, N, E>> {
+        let mut result = Vec::new();
+        let mut visited = HashSet::default();
+        let mut stack = Vec::new();
+        let mut edge_stack = Vec::new();
+        
+        stack.push(self.root.clone());
+        visited.insert(self.root.key().clone());
+        
+        while let Some(node) = stack.pop() {
+            // Add neighbors to stack and collect edges
+            for edge in node.iter() {
+                let neighbor = edge.1.clone();
+                if self.method.exec(&edge) && !visited.contains(neighbor.key()) {
+                    visited.insert(neighbor.key().clone());
+                    edge_stack.push(edge.reverse());
+                    stack.push(neighbor);
+                }
+            }
+        }
+        
+        // Post-order means we process edges in reverse order
+        edge_stack.reverse();
+        result.extend(edge_stack);
+        result
+    }
+    
+    // BFS Level-order traversal for edges
+    fn bfs_levelorder_edges(&mut self) -> Vec<Edge<K, N, E>> {
+        let mut result = Vec::new();
+        let mut visited = HashSet::default();
+        let mut queue = VecDeque::new();
+        
+        queue.push_back(self.root.clone());
+        visited.insert(self.root.key().clone());
+        
+        while let Some(node) = queue.pop_front() {
+            // Add neighbors to queue and collect edges
+            for edge in node.iter() {
+                let neighbor = edge.1.clone();
+                if self.method.exec(&edge) && !visited.contains(neighbor.key()) {
+                    visited.insert(neighbor.key().clone());
+                    result.push(edge.reverse());
+                    queue.push_back(neighbor);
+                }
+            }
+        }
+        
+        result
     }
 }
