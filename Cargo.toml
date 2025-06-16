@@ -20,7 +20,7 @@ categories = ["data-structures", "algorithms", "mathematics", "science"]
 [dependencies]
 ahash = "0.8.6"
 serde = "1.0.190"
-thiserror = "1.0.56"
+thiserror = "2.0.12"
 
 [dev-dependencies]
 rand = "0.8.5"
